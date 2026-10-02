@@ -20,8 +20,9 @@
 		}
 	],
 	"vars": {
-		"IMAGES_URL": "https://images.testingggg.lol"
-	}
+		"IMAGES_URL": "https://images.testingggg.lol",
+		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev"
+	},
 	// "compatibility_flags": [
 	//   "nodejs_compat"
 	// ],
