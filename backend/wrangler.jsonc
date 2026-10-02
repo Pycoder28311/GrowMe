@@ -22,7 +22,7 @@
 	"vars": {
 		"IMAGES_URL": "https://images.testingggg.lol",
 		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
-		"EMAIL_FROM": "GrowMe <no-reply@souvlaki.info>"
+		"EMAIL_FROM": "GrowMe <no-reply@testingggg.lol>"
 	}
 	// "compatibility_flags": [
 	//   "nodejs_compat"
