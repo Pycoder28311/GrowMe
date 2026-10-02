@@ -1,38 +1,46 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "my-app",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-10-02"
-  // "compatibility_flags": [
-  //   "nodejs_compat"
-  // ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
-  // },
-  // "observability": {
-  //   "enabled": true,
-  //   "head_sampling_rate": 1
-  // }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "growme",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-02",
+	"d1_databases": [
+		{
+			"binding": "growme_db",
+			"database_name": "growme-db",
+			"database_id": "050b8833-8135-4e3a-b988-753a3a3847fe",
+			"remote": true
+		}
+	]
+	// "compatibility_flags": [
+	//   "nodejs_compat"
+	// ],
+	// "vars": {
+	//   "MY_VAR": "my-variable"
+	// },
+	// "kv_namespaces": [
+	//   {
+	//     "binding": "MY_KV_NAMESPACE",
+	//     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+	//   }
+	// ],
+	// "r2_buckets": [
+	//   {
+	//     "binding": "MY_BUCKET",
+	//     "bucket_name": "my-bucket"
+	//   }
+	// ],
+	// "d1_databases": [
+	//   {
+	//     "binding": "MY_DB",
+	//     "database_name": "my-database",
+	//     "database_id": ""
+	//   }
+	// ],
+	// "ai": {
+	//   "binding": "AI"
+	// },
+	// "observability": {
+	//   "enabled": true,
+	//   "head_sampling_rate": 1
+	// }
 }
