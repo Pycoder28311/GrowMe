@@ -1,4 +1,5 @@
 import * as Device from 'expo-device';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,6 +30,15 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  const [message, setMessage] = useState('Loading...');
+
+  useEffect(() => {
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/hello`)
+      .then((res) => res.json())
+      .then((data) => setMessage(data.message))
+      .catch(() => setMessage('Could not reach the backend'));
+  }, []);
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -37,6 +47,7 @@ export default function HomeScreen() {
           <ThemedText type="title" style={styles.title}>
             Welcome to&nbsp;Expo
           </ThemedText>
+          <ThemedText>{message}</ThemedText>
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
