@@ -1,3 +1,4 @@
+import { File as ExpoFile } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 
 const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api`;
@@ -36,10 +37,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 function uploadImages(assets: ImagePickerAsset[]) {
   const form = new FormData();
   for (const asset of assets) {
-    const type = asset.mimeType ?? 'image/jpeg';
-    const name = asset.fileName ?? `image.${type.split('/')[1]}`;
-    // Web gives a real File; native uploads from the local file uri
-    form.append('files', asset.file ?? ({ uri: asset.uri, name, type } as unknown as Blob));
+    // Web gives a browser File; native wraps the local file (expo/fetch needs a Blob, not a uri)
+    form.append('files', asset.file ?? new ExpoFile(asset.uri));
   }
   return request<NoteImage[]>('/images', { method: 'POST', body: form });
 }
