@@ -1,19 +1,27 @@
 import { relations } from 'drizzle-orm'
-import { sqliteTable, integer, text, primaryKey } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, integer, text, primaryKey, index } from 'drizzle-orm/sqlite-core'
+import { user } from './auth-schema'
+export * from './auth-schema'
 
-export const notes = sqliteTable('notes', {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    text: text('text').notNull(),
-})
+export const notes = sqliteTable(
+    'notes',
+    {
+        id: integer('id').primaryKey({ autoIncrement: true }),
+        userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+        text: text('text').notNull(),
+    },
+    (t) => [index('notes_user_id_idx').on(t.userId)],
+)
 
-// Every uploaded file in R2, described once
 export const images = sqliteTable('images', {
     id: integer('id').primaryKey({ autoIncrement: true }),
+    userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
     key: text('key').notNull().unique(),
     contentType: text('content_type').notNull(),
     size: integer('size').notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
+
 
 // Which images belong to which note, in carousel order
 export const noteImages = sqliteTable(

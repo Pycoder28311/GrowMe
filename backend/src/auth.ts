@@ -12,4 +12,7 @@ export const createAuth = (env: CloudflareBindings) =>
         emailAndPassword: { enabled: true },
         plugins: [expo()],
         trustedOrigins: ['growme://', 'http://localhost:8081'],
+        advanced: {
+            defaultCookieAttributes: { sameSite: 'none', secure: true },
+        },
     })

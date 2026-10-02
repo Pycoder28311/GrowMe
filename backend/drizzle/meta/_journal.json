@@ -15,6 +15,20 @@
       "when": 1790944379587,
       "tag": "0001_foamy_darwin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790952976624,
+      "tag": "0002_glossy_rictor",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790953887101,
+      "tag": "0003_talented_lilith",
+      "breakpoints": true
     }
   ]
 }
