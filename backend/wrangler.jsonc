@@ -11,7 +11,17 @@
 			"migrations_dir": "drizzle",
 			"remote": true
 		}
-	]
+	],
+	"r2_buckets": [
+		{
+			"binding": "images",
+			"bucket_name": "growme-images",
+			"remote": true
+		}
+	],
+	"vars": {
+		"IMAGES_URL": "https://images.testingggg.lol"
+	}
 	// "compatibility_flags": [
 	//   "nodejs_compat"
 	// ],

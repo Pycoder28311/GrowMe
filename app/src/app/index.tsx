@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { notesApi, type Note } from '@/api/notes';
+import { notesApi, type DraftImage, type Note } from '@/api/notes';
+import { Button } from '@/components/button';
+import { ImageCarousel } from '@/components/image-carousel';
+import { NoteEditor } from '@/components/note-editor';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 
 export default function NotesScreen() {
-  const theme = useTheme();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [newText, setNewText] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editText, setEditText] = useState('');
+  const [createKey, setCreateKey] = useState(0);
 
   useEffect(() => {
     notesApi
@@ -34,20 +34,16 @@ export default function NotesScreen() {
     }
   }
 
-  const addNote = () =>
+  const createNote = (text: string, images: DraftImage[]) =>
     run(async () => {
-      const text = newText.trim();
-      if (!text) return;
-      const note = await notesApi.create(text);
+      const note = await notesApi.save(null, text, images);
       setNotes((current) => [note, ...current]);
-      setNewText('');
+      setCreateKey((k) => k + 1); // resets the create form
     });
 
-  const saveEdit = (id: number) =>
+  const updateNote = (id: number, text: string, images: DraftImage[]) =>
     run(async () => {
-      const text = editText.trim();
-      if (!text) return;
-      const updated = await notesApi.update(id, text);
+      const updated = await notesApi.save(id, text, images);
       setNotes((current) => current.map((n) => (n.id === id ? updated : n)));
       setEditingId(null);
     });
@@ -58,36 +54,9 @@ export default function NotesScreen() {
       setNotes((current) => current.filter((n) => n.id !== id));
     });
 
-  const startEdit = (note: Note) => {
-    setEditingId(note.id);
-    setEditText(note.text);
-  };
-
-  const inputStyle = [
-    styles.input,
-    { color: theme.text, backgroundColor: theme.backgroundElement },
-  ];
-
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedText type="subtitle">Notes</ThemedText>
-
-        <View style={styles.row}>
-          <TextInput
-            style={[inputStyle, styles.flex]}
-            placeholder="Write a note..."
-            placeholderTextColor={theme.textSecondary}
-            value={newText}
-            onChangeText={setNewText}
-            onSubmitEditing={addNote}
-            returnKeyType="done"
-          />
-          <Button label="Add" onPress={addNote} />
-        </View>
-
-        {error && <ThemedText style={styles.error}>{error}</ThemedText>}
-
         {loading ? (
           <ActivityIndicator style={styles.loader} />
         ) : (
@@ -95,29 +64,33 @@ export default function NotesScreen() {
             data={notes}
             keyExtractor={(note) => String(note.id)}
             contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              <View style={styles.header}>
+                <ThemedText type="subtitle">Notes</ThemedText>
+                <ThemedView type="backgroundElement" style={styles.card}>
+                  <NoteEditor key={createKey} onSave={createNote} />
+                </ThemedView>
+                {error && <ThemedText style={styles.error}>{error}</ThemedText>}
+              </View>
+            }
             ListEmptyComponent={
               <ThemedText themeColor="textSecondary">No notes yet. Add your first one.</ThemedText>
             }
             renderItem={({ item }) => (
-              <ThemedView type="backgroundElement" style={styles.note}>
+              <ThemedView type="backgroundElement" style={styles.card}>
                 {editingId === item.id ? (
-                  <>
-                    <TextInput
-                      style={[inputStyle, { backgroundColor: theme.background }]}
-                      value={editText}
-                      onChangeText={setEditText}
-                      autoFocus
-                    />
-                    <View style={styles.actions}>
-                      <Button label="Save" onPress={() => saveEdit(item.id)} />
-                      <Button label="Cancel" onPress={() => setEditingId(null)} />
-                    </View>
-                  </>
+                  <NoteEditor
+                    note={item}
+                    onSave={(text, images) => updateNote(item.id, text, images)}
+                    onCancel={() => setEditingId(null)}
+                  />
                 ) : (
                   <>
+                    <ImageCarousel images={item.images} />
                     <ThemedText>{item.text}</ThemedText>
                     <View style={styles.actions}>
-                      <Button label="Edit" onPress={() => startEdit(item)} />
+                      <Button label="Edit" onPress={() => setEditingId(item.id)} />
                       <Button label="Delete" onPress={() => deleteNote(item.id)} destructive />
                     </View>
                   </>
@@ -131,26 +104,6 @@ export default function NotesScreen() {
   );
 }
 
-function Button({
-  label,
-  onPress,
-  destructive,
-}: {
-  label: string;
-  onPress: () => void;
-  destructive?: boolean;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-      <ThemedText type="smallBold" style={{ color: destructive ? '#e5484d' : '#3c87f7' }}>
-        {label}
-      </ThemedText>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -161,23 +114,11 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: MaxContentWidth,
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.four,
     paddingBottom: BottomTabInset,
+  },
+  header: {
     gap: Spacing.three,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  flex: {
-    flex: 1,
-  },
-  input: {
-    fontSize: 16,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderRadius: Spacing.two,
+    paddingTop: Spacing.four,
   },
   error: {
     color: '#e5484d',
@@ -186,10 +127,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.four,
   },
   list: {
-    gap: Spacing.two,
+    gap: Spacing.three,
     paddingBottom: Spacing.four,
   },
-  note: {
+  card: {
     padding: Spacing.three,
     borderRadius: Spacing.three,
     gap: Spacing.two,
@@ -198,12 +139,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: Spacing.three,
-  },
-  button: {
-    paddingVertical: Spacing.one,
-    paddingHorizontal: Spacing.two,
-  },
-  pressed: {
-    opacity: 0.5,
   },
 });

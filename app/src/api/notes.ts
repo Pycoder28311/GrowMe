@@ -1,14 +1,30 @@
-const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api/notes`;
+import type { ImagePickerAsset } from 'expo-image-picker';
+
+const API_URL = `${process.env.EXPO_PUBLIC_API_URL}/api`;
+
+export type NoteImage = {
+  id: number;
+  url: string;
+};
 
 export type Note = {
   id: number;
   text: string;
+  images: NoteImage[];
+};
+
+/** An image in the editor: already uploaded (has id) or newly picked (has asset) */
+export type DraftImage = {
+  url: string;
+  id?: number;
+  asset?: ImagePickerAsset;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const isJson = typeof init?.body === 'string';
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: isJson ? { 'Content-Type': 'application/json', ...init?.headers } : init?.headers,
   });
   if (!res.ok) {
     throw new Error(`Request failed (${res.status})`);
@@ -16,10 +32,34 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
+/** Uploads all picked images in a single request */
+function uploadImages(assets: ImagePickerAsset[]) {
+  const form = new FormData();
+  for (const asset of assets) {
+    const type = asset.mimeType ?? 'image/jpeg';
+    const name = asset.fileName ?? `image.${type.split('/')[1]}`;
+    // Web gives a real File; native uploads from the local file uri
+    form.append('files', asset.file ?? ({ uri: asset.uri, name, type } as unknown as Blob));
+  }
+  return request<NoteImage[]>('/images', { method: 'POST', body: form });
+}
+
+/** Creates or updates a note: at most one upload request + one note request */
+async function save(noteId: number | null, text: string, drafts: DraftImage[]) {
+  const newAssets = drafts.flatMap((d) => (d.asset ? [d.asset] : []));
+  const uploaded = newAssets.length ? await uploadImages(newAssets) : [];
+
+  let next = 0;
+  const imageIds = drafts.map((d) => d.id ?? uploaded[next++].id);
+  const body = JSON.stringify({ text, imageIds });
+
+  return noteId === null
+    ? request<Note>('/notes', { method: 'POST', body })
+    : request<Note>(`/notes/${noteId}`, { method: 'PATCH', body });
+}
+
 export const notesApi = {
-  list: () => request<Note[]>(''),
-  create: (text: string) => request<Note>('', { method: 'POST', body: JSON.stringify({ text }) }),
-  update: (id: number, text: string) =>
-    request<Note>(`/${id}`, { method: 'PATCH', body: JSON.stringify({ text }) }),
-  remove: (id: number) => request<void>(`/${id}`, { method: 'DELETE' }),
+  list: () => request<Note[]>('/notes'),
+  save,
+  remove: (id: number) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
 };
