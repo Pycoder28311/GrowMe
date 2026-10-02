@@ -40,6 +40,7 @@ export default function SignInScreen() {
                 {error && <ThemedText style={styles.error}>{error}</ThemedText>}
                 <Button label={loading ? 'Signing in...' : 'Sign in'} onPress={signIn} disabled={loading} />
                 <Link href="/sign-up"><ThemedText type="linkPrimary">No account? Sign up</ThemedText></Link>
+                <Link href="/forgot-password"><ThemedText type="linkPrimary">Forgot password?</ThemedText></Link>
             </SafeAreaView>
         </ThemedView>
     );

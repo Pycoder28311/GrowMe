@@ -23,6 +23,7 @@ export default function RootLayout() {
         <Stack.Protected guard={!session}>
           <Stack.Screen name="sign-in" />
           <Stack.Screen name="sign-up" />
+          <Stack.Screen name="forgot-password" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

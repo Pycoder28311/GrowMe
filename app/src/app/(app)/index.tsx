@@ -9,6 +9,7 @@ import { NoteEditor } from '@/components/note-editor';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { authClient } from '@/lib/auth-client';
 
 export default function NotesScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -67,7 +68,10 @@ export default function NotesScreen() {
             keyboardShouldPersistTaps="handled"
             ListHeaderComponent={
               <View style={styles.header}>
-                <ThemedText type="subtitle">Notes</ThemedText>
+                <View style={styles.titleRow}>
+                  <ThemedText type="subtitle">Notes</ThemedText>
+                  <Button label="Sign out" onPress={() => authClient.signOut()} destructive />
+                </View>
                 <ThemedView type="backgroundElement" style={styles.card}>
                   <NoteEditor key={createKey} onSave={createNote} />
                 </ThemedView>
@@ -119,6 +123,11 @@ const styles = StyleSheet.create({
   header: {
     gap: Spacing.three,
     paddingTop: Spacing.four,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   error: {
     color: '#e5484d',

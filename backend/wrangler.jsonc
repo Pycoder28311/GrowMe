@@ -21,8 +21,9 @@
 	],
 	"vars": {
 		"IMAGES_URL": "https://images.testingggg.lol",
-		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev"
-	},
+		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
+		"EMAIL_FROM": "GrowMe <onboarding@resend.dev>"
+	}
 	// "compatibility_flags": [
 	//   "nodejs_compat"
 	// ],
