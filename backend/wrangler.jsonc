@@ -8,6 +8,7 @@
 			"binding": "growme_db",
 			"database_name": "growme-db",
 			"database_id": "050b8833-8135-4e3a-b988-753a3a3847fe",
+			"migrations_dir": "drizzle",
 			"remote": true
 		}
 	]
