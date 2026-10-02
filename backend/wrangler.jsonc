@@ -9,20 +9,20 @@
 			"database_name": "growme-db",
 			"database_id": "050b8833-8135-4e3a-b988-753a3a3847fe",
 			"migrations_dir": "drizzle",
-			"remote": true
+			//"remote": true
 		}
 	],
 	"r2_buckets": [
 		{
 			"binding": "images",
 			"bucket_name": "growme-images",
-			"remote": true
+			//"remote": true
 		}
 	],
 	"vars": {
 		"IMAGES_URL": "https://images.testingggg.lol",
 		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
-		"EMAIL_FROM": "GrowMe <onboarding@resend.dev>"
+		"EMAIL_FROM": "GrowMe <no-reply@souvlaki.info>"
 	}
 	// "compatibility_flags": [
 	//   "nodejs_compat"

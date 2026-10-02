@@ -29,5 +29,13 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => createAuth(c.env).handler(c.req.ra
 
 const routes = app.route('/api/notes', notesRoutes).route('/api/images', imagesRoutes)
 
+app.get('/images/*', async (c) => {
+  const object = await c.env.images.get(c.req.path.slice('/images/'.length))
+  if (!object) return c.notFound()
+  return new Response(object.body, {
+    headers: { 'Content-Type': object.httpMetadata?.contentType ?? 'application/octet-stream' },
+  })
+})
+
 export type AppType = typeof routes
 export default app
