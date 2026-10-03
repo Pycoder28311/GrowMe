@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { notesApi, type DraftImage, type Note } from '@/api/notes';
@@ -9,7 +9,9 @@ import { NoteEditor } from '@/components/note-editor';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { track } from '@/lib/analytics';
 import { authClient } from '@/lib/auth-client';
+import { openCookieSettings } from '@/lib/consent';
 
 export default function NotesScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -40,6 +42,7 @@ export default function NotesScreen() {
       const note = await notesApi.save(null, text, images);
       setNotes((current) => [note, ...current]);
       setCreateKey((k) => k + 1); // resets the create form
+      track('note_created', { images: images.length });
     });
 
   const updateNote = (id: number, text: string, images: DraftImage[]) =>
@@ -47,12 +50,14 @@ export default function NotesScreen() {
       const updated = await notesApi.save(id, text, images);
       setNotes((current) => current.map((n) => (n.id === id ? updated : n)));
       setEditingId(null);
+      track('note_updated', { images: images.length });
     });
 
   const deleteNote = (id: number) =>
     run(async () => {
       await notesApi.remove(id);
       setNotes((current) => current.filter((n) => n.id !== id));
+      track('note_deleted', { id });
     });
 
   return (
@@ -71,6 +76,7 @@ export default function NotesScreen() {
                 <View style={styles.titleRow}>
                   <ThemedText type="subtitle">Notes</ThemedText>
                   <Button label="Sign out" onPress={() => authClient.signOut()} destructive />
+                  {Platform.OS === 'web' && <Button label="Cookie settings" onPress={openCookieSettings} />}
                 </View>
                 <ThemedView type="backgroundElement" style={styles.card}>
                   <NoteEditor key={createKey} onSave={createNote} />

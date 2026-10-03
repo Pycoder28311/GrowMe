@@ -11,6 +11,9 @@ export const createAuth = (env: CloudflareBindings) =>
         database: drizzleAdapter(getDb(env), { provider: 'sqlite', schema }),
         secret: env.BETTER_AUTH_SECRET,
         baseURL: env.BETTER_AUTH_URL,
+        session: {
+            cookieCache: { enabled: true, maxAge: 5 * 60 },
+        },
         emailAndPassword: {
             enabled: true,
             resetPasswordTokenExpiresIn: 60 * 60, // link valid for 1 hour

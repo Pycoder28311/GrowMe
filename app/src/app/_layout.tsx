@@ -1,6 +1,8 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
+import { CookieBanner } from '@/components/cookie-banner';
+import { AnalyticsGate } from '@/components/analytics-gate';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { authClient } from '@/lib/auth-client';
@@ -27,7 +29,10 @@ export default function RootLayout() {
         </Stack.Protected>
         {/* Outside both guards: the email link must open even if you're signed in on this device */}
         <Stack.Screen name="reset-password" />
+        <Stack.Screen name="privacy" />
       </Stack>
+      <CookieBanner />
+      <AnalyticsGate />
     </ThemeProvider>
   );
 }
