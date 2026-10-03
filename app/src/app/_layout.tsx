@@ -25,6 +25,8 @@ export default function RootLayout() {
           <Stack.Screen name="sign-up" />
           <Stack.Screen name="forgot-password" />
         </Stack.Protected>
+        {/* Outside both guards: the email link must open even if you're signed in on this device */}
+        <Stack.Screen name="reset-password" />
       </Stack>
     </ThemeProvider>
   );

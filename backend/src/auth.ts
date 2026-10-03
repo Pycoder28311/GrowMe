@@ -11,18 +11,30 @@ export const createAuth = (env: CloudflareBindings) =>
         database: drizzleAdapter(getDb(env), { provider: 'sqlite', schema }),
         secret: env.BETTER_AUTH_SECRET,
         baseURL: env.BETTER_AUTH_URL,
-        emailAndPassword: { enabled: true },
+        emailAndPassword: {
+            enabled: true,
+            resetPasswordTokenExpiresIn: 60 * 60, // link valid for 1 hour
+            revokeSessionsOnPasswordReset: true, // sign out everywhere after a reset
+            async sendResetPassword({ user, url }) {
+                await sendEmail(env, {
+                    to: user.email,
+                    subject: 'Reset your GrowMe password',
+                    text: `Open this link to choose a new password (valid for 1 hour):\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+                })
+            },
+        },
         plugins: [
             expo(),
             emailOTP({
                 otpLength: 6,
-                expiresIn: 10 * 60, // 10 minutes
+                expiresIn: 10 * 60,
+                disableSignUp: true, // codes only sign in existing accounts
                 async sendVerificationOTP({ email, otp, type }) {
-                    if (type !== 'forget-password') return
+                    if (type !== 'sign-in') return
                     await sendEmail(env, {
                         to: email,
-                        subject: 'Your GrowMe password reset code',
-                        text: `Your code is ${otp}. It expires in 10 minutes.\n\nIf you didn't ask to reset your password, you can ignore this email.`,
+                        subject: 'Your GrowMe sign-in code',
+                        text: `Your code is ${otp}. It expires in 10 minutes.\n\nIf you didn't try to sign in, you can ignore this email.`,
                     })
                 },
             }),
