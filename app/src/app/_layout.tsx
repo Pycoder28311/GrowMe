@@ -1,10 +1,10 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
-import { CookieBanner } from '@/components/cookie-banner';
-import { AnalyticsGate } from '@/components/analytics-gate';
 
+import { AnalyticsGate } from '@/components/analytics-gate';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { CookieBanner } from '@/components/cookie-banner';
 import { authClient } from '@/lib/auth-client';
 
 SplashScreen.preventAutoHideAsync();
@@ -13,11 +13,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { data: session, isPending } = authClient.useSession();
 
-  if (isPending) return null; // keep the splash screen while checking the session
-
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
+      {/* Hides the splash screen only once we know whether the user is signed in */}
+      {!isPending && <AnimatedSplashOverlay />}
+      {/* Always rendered, so a link like growme://reset-password?token=… is never lost */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!!session}>
           <Stack.Screen name="(app)" />
