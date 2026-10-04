@@ -5,13 +5,15 @@ import type { AppEnv } from './middleware/auth'
 import { rateLimit } from './middleware/rate-limit'
 import imagesRoutes from './routes/images'
 import notesRoutes from './routes/notes'
+import { csrfProtection } from './middleware/csrf'
+import { WEB_ORIGINS } from './lib/origins'
 
 const app = new Hono<AppEnv>()
 
 app.use(
   '/api/*',
   cors({
-    origin: ['http://localhost:8081'], // add your web app's domain later
+    origin: WEB_ORIGINS,
     credentials: true,
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -19,6 +21,7 @@ app.use(
 )
 
 // After CORS, so "too many attempts" answers can be read by the browser
+app.use('/api/*', csrfProtection)
 app.use('/api/*', rateLimit)
 
 app.get('/', (c) => {
