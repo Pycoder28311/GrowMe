@@ -19,6 +19,24 @@
 			//"remote": true
 		}
 	],
+	"ratelimits": [
+		{
+			"name": "AUTH_STRICT",
+			"namespace_id": "1001",
+			"simple": {
+				"limit": 5,
+				"period": 60
+			}
+		},
+		{
+			"name": "API_GENERAL",
+			"namespace_id": "1002",
+			"simple": {
+				"limit": 120,
+				"period": 60
+			}
+		}
+	],
 	"vars": {
 		"IMAGES_URL": "https://images.testingggg.lol",
 		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
