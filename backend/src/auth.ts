@@ -16,6 +16,7 @@ export const createAuth = (env: CloudflareBindings) =>
         },
         emailAndPassword: {
             enabled: true,
+            requireEmailVerification: true, // no password sign-in until the email is confirmed
             resetPasswordTokenExpiresIn: 60 * 60, // link valid for 1 hour
             revokeSessionsOnPasswordReset: true, // sign out everywhere after a reset
             async sendResetPassword({ user, url }) {
@@ -24,6 +25,25 @@ export const createAuth = (env: CloudflareBindings) =>
                     subject: 'Reset your GrowMe password',
                     text: `Open this link to choose a new password (valid for 1 hour):\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
                 })
+            },
+        },
+        emailVerification: {
+            sendOnSignUp: true, // email a confirmation link right after sign-up
+            sendOnSignIn: true, // send a new link if an unverified user tries to sign in
+            autoSignInAfterVerification: true, // the link also signs them in
+            async sendVerificationEmail({ user, url }) {
+                await sendEmail(env, {
+                    to: user.email,
+                    subject: 'Confirm your GrowMe email',
+                    text: `Welcome to GrowMe! Open this link to confirm your email:\n\n${url}\n\nIf you didn't create an account, you can ignore this email.`,
+                })
+            },
+        },
+        socialProviders: {
+            google: {
+                clientId: env.GOOGLE_CLIENT_ID,
+                clientSecret: env.GOOGLE_CLIENT_SECRET,
+                prompt: 'select_account', // let users pick which Google account to use
             },
         },
         plugins: [

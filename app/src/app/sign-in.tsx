@@ -4,6 +4,7 @@ import { StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { GoogleButton } from '@/components/google-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -11,6 +12,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { authClient } from '@/lib/auth-client';
 
 type Mode = 'password' | 'code-email' | 'code-enter';
+type AuthError = { message?: string; code?: string } | null;
+
+const NOT_VERIFIED_MESSAGE = 'Please confirm your email first. We just sent you a new link.';
 
 export default function SignInScreen() {
     const theme = useTheme();
@@ -21,11 +25,13 @@ export default function SignInScreen() {
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
-    async function run(action: () => Promise<{ error: { message?: string } | null }>, fallback: string) {
+    async function run(action: () => Promise<{ error: AuthError }>, fallback: string) {
         setLoading(true);
         setError(null);
         const { error } = await action();
-        if (error) setError(error.message ?? fallback);
+        if (error) {
+            setError(error.code === 'EMAIL_NOT_VERIFIED' ? NOT_VERIFIED_MESSAGE : (error.message ?? fallback));
+        }
         setLoading(false);
         return !error;
     }
@@ -130,6 +136,8 @@ export default function SignInScreen() {
                         <Button label="Use password instead" onPress={() => switchMode('password')} />
                     </>
                 )}
+
+                <GoogleButton />
 
                 <Link href="/sign-up">
                     <ThemedText type="linkPrimary">No account? Sign up</ThemedText>

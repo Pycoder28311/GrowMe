@@ -1,9 +1,11 @@
+import * as Linking from 'expo-linking';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { GoogleButton } from '@/components/google-button';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -15,6 +17,7 @@ export default function SignUpScreen() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [sent, setSent] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -25,10 +28,28 @@ export default function SignUpScreen() {
             name: name.trim(),
             email: email.trim(),
             password,
+            callbackURL: Linking.createURL('/'), // where the confirmation link brings them back
         });
         if (error) setError(error.message ?? 'Sign up failed');
+        else setSent(true);
         setLoading(false);
     };
+
+    if (sent) {
+        return (
+            <ThemedView style={styles.container}>
+                <SafeAreaView style={styles.form}>
+                    <ThemedText type="subtitle">Check your email</ThemedText>
+                    <ThemedText themeColor="textSecondary">
+                        We sent a confirmation link to {email.trim()}. Open it on this device to finish signing up.
+                    </ThemedText>
+                    <Link href="/sign-in">
+                        <ThemedText type="linkPrimary">Back to sign in</ThemedText>
+                    </Link>
+                </SafeAreaView>
+            </ThemedView>
+        );
+    }
 
     const input = [styles.input, { color: theme.text, backgroundColor: theme.backgroundElement }];
 
@@ -69,6 +90,9 @@ export default function SignUpScreen() {
                     onPress={signUp}
                     disabled={loading || !name.trim() || !email.trim() || password.length < 8}
                 />
+
+                <GoogleButton />
+
                 <Link href="/sign-in">
                     <ThemedText type="linkPrimary">Already have an account? Sign in</ThemedText>
                 </Link>
