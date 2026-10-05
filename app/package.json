@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@better-auth/expo": "^1.7.7",
+    "@expo-google-fonts/source-sans-3": "^0.4.1",
     "@expo/ui": "~57.0.21",
     "@growme/shared": "*",
     "better-auth": "^1.7.7",

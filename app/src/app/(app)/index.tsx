@@ -1,181 +1,122 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, Platform, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { notesApi, type DraftImage, type Note } from '@/api/notes';
-import { Button } from '@/components/button';
-import { ImageCarousel } from '@/components/image-carousel';
-import { NoteEditor } from '@/components/note-editor';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { track } from '@/lib/analytics';
-import { authClient } from '@/lib/auth-client';
-import { openCookieSettings } from '@/lib/consent';
+import { ExploreSheet } from '@/components/explore/explore-sheet';
+import { ActionButton, ActionButtonText } from '@/components/ui/action-button';
+import { AppText } from '@/components/ui/app-text';
+import { AppTitle } from '@/components/ui/app-title';
+import { GlassText } from '@/components/ui/glass-text';
+import { Icon } from '@/components/ui/icon';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { APP_TAGLINE } from '@/config/app';
+import type { Filters } from '@/config/filters';
+import { useExploreFilters } from '@/lib/explore-filters';
+import { colors, iconSize, shade, space } from '@/theme';
 
-export default function NotesScreen() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [createKey, setCreateKey] = useState(0);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+// The tagline wraps to about two short lines under the title
+const TAGLINE_WIDTH = 256;
+
+// Two quick hops to the right, then a rest (1.8s cycle): a hint to tap. Waits for the title to pop in.
+function NudgingChevron() {
+  const x = useSharedValue(0);
 
   useEffect(() => {
-    notesApi
-      .list()
-      .then((page) => {
-        setNotes(page.items);
-        setNextCursor(page.nextCursor);
-      })
-      .catch(() => setError('Could not load notes'))
-      .finally(() => setLoading(false));
-  }, []);
+    const hop = { duration: 150, easing: Easing.inOut(Easing.ease) };
+    const twoHopsThenRest = withSequence(
+      withTiming(3, hop),
+      withTiming(0, hop),
+      withTiming(3, hop),
+      withTiming(0, hop),
+      withTiming(0, { duration: 1200 }),
+    );
+    x.set(withDelay(1000, withRepeat(twoHopsThenRest, -1)));
+  }, [x]);
 
-  // Called by the list near its end; one request at a time, stops when there are no more pages
-  async function loadMore() {
-    if (!nextCursor || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      const page = await notesApi.list(nextCursor);
-      setNotes((current) => [...current, ...page.items]);
-      setNextCursor(page.nextCursor);
-    } catch {
-      setError('Could not load more notes');
-    } finally {
-      setLoadingMore(false);
-    }
-  }
-
-  async function run(action: () => Promise<void>) {
-    setError(null);
-    try {
-      await action();
-    } catch {
-      setError('Something went wrong. Please try again.');
-    }
-  }
-
-  const createNote = (text: string, images: DraftImage[]) =>
-    run(async () => {
-      const note = await notesApi.save(null, text, images);
-      setNotes((current) => [note, ...current]);
-      setCreateKey((k) => k + 1); // resets the create form
-      track('note_created', { images: images.length });
-    });
-
-  const updateNote = (id: number, text: string, images: DraftImage[]) =>
-    run(async () => {
-      const updated = await notesApi.save(id, text, images);
-      setNotes((current) => current.map((n) => (n.id === id ? updated : n)));
-      setEditingId(null);
-      track('note_updated', { images: images.length });
-    });
-
-  const deleteNote = (id: number) =>
-    run(async () => {
-      await notesApi.remove(id);
-      setNotes((current) => current.filter((n) => n.id !== id));
-      track('note_deleted', { id });
-    });
+  const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        {loading ? (
-          <ActivityIndicator style={styles.loader} />
-        ) : (
-          <FlatList
-            data={notes}
-            keyExtractor={(note) => String(note.id)}
-            contentContainerStyle={styles.list}
-            keyboardShouldPersistTaps="handled"
-            onEndReached={loadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={loadingMore ? <ActivityIndicator /> : null}
-            ListHeaderComponent={
-              <View style={styles.header}>
-                <View style={styles.titleRow}>
-                  <ThemedText type="subtitle">Notes</ThemedText>
-                  <Button label="Sign out" onPress={() => authClient.signOut()} destructive />
-                  {Platform.OS === 'web' && <Button label="Cookie settings" onPress={openCookieSettings} />}
-                </View>
-                <ThemedView type="backgroundElement" style={styles.card}>
-                  <NoteEditor key={createKey} onSave={createNote} />
-                </ThemedView>
-                {error && <ThemedText style={styles.error}>{error}</ThemedText>}
-              </View>
-            }
-            ListEmptyComponent={
-              <ThemedText themeColor="textSecondary">No notes yet. Add your first one.</ThemedText>
-            }
-            renderItem={({ item }) => (
-              <ThemedView type="backgroundElement" style={styles.card}>
-                {editingId === item.id ? (
-                  <NoteEditor
-                    note={item}
-                    onSave={(text, images) => updateNote(item.id, text, images)}
-                    onCancel={() => setEditingId(null)}
-                  />
-                ) : (
-                  <>
-                    <ImageCarousel images={item.images} />
-                    <ThemedText>{item.text}</ThemedText>
-                    <View style={styles.actions}>
-                      <Button label="Edit" onPress={() => setEditingId(item.id)} />
-                      <Button label="Delete" onPress={() => deleteNote(item.id)} destructive />
-                    </View>
-                  </>
-                )}
-              </ThemedView>
-            )}
-          />
-        )}
-      </SafeAreaView>
-    </ThemedView>
+    <Animated.View style={[styles.chevron, style]}>
+      <Icon name="chevronRight" size={iconSize.normal} color={colors.surface} bold />
+    </Animated.View>
+  );
+}
+
+export default function HomeScreen() {
+  const { filters, setFilters } = useExploreFilters();
+  const [isExploreOpen, setIsExploreOpen] = useState(false);
+
+  const handleExploreClose = (applied: Filters | null) => {
+    setIsExploreOpen(false);
+    if (!applied) return;
+    setFilters(applied);
+    router.navigate('/results');
+  };
+
+  return (
+    <View style={styles.page}>
+      <AppTitle />
+      {/* Bold phrase that pops in as the title's last letters land */}
+      <GlassText text={APP_TAGLINE} delayMs={450} maxWidth={TAGLINE_WIDTH} />
+      <ActionButton onPress={() => setIsExploreOpen(true)}>
+        {/* The word stays centred in the button; the arrow hangs off its right side */}
+        <View>
+          <ActionButtonText shadow>Επίλεξε φυτό</ActionButtonText>
+          <NudgingChevron />
+        </View>
+      </ActionButton>
+
+      {/* Small link centred just above the bottom bar; the white glow keeps it readable over the photos */}
+      <PressableScale accessibilityRole="button" style={styles.learnMore}>
+        <AppText bold color={colors.primary} style={styles.glow}>
+          Μάθε περισσότερα
+        </AppText>
+        <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
+      </PressableScale>
+
+      {isExploreOpen && <ExploreSheet initialFilters={filters} onClose={handleExploreClose} />}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  page: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  safeArea: {
-    flex: 1,
-    maxWidth: MaxContentWidth,
-    paddingHorizontal: Spacing.four,
-    paddingBottom: BottomTabInset,
-  },
-  header: {
-    gap: Spacing.three,
-    paddingTop: Spacing.four,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.md,
+    paddingHorizontal: space.lg,
   },
-  error: {
-    color: '#e5484d',
+  chevron: {
+    position: 'absolute',
+    left: '100%',
+    top: '50%',
+    marginTop: -iconSize.normal / 2,
+    marginLeft: space.md,
+    filter: [{ dropShadow: { offsetX: 0, offsetY: 2, standardDeviation: 0, color: shade } }],
   },
-  loader: {
-    marginTop: Spacing.four,
-  },
-  list: {
-    gap: Spacing.three,
-    paddingBottom: Spacing.four,
-  },
-  card: {
-    padding: Spacing.three,
-    borderRadius: Spacing.three,
-    gap: Spacing.two,
-  },
-  actions: {
+  learnMore: {
+    position: 'absolute',
+    bottom: space.md,
+    alignSelf: 'center',
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: Spacing.three,
+    alignItems: 'center',
+    gap: space.xs,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+  },
+  glow: {
+    textShadowColor: colors.surface,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
 });

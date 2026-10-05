@@ -1,0 +1,62 @@
+// How each plant characteristic is shown on a card: an emoji and a short Greek label
+
+export type Trait = { emoji: string; label: string };
+
+export const SUNLIGHT: Record<string, Trait> = {
+  'full-sun': { emoji: '☀️', label: 'Ήλιος' },
+  'partial-shade': { emoji: '⛅', label: 'Ημισκιά' },
+  shade: { emoji: '☁️', label: 'Σκιά' },
+};
+
+// How much work the owner has to put in
+export const EFFORT: Record<string, Trait> = {
+  easy: { emoji: '🌱', label: 'Εύκολο' },
+  moderate: { emoji: '🧤', label: 'Μέτριο' },
+  expert: { emoji: '🧑‍🌾', label: 'Δύσκολο' },
+};
+
+export const USE: Record<string, Trait> = {
+  edible: { emoji: '🍅', label: 'Φαγώσιμο' },
+  decorative: { emoji: '✨', label: 'Διακοσμητικό' },
+  flowering: { emoji: '🌸', label: 'Με άνθη' },
+};
+
+// How it is started: from seed, from a young plant, or either
+export const PROPAGATION: Record<string, Trait> = {
+  seed: { emoji: '🌰', label: 'Από σπόρο' },
+  plant: { emoji: '🪴', label: 'Από φυτό' },
+  both: { emoji: '🌰', label: 'Σπόρος/φυτό' },
+};
+
+// Planting period, stored as months [from, to] (1 = January). Ranges may wrap past December, e.g. [9, 3].
+const MONTH_ABBREVIATIONS = ['ΙΑΝ', 'ΦΕΒ', 'ΜΑΡ', 'ΑΠΡ', 'ΜΑΪ', 'ΙΟΥΝ', 'ΙΟΥΛ', 'ΑΥΓ', 'ΣΕΠ', 'ΟΚΤ', 'ΝΟΕ', 'ΔΕΚ'];
+
+const SEASONS = [
+  { emoji: '❄️', months: [12, 1, 2] },
+  { emoji: '🌷', months: [3, 4, 5] },
+  { emoji: '☀️', months: [6, 7, 8] },
+  { emoji: '🍂', months: [9, 10, 11] },
+];
+const ALL_YEAR_EMOJI = '📅';
+
+const monthsInRange = ([from, to]: [number, number]) => {
+  const months = [from];
+  for (let month = from; month !== to; month = (month % 12) + 1) months.push((month % 12) + 1);
+  return months;
+};
+
+// Label like "ΦΕΒ – ΝΟΕ", and the icon of the season covering most of the range
+// (ties go to the season the range starts in; 10+ months counts as all year)
+export function plantingPeriod(range: [number, number]): Trait {
+  const months = monthsInRange(range);
+  const label = `${MONTH_ABBREVIATIONS[range[0] - 1]} – ${MONTH_ABBREVIATIONS[range[1] - 1]}`;
+  if (months.length >= 10) return { emoji: ALL_YEAR_EMOJI, label };
+
+  const firstSeason = SEASONS.find((season) => season.months.includes(range[0]))!;
+  const best = SEASONS.reduce((top, season) => {
+    const count = months.filter((month) => season.months.includes(month)).length;
+    const topCount = months.filter((month) => top.months.includes(month)).length;
+    return count > topCount ? season : top;
+  }, firstSeason);
+  return { emoji: best.emoji, label };
+}
