@@ -19,14 +19,34 @@ export default function NotesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [createKey, setCreateKey] = useState(0);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     notesApi
       .list()
-      .then(setNotes)
+      .then((page) => {
+        setNotes(page.items);
+        setNextCursor(page.nextCursor);
+      })
       .catch(() => setError('Could not load notes'))
       .finally(() => setLoading(false));
   }, []);
+
+  // Called by the list near its end; one request at a time, stops when there are no more pages
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await notesApi.list(nextCursor);
+      setNotes((current) => [...current, ...page.items]);
+      setNextCursor(page.nextCursor);
+    } catch {
+      setError('Could not load more notes');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function run(action: () => Promise<void>) {
     setError(null);
@@ -71,6 +91,9 @@ export default function NotesScreen() {
             keyExtractor={(note) => String(note.id)}
             contentContainerStyle={styles.list}
             keyboardShouldPersistTaps="handled"
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={loadingMore ? <ActivityIndicator /> : null}
             ListHeaderComponent={
               <View style={styles.header}>
                 <View style={styles.titleRow}>

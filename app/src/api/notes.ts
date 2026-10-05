@@ -1,3 +1,4 @@
+import type { Page } from '@growme/shared';
 import { File as ExpoFile } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { Platform } from 'react-native';
@@ -66,7 +67,9 @@ async function save(noteId: number | null, text: string, drafts: DraftImage[]) {
 }
 
 export const notesApi = {
-  list: () => request<Note[]>('/notes'),
+  /** 20 notes per call; pass the previous page's nextCursor to get the next 20 */
+  list: (cursor?: string | null) =>
+    request<Page<Note>>(`/notes?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`),
   save,
   remove: (id: number) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
 };

@@ -23,6 +23,7 @@ app.use(
     credentials: true,
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    maxAge: 600, // browsers reuse the OPTIONS answer for 10 minutes
   }),
 )
 
