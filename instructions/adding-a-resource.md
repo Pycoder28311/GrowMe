@@ -11,9 +11,10 @@ GrowMe/
 ├── packages/shared/src/      zod schemas + types shared with the app (no server code)
 └── backend/src/
     ├── lib/                  CORE: identical in every project
-    │   ├── crud.ts           crudRoutes(): access modes + pagination + validation + 404s
+    │   ├── crud.ts           crudRoutes(): access modes + filters + pagination + validation + 404s
+    │   │                     + toCtx(), ownedOrAdmin(), isAdmin(), hasChanges()
     │   ├── pagination.ts     keyset pagination helpers
-    │   ├── relations.ts      many-to-many helpers: replaceLinks(), removedIds(), ownsAll()
+    │   ├── relations.ts      replaceLinks(), removedIds(), ownsAll(), assertExists(), runBatch()
     │   ├── errors.ts         HttpError + errorBody(): one error format for everything
     │   ├── validate.ts       validate() / parseOrThrow(): zod with the API error format
     │   ├── env.ts            validated environment (add new variables here)
@@ -29,12 +30,12 @@ GrowMe/
 ## What `crudRoutes()` gives you
 
 ```ts
-crudRoutes({ access, paginate?, create, update, repo })
+crudRoutes({ access, paginate?, filter?, create, update, repo })
 ```
 
 | Route | Does |
 |---|---|
-| `GET /api/<name>` | list. Paginated by default: `?limit=20&cursor=…` → `{ items, nextCursor }` |
+| `GET /api/<name>` | list. Paginated by default: `?limit=20&cursor=…` → `{ items, nextCursor }`; plus `filter` parameters |
 | `GET /api/<name>/:id` | one row, or `404 NOT_FOUND` |
 | `POST /api/<name>` | create (validated with `create`), `201` |
 | `PATCH /api/<name>/:id` | update (validated with `update`), or `404` |
@@ -52,6 +53,14 @@ crudRoutes({ access, paginate?, create, update, repo })
 **`paginate`** (default `true`): keyset pagination, newest first. Each page reads about
 `limit + 1` rows through the primary key, however big the table is. `paginate: false` returns a
 plain array of everything; use it only for small per-user lists.
+
+**`filter`** (optional): a zod object for list query parameters, e.g. replies of one post
+(`?postId=1`). The parsed values are the third argument of `repo.list(ctx, page, filter)`. Use
+`queryId` from shared for ids (`z.object({ postId: queryId })`); required fields make the filter
+mandatory (`400` without it).
+
+**Lighter lists:** `Repo<Create, Update, Out, Filter, ListItem>`. When list rows should carry less
+than `get()` (plants: summaries in lists, everything on `GET /:id`), set `ListItem` to the smaller type.
 
 Every error answers `{ code, message, details? }` with a code from `packages/shared/src/errors.ts`.
 CSRF protection and rate limiting apply automatically to everything under `/api`.
@@ -163,7 +172,11 @@ export const tasksRepo: Repo<TaskCreate, TaskUpdate, Task> = {
 ```
 
 For public resources (`public-owner`, `public-admin`), `list` and `get` must not call `userId(ctx)`
-(anonymous readers have no user), while writes in `public-owner` still filter by it.
+(anonymous readers have no user), while writes in `public-owner` still filter by it: edits by
+`userId(ctx)`, deletes by `ownedOrAdmin(ctx, table.userId)` so admins can moderate.
+
+Partial updates (`PATCH` with optional fields): skip the `UPDATE` when nothing is sent
+(`if (!hasChanges(input)) …`), because Drizzle rejects an empty `SET`.
 
 **`tasks.routes.ts`**:
 
@@ -203,7 +216,9 @@ Add an API file in the app following `app/src/api/notes.ts`, then build the scre
 
 ### One-to-many (e.g. a project has many tasks)
 
-Add a column that points to the parent and filter by it in the repo. No helper is needed.
+Add a column that points to the parent, list children through a `filter` (`?projectId=`) and check
+the parent on create with `assertExists(ctx.db, projects, projects.id, input.projectId, 'projectId')`
+(`400 UNKNOWN_REFERENCE` when it doesn't exist). Examples: `post-replies`, `tips`.
 
 ```ts
 projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -241,15 +256,31 @@ Before saving, check that the parent belongs to the user:
    ```
 
 4. Use `removedIds(before, after)` if unlinked rows need cleanup (as notes do with images).
+5. Statement lists built at runtime (e.g. "update only if fields were sent"): `runBatch(ctx.db, [...])`.
 
 `resources/notes/notes.repo.ts` is a complete working example.
+
+### Images on a resource
+
+Images are uploaded once (`POST /api/images`) and linked through a link table per parent
+(`note_images`, `post_images`, `blog_images`, `plant_images`). `resources/images/images.repo.ts` has
+everything a repo needs:
+
+- `assertCanLinkImages(ctx, imageIds, alreadyLinked)`: new images must be the user's own uploads
+- `toImageRefs(env, row.images)`: `[{ id, url }]` for the response
+- `deleteImages(ctx, ids)`: rows and R2 files, after a delete or for `removedIds(before, after)`
+
+`resources/posts/posts.repo.ts` is the example.
 
 ### Counters and shared "likes"-style tables
 
 - Store counts on the parent row (e.g. `like_count`) and change them in the **same batch** as the
   row they count, **only if** a row was actually inserted or deleted. Never `count(*)` per request.
-- A polymorphic table (e.g. one `likes` table with `target_type` + `target_id`) has no foreign key:
-  delete its rows in the same batch when the target is deleted.
+- Guard the change with a condition inside the same batch, so parallel requests can't count twice
+  (`... WHERE EXISTS (the row)`). Examples: `post-replies.repo.ts` (reply_count), `likes.repo.ts`.
+- A polymorphic table (e.g. one `likes` table with `liked_type` + `liked_id`) has no foreign key:
+  delete its rows in the same batch when the target is deleted, with
+  `deleteLikesOf(ctx.db, 'post', id)` (one id or a subquery of ids).
 
 ## Routes that are not plain CRUD
 
@@ -260,7 +291,8 @@ for admin actions), throw `HttpError` with a code for errors, and mount it the s
 
 ## Rules
 
-- **The owner comes from the session:** `userId(ctx)` in repos, `c.get('user').id` in routers.
+- **The owner comes from the session:** `userId(ctx)` in repos, `c.get('user').id` in routers
+  (or `toCtx(c)` to call a repo).
   Never accept `userId` from the request body.
 - **Every query on user data filters by owner.** Someone else's row must behave exactly like a
   missing row (404).
@@ -278,7 +310,7 @@ for admin actions), throw `HttpError` with a code for errors, and mount it the s
 
 - [ ] Table in `db/schema.ts` (with `userId` and indexes if user-owned)
 - [ ] Migration generated, checked, applied locally and remotely
-- [ ] Contract in `packages/shared/src/<name>.ts`, exported from `index.ts`
+- [ ] Contract in `packages/shared/src/<name>.ts` (create, update, filter, output types), exported from `index.ts`
 - [ ] `resources/<name>/` with `<name>.repo.ts` and `<name>.routes.ts` (right `access`)
 - [ ] Mounted in `index.ts`
 - [ ] Typecheck passes for `backend` and `packages/shared`

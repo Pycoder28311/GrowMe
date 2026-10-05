@@ -16,6 +16,7 @@ export const ERROR_CODES = [
   'UNSUPPORTED_FILE_TYPE',
   // resources
   'UNKNOWN_IMAGE',
+  'UNKNOWN_REFERENCE', // a sent id (postId, plantId, …) points to nothing
 ] as const
 
 export type ErrorCode = (typeof ERROR_CODES)[number]

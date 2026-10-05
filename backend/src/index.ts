@@ -8,8 +8,18 @@ import type { AppEnv } from './middleware/auth'
 import { csrfProtection } from './middleware/csrf'
 import { checkEnv } from './middleware/env'
 import { rateLimit } from './middleware/rate-limit'
+import blogCommentsRoutes from './resources/blog-comments/blog-comments.routes'
+import blogsRoutes from './resources/blogs/blogs.routes'
+import combinationsRoutes from './resources/combinations/combinations.routes'
+import diseasesRoutes from './resources/diseases/diseases.routes'
 import imagesRoutes from './resources/images/images.routes'
+import lifecyclesRoutes from './resources/lifecycles/lifecycles.routes'
+import likesRoutes from './resources/likes/likes.routes'
 import notesRoutes from './resources/notes/notes.routes'
+import plantsRoutes from './resources/plants/plants.routes'
+import postRepliesRoutes from './resources/post-replies/post-replies.routes'
+import postsRoutes from './resources/posts/posts.routes'
+import tipsRoutes from './resources/tips/tips.routes'
 
 const app = new Hono<AppEnv>()
 
@@ -22,7 +32,7 @@ app.use(
     origin: (origin, c) => (getConfig(c.env).webOrigins.includes(origin) ? origin : null),
     credentials: true,
     allowHeaders: ['Content-Type', 'Authorization'],
-    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     maxAge: 600, // browsers reuse the OPTIONS answer for 10 minutes
   }),
 )
@@ -41,6 +51,16 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => createAuth(c.env).handler(c.req.ra
 const routes = app
   .route('/api/notes', notesRoutes)
   .route('/api/images', imagesRoutes)
+  .route('/api/posts', postsRoutes)
+  .route('/api/post-replies', postRepliesRoutes)
+  .route('/api/blogs', blogsRoutes)
+  .route('/api/blog-comments', blogCommentsRoutes)
+  .route('/api/likes', likesRoutes)
+  .route('/api/plants', plantsRoutes)
+  .route('/api/lifecycles', lifecyclesRoutes)
+  .route('/api/tips', tipsRoutes)
+  .route('/api/diseases', diseasesRoutes)
+  .route('/api/combinations', combinationsRoutes)
 
 // Serves R2 files through the Worker: used locally (production uses the IMAGES_URL domain)
 app.get('/images/*', async (c) => {
