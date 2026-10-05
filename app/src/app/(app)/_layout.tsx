@@ -1,9 +1,13 @@
-import { router, Stack, usePathname } from 'expo-router';
+import { DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { useState } from 'react';
 
 import { AppShell } from '@/components/layout/app-shell';
 import type { NavId } from '@/config/app';
 import { ExploreFiltersProvider } from '@/lib/explore-filters';
+
+// The pages paint no background of their own, so the shell's photos and washes show through
+// (the navigation theme's background would cover them: black in dark mode). The design is light only.
+const SHELL_THEME = { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: 'transparent' } };
 
 // Which bottom tab a page belongs to
 const navIdFor = (pathname: string): NavId =>
@@ -26,7 +30,9 @@ export default function AppLayout() {
   return (
     <ExploreFiltersProvider>
       <AppShell activeNavId={activeNavId} onNavigate={navigate} background={pathname === '/' ? 'scene' : 'plain'}>
-        <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }} />
+        <ThemeProvider value={SHELL_THEME}>
+          <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+        </ThemeProvider>
       </AppShell>
     </ExploreFiltersProvider>
   );
