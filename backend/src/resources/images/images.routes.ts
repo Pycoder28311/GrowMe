@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
-import { getDb } from '../db'
-import { images } from '../db/schema'
-import { detectImageType, type ImageType } from '../lib/image-type'
-import { requireAuth, type AppEnv } from '../middleware/auth'
+import { getDb } from '../../db'
+import { images } from '../../db/schema'
+import { detectImageType, type ImageType } from '../../lib/image-type'
+import { requireAuth, type AppEnv } from '../../middleware/auth'
+import { imageUrl } from './images.repo'
 
 const MAX_FILES = 10
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
@@ -47,7 +48,7 @@ const imagesRoutes = new Hono<AppEnv>()
 
     const rows = await getDb(c.env).insert(images).values(uploaded).returning()
     return c.json(
-      rows.map((img) => ({ id: img.id, url: `${c.env.IMAGES_URL}/${img.key}` })),
+      rows.map((img) => ({ id: img.id, url: imageUrl(c.env, img.key) })),
       201,
     )
   })

@@ -1,12 +1,14 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { HTTPException } from 'hono/http-exception'
 import { createAuth } from './auth'
-import type { AppEnv } from './middleware/auth'
-import { rateLimit } from './middleware/rate-limit'
-import imagesRoutes from './routes/images'
-import notesRoutes from './routes/notes'
-import { csrfProtection } from './middleware/csrf'
+import { HttpError } from './lib/errors'
 import { WEB_ORIGINS } from './lib/origins'
+import type { AppEnv } from './middleware/auth'
+import { csrfProtection } from './middleware/csrf'
+import { rateLimit } from './middleware/rate-limit'
+import imagesRoutes from './resources/images/images.routes'
+import notesRoutes from './resources/notes/notes.routes'
 
 const app = new Hono<AppEnv>()
 
@@ -20,7 +22,7 @@ app.use(
   }),
 )
 
-// After CORS, so "too many attempts" answers can be read by the browser
+// After CORS, so blocked answers can still be read by the browser
 app.use('/api/*', csrfProtection)
 app.use('/api/*', rateLimit)
 
@@ -30,7 +32,10 @@ app.get('/', (c) => {
 
 app.on(['GET', 'POST'], '/api/auth/*', (c) => createAuth(c.env).handler(c.req.raw))
 
-const routes = app.route('/api/notes', notesRoutes).route('/api/images', imagesRoutes)
+// One line per resource (see instructions/adding-a-resource.md)
+const routes = app
+  .route('/api/notes', notesRoutes)
+  .route('/api/images', imagesRoutes)
 
 // Serves R2 files through the Worker: used locally (production uses images.testingggg.lol)
 app.get('/images/*', async (c) => {
@@ -39,6 +44,14 @@ app.get('/images/*', async (c) => {
   return new Response(object.body, {
     headers: { 'Content-Type': object.httpMetadata?.contentType ?? 'application/octet-stream' },
   })
+})
+
+// Known errors become clean JSON; anything else is logged and hidden from clients
+app.onError((err, c) => {
+  if (err instanceof HttpError) return c.json({ error: err.message }, err.status)
+  if (err instanceof HTTPException) return err.getResponse()
+  console.error(err)
+  return c.json({ error: 'Internal server error' }, 500)
 })
 
 export type AppType = typeof routes
