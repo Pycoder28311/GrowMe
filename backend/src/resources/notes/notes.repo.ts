@@ -1,10 +1,11 @@
+import type { Note, NoteInput } from '@growme/shared'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { images, noteImages, notes } from '../../db/schema'
-import type { Ctx, Repo } from '../../lib/crud'
+import { userId, type Ctx, type Repo } from '../../lib/crud'
 import { HttpError } from '../../lib/errors'
+import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { ownsAll, removedIds, replaceLinks, type LinkTable } from '../../lib/relations'
 import { deleteImages, imageUrl } from '../images/images.repo'
-import type { NoteInput } from './notes.schema'
 
 const noteImageLinks: LinkTable<typeof noteImages> = {
   table: noteImages,
@@ -14,30 +15,33 @@ const noteImageLinks: LinkTable<typeof noteImages> = {
 
 const withImages = { images: { orderBy: asc(noteImages.position), with: { image: true } } } as const
 
-const find = ({ db, userId }: Ctx, id: number) =>
-  db.query.notes.findFirst({ where: and(eq(notes.id, id), eq(notes.userId, userId)), with: withImages })
+const find = (ctx: Ctx, id: number) =>
+  ctx.db.query.notes.findFirst({ where: and(eq(notes.id, id), eq(notes.userId, userId(ctx))), with: withImages })
 
 type Row = NonNullable<Awaited<ReturnType<typeof find>>>
 
-const toJson = (env: CloudflareBindings, note: Row) => ({
+/** The only fields that leave the server; typed by the shared contract */
+const toJson = (env: CloudflareBindings, note: Row): Note => ({
   id: note.id,
   text: note.text,
   images: note.images.map(({ image }) => ({ id: image.id, url: imageUrl(env, image.key) })),
 })
 
-export type NoteJson = ReturnType<typeof toJson>
-
 const ownsImages = (ctx: Ctx, ids: number[]) =>
-  ownsAll(ctx.db, images, { id: images.id, owner: images.userId }, ids, ctx.userId)
+  ownsAll(ctx.db, images, { id: images.id, owner: images.userId }, ids, userId(ctx))
 
-export const notesRepo: Repo<NoteInput, NoteInput, NoteJson> = {
-  async list(ctx) {
+export const notesRepo: Repo<NoteInput, NoteInput, Note> = {
+  async list(ctx, page) {
     const rows = await ctx.db.query.notes.findMany({
-      where: eq(notes.userId, ctx.userId),
+      where: and(eq(notes.userId, userId(ctx)), beforeCursor(notes.id, page)),
       orderBy: desc(notes.id),
+      limit: fetchLimit(page),
       with: withImages,
     })
-    return rows.map((n) => toJson(ctx.env, n))
+    return mapPage(
+      toPage(rows, page, (n) => n.id),
+      (n) => toJson(ctx.env, n),
+    )
   },
 
   async get(ctx, id) {
@@ -46,8 +50,8 @@ export const notesRepo: Repo<NoteInput, NoteInput, NoteJson> = {
   },
 
   async create(ctx, { text, imageIds }) {
-    if (!(await ownsImages(ctx, imageIds))) throw new HttpError(400, 'Unknown image')
-    const { id } = await ctx.db.insert(notes).values({ text, userId: ctx.userId }).returning().get()
+    if (!(await ownsImages(ctx, imageIds))) throw new HttpError(400, 'UNKNOWN_IMAGE', 'Unknown image')
+    const { id } = await ctx.db.insert(notes).values({ text, userId: userId(ctx) }).returning().get()
     await ctx.db.batch([...replaceLinks(ctx.db, noteImageLinks, id, imageIds)])
     return toJson(ctx.env, (await find(ctx, id))!)
   },
@@ -55,7 +59,7 @@ export const notesRepo: Repo<NoteInput, NoteInput, NoteJson> = {
   async update(ctx, id, { text, imageIds }) {
     const existing = await find(ctx, id)
     if (!existing) return null
-    if (!(await ownsImages(ctx, imageIds))) throw new HttpError(400, 'Unknown image')
+    if (!(await ownsImages(ctx, imageIds))) throw new HttpError(400, 'UNKNOWN_IMAGE', 'Unknown image')
     await ctx.db.batch([
       ctx.db.update(notes).set({ text }).where(eq(notes.id, id)),
       ...replaceLinks(ctx.db, noteImageLinks, id, imageIds),

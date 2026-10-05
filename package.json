@@ -1,0 +1,9 @@
+{
+  "name": "growme-workspace",
+  "private": true,
+  "workspaces": [
+    "app",
+    "backend",
+    "packages/*"
+  ]
+}

@@ -4,10 +4,12 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@better-auth/expo": "^1.7.7",
+    "@growme/shared": "*",
     "@hono/zod-validator": "^0.9.1",
     "better-auth": "^1.7.7",
     "drizzle-orm": "^0.45.3",
@@ -16,6 +18,7 @@
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.11",
+    "typescript": "^5.9.3",
     "wrangler": "^4.146.0"
   }
 }

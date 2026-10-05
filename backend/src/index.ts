@@ -2,20 +2,24 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
 import { createAuth } from './auth'
-import { HttpError } from './lib/errors'
-import { WEB_ORIGINS } from './lib/origins'
+import { getConfig } from './lib/config'
+import { codeForStatus, errorBody, HttpError } from './lib/errors'
 import type { AppEnv } from './middleware/auth'
 import { csrfProtection } from './middleware/csrf'
+import { checkEnv } from './middleware/env'
 import { rateLimit } from './middleware/rate-limit'
 import imagesRoutes from './resources/images/images.routes'
 import notesRoutes from './resources/notes/notes.routes'
 
 const app = new Hono<AppEnv>()
 
+// Fails loudly (500 SERVER_MISCONFIGURED) when variables or bindings are missing
+app.use('*', checkEnv)
+
 app.use(
   '/api/*',
   cors({
-    origin: WEB_ORIGINS,
+    origin: (origin, c) => (getConfig(c.env).webOrigins.includes(origin) ? origin : null),
     credentials: true,
     allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -37,21 +41,25 @@ const routes = app
   .route('/api/notes', notesRoutes)
   .route('/api/images', imagesRoutes)
 
-// Serves R2 files through the Worker: used locally (production uses images.testingggg.lol)
+// Serves R2 files through the Worker: used locally (production uses the IMAGES_URL domain)
 app.get('/images/*', async (c) => {
-  const object = await c.env.images.get(c.req.path.slice('/images/'.length))
-  if (!object) return c.notFound()
+  const object = await c.env.BUCKET.get(c.req.path.slice('/images/'.length))
+  if (!object) return c.json(errorBody('NOT_FOUND', 'Image not found'), 404)
   return new Response(object.body, {
     headers: { 'Content-Type': object.httpMetadata?.contentType ?? 'application/octet-stream' },
   })
 })
 
-// Known errors become clean JSON; anything else is logged and hidden from clients
+app.notFound((c) => c.json(errorBody('NOT_FOUND', 'Route not found'), 404))
+
+// Every error answers { code, message, details? }; unexpected ones are logged and hidden
 app.onError((err, c) => {
-  if (err instanceof HttpError) return c.json({ error: err.message }, err.status)
-  if (err instanceof HTTPException) return err.getResponse()
+  if (err instanceof HttpError) return c.json(errorBody(err.code, err.message, err.details), err.status)
+  if (err instanceof HTTPException) {
+    return c.json(errorBody(codeForStatus(err.status), err.message || 'Request failed'), err.status)
+  }
   console.error(err)
-  return c.json({ error: 'Internal server error' }, 500)
+  return c.json(errorBody('INTERNAL', 'Something went wrong. Please try again.'), 500)
 })
 
 export type AppType = typeof routes

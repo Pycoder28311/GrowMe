@@ -1,16 +1,23 @@
+// PROJECT file: which sign-in methods this app offers. Settings come from lib/config + lib/env.
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { emailOTP } from 'better-auth/plugins'
+import { admin, emailOTP } from 'better-auth/plugins'
 import { expo } from '@better-auth/expo'
 import { getDb } from './db'
 import * as schema from './db/schema'
+import { resetPasswordEmail, signInCodeEmail, verifyEmail } from './emails'
+import { getConfig } from './lib/config'
 import { sendEmail } from './lib/email'
+import { getEnv } from './lib/env'
 
-export const createAuth = (env: CloudflareBindings) =>
-    betterAuth({
+export const createAuth = (env: CloudflareBindings) => {
+    const e = getEnv(env)
+    const config = getConfig(env)
+
+    return betterAuth({
         database: drizzleAdapter(getDb(env), { provider: 'sqlite', schema }),
-        secret: env.BETTER_AUTH_SECRET,
-        baseURL: env.BETTER_AUTH_URL,
+        secret: e.BETTER_AUTH_SECRET,
+        baseURL: e.BETTER_AUTH_URL,
         session: {
             cookieCache: { enabled: true, maxAge: 5 * 60 },
         },
@@ -20,11 +27,7 @@ export const createAuth = (env: CloudflareBindings) =>
             resetPasswordTokenExpiresIn: 60 * 60, // link valid for 1 hour
             revokeSessionsOnPasswordReset: true, // sign out everywhere after a reset
             async sendResetPassword({ user, url }) {
-                await sendEmail(env, {
-                    to: user.email,
-                    subject: 'Reset your GrowMe password',
-                    text: `Open this link to choose a new password (valid for 1 hour):\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
-                })
+                await sendEmail(env, { to: user.email, ...resetPasswordEmail(config, url) })
             },
         },
         emailVerification: {
@@ -32,38 +35,41 @@ export const createAuth = (env: CloudflareBindings) =>
             sendOnSignIn: true, // send a new link if an unverified user tries to sign in
             autoSignInAfterVerification: true, // the link also signs them in
             async sendVerificationEmail({ user, url }) {
-                await sendEmail(env, {
-                    to: user.email,
-                    subject: 'Confirm your GrowMe email',
-                    text: `Welcome to GrowMe! Open this link to confirm your email:\n\n${url}\n\nIf you didn't create an account, you can ignore this email.`,
-                })
+                await sendEmail(env, { to: user.email, ...verifyEmail(config, url) })
             },
         },
-        socialProviders: {
-            google: {
-                clientId: env.GOOGLE_CLIENT_ID,
-                clientSecret: env.GOOGLE_CLIENT_SECRET,
-                prompt: 'select_account', // let users pick which Google account to use
-            },
-        },
+        // Google sign-in only when both keys are configured
+        socialProviders:
+            e.GOOGLE_CLIENT_ID && e.GOOGLE_CLIENT_SECRET
+                ? {
+                      google: {
+                          clientId: e.GOOGLE_CLIENT_ID,
+                          clientSecret: e.GOOGLE_CLIENT_SECRET,
+                          prompt: 'select_account', // let users pick which Google account to use
+                      },
+                  }
+                : {},
         plugins: [
-            expo(),
+            admin(), // user.role ("user" by default, "admin"), bans, impersonation
             emailOTP({
                 otpLength: 6,
                 expiresIn: 10 * 60,
                 disableSignUp: true, // codes only sign in existing accounts
                 async sendVerificationOTP({ email, otp, type }) {
                     if (type !== 'sign-in') return
-                    await sendEmail(env, {
-                        to: email,
-                        subject: 'Your GrowMe sign-in code',
-                        text: `Your code is ${otp}. It expires in 10 minutes.\n\nIf you didn't try to sign in, you can ignore this email.`,
-                    })
+                    await sendEmail(env, { to: email, ...signInCodeEmail(config, otp) })
                 },
             }),
+            // Mobile app support only for projects with an app URL scheme
+            ...(config.appScheme ? [expo()] : []),
         ],
-        trustedOrigins: ['growme://', 'exp://', 'http://localhost:8081'],
+        trustedOrigins: config.trustedOrigins,
         advanced: {
             defaultCookieAttributes: { sameSite: 'none', secure: true },
         },
     })
+}
+
+export type Auth = ReturnType<typeof createAuth>
+export type SessionUser = Auth['$Infer']['Session']['user']
+export type SessionData = Auth['$Infer']['Session']['session']

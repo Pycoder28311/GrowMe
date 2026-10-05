@@ -1,15 +1,36 @@
-import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
+import { pageQuery, type Page } from '@growme/shared'
+import { Hono, type Context, type MiddlewareHandler } from 'hono'
+import { every } from 'hono/combine'
 import { z } from 'zod'
+import type { SessionUser } from '../auth'
 import { getDb, type Db } from '../db'
-import { requireAuth, type AppEnv } from '../middleware/auth'
+import { optionalAuth, requireAuth, requireRole, type AppEnv } from '../middleware/auth'
+import { notFound, unauthorized } from './errors'
+import { toPageParams, type PageParams } from './pagination'
+import { parseOrThrow, validate } from './validate'
 
-/** Everything a data function needs: the database, the bindings and who is asking */
-export type Ctx = { db: Db; env: CloudflareBindings; userId: string }
+/**
+ * Who may read and write a resource:
+ * - owner:        signed in; each user sees and changes only their own rows (e.g. notes)
+ * - public-owner: everyone reads; signed-in users create; owners change their own rows (e.g. posts)
+ * - public-admin: everyone reads; only admins write (e.g. plants, blogs)
+ * - admin:        only admins read and write (e.g. moderation)
+ */
+export type Access = 'owner' | 'public-owner' | 'public-admin' | 'admin'
+
+/** Everything a data function needs: the database, the bindings and who is asking (null = anonymous) */
+export type Ctx = { db: Db; env: CloudflareBindings; user: SessionUser | null }
+
+/** The signed-in user's id; throws 401 when anonymous (use it in every owner filter) */
+export function userId(ctx: Ctx): string {
+  if (!ctx.user) throw unauthorized()
+  return ctx.user.id
+}
 
 /** The data functions a resource provides; crudRoutes() turns them into HTTP routes */
 export type Repo<TCreate, TUpdate, TOut> = {
-  list: (ctx: Ctx) => Promise<TOut[]>
+  /** page is null when the resource isn't paginated: return every row with nextCursor null */
+  list: (ctx: Ctx, page: PageParams | null) => Promise<Page<TOut>>
   get: (ctx: Ctx, id: number) => Promise<TOut | null>
   create: (ctx: Ctx, input: TCreate) => Promise<TOut>
   update: (ctx: Ctx, id: number, input: TUpdate) => Promise<TOut | null>
@@ -18,40 +39,55 @@ export type Repo<TCreate, TUpdate, TOut> = {
 
 const idParam = z.object({ id: z.coerce.number().int().positive() })
 
+const adminOnly = every(requireAuth, requireRole('admin')) as MiddlewareHandler<AppEnv>
+const signedIn = requireAuth as unknown as MiddlewareHandler<AppEnv>
+
+const guards: Record<Access, { read: MiddlewareHandler<AppEnv>; write: MiddlewareHandler<AppEnv> }> = {
+  owner: { read: signedIn, write: signedIn },
+  'public-owner': { read: optionalAuth, write: signedIn },
+  'public-admin': { read: optionalAuth, write: adminOnly },
+  admin: { read: adminOnly, write: adminOnly },
+}
+
+const toCtx = (c: Context<AppEnv>): Ctx => ({ db: getDb(c.env), env: c.env, user: c.get('user') })
+
 /**
- * Standard, signed-in-only CRUD routes for one resource:
+ * Standard CRUD routes for one resource:
  * GET / · GET /:id · POST / · PATCH /:id · DELETE /:id
- * Handles auth, validation, 404s and status codes; the repo handles the data.
+ * Handles access, validation, pagination, 404s and status codes; the repo handles the data.
+ * Paginated lists answer { items, nextCursor } and accept ?limit=&cursor=; otherwise a plain array.
  */
 export function crudRoutes<C extends z.ZodType, U extends z.ZodType, O>(opts: {
+  access: Access
+  paginate?: boolean
   create: C
   update: U
   repo: Repo<z.infer<C>, z.infer<U>, O>
 }) {
-  const { repo } = opts
-  const ctx = (c: { env: CloudflareBindings; get: (k: 'user') => { id: string } }): Ctx => ({
-    db: getDb(c.env),
-    env: c.env,
-    userId: c.get('user').id,
-  })
+  const { repo, access, paginate = true } = opts
+  const { read, write } = guards[access]
 
   return new Hono<AppEnv>()
-    .use(requireAuth)
-    .get('/', async (c) => c.json(await repo.list(ctx(c))))
-    .get('/:id', zValidator('param', idParam), async (c) => {
-      const item = await repo.get(ctx(c), c.req.valid('param').id)
-      return item ? c.json(item) : c.json({ error: 'Not found' }, 404)
+    .get('/', read, async (c) => {
+      if (!paginate) return c.json((await repo.list(toCtx(c), null)).items)
+      const page = toPageParams(parseOrThrow(pageQuery, c.req.query()))
+      return c.json(await repo.list(toCtx(c), page))
     })
-    .post('/', zValidator('json', opts.create), async (c) => {
-      return c.json(await repo.create(ctx(c), c.req.valid('json') as z.infer<C>), 201)
+    .get('/:id', read, validate('param', idParam), async (c) => {
+      const item = await repo.get(toCtx(c), c.req.valid('param').id)
+      if (!item) throw notFound()
+      return c.json(item)
     })
-    .patch('/:id', zValidator('param', idParam), zValidator('json', opts.update), async (c) => {
-      const item = await repo.update(ctx(c), c.req.valid('param').id, c.req.valid('json') as z.infer<U>)
-      return item ? c.json(item) : c.json({ error: 'Not found' }, 404)
+    .post('/', write, validate('json', opts.create), async (c) => {
+      return c.json(await repo.create(toCtx(c), c.req.valid('json') as z.infer<C>), 201)
     })
-    .delete('/:id', zValidator('param', idParam), async (c) => {
-      return (await repo.remove(ctx(c), c.req.valid('param').id))
-        ? c.body(null, 204)
-        : c.json({ error: 'Not found' }, 404)
+    .patch('/:id', write, validate('param', idParam), validate('json', opts.update), async (c) => {
+      const item = await repo.update(toCtx(c), c.req.valid('param').id, c.req.valid('json') as z.infer<U>)
+      if (!item) throw notFound()
+      return c.json(item)
+    })
+    .delete('/:id', write, validate('param', idParam), async (c) => {
+      if (!(await repo.remove(toCtx(c), c.req.valid('param').id))) throw notFound()
+      return c.body(null, 204)
     })
 }

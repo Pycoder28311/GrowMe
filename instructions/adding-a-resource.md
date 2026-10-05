@@ -1,43 +1,64 @@
 # Adding a resource (table + API) to the backend
 
-How to add a new database table and its API to `backend/`, using the shared
-CRUD and relationship helpers. Follow these steps for every new table.
+How to add a new database table and its API to `backend/`, using the shared CRUD,
+pagination and relationship helpers. Follow these steps for every new table.
+For starting a new project from this structure, see `backend-setup.md`.
 
 ## How the backend is organized
 
 ```
-backend/src/
-├── lib/                     shared code: knows nothing about specific tables
-│   ├── crud.ts              crudRoutes(): turns a repo into 5 signed-in-only HTTP routes
-│   ├── relations.ts         many-to-many helpers: replaceLinks(), removedIds(), ownsAll()
-│   ├── errors.ts            HttpError: throw anywhere to answer with a clean JSON error
-│   └── ...                  email, image-type, origins
-├── resources/               one folder per resource
-│   └── <name>/
-│       ├── <name>.schema.ts what clients may send (zod)
-│       ├── <name>.repo.ts   data logic (queries, ownership, relations)
-│       └── <name>.routes.ts the HTTP routes (usually one line)
-├── db/schema.ts             all tables (Drizzle)
-├── middleware/              auth (requireAuth), csrf, rate-limit
-└── index.ts                 mounts every resource under /api/<name>
+GrowMe/
+├── packages/shared/src/      zod schemas + types shared with the app (no server code)
+└── backend/src/
+    ├── lib/                  CORE: identical in every project
+    │   ├── crud.ts           crudRoutes(): access modes + pagination + validation + 404s
+    │   ├── pagination.ts     keyset pagination helpers
+    │   ├── relations.ts      many-to-many helpers: replaceLinks(), removedIds(), ownsAll()
+    │   ├── errors.ts         HttpError + errorBody(): one error format for everything
+    │   ├── validate.ts       validate() / parseOrThrow(): zod with the API error format
+    │   ├── env.ts            validated environment (add new variables here)
+    │   ├── config.ts         project settings derived from env
+    │   └── email.ts, image-type.ts
+    ├── middleware/           CORE: env check, auth (optional/required/role), csrf, rate limit
+    ├── resources/<name>/     PROJECT: one folder per resource (repo + routes)
+    ├── db/schema.ts          PROJECT: all tables (Drizzle)
+    ├── auth.ts, emails.ts    PROJECT: sign-in methods and email texts
+    └── index.ts              PROJECT: mounts every resource under /api/<name>
 ```
 
-`crudRoutes()` provides, for every resource:
+## What `crudRoutes()` gives you
+
+```ts
+crudRoutes({ access, paginate?, create, update, repo })
+```
 
 | Route | Does |
 |---|---|
-| `GET /api/<name>` | list the signed-in user's rows |
-| `GET /api/<name>/:id` | one row, or 404 |
-| `POST /api/<name>` | create (validated), returns 201 |
-| `PATCH /api/<name>/:id` | update (validated), or 404 |
-| `DELETE /api/<name>/:id` | delete, returns 204, or 404 |
+| `GET /api/<name>` | list. Paginated by default: `?limit=20&cursor=…` → `{ items, nextCursor }` |
+| `GET /api/<name>/:id` | one row, or `404 NOT_FOUND` |
+| `POST /api/<name>` | create (validated with `create`), `201` |
+| `PATCH /api/<name>/:id` | update (validated with `update`), or `404` |
+| `DELETE /api/<name>/:id` | delete, `204`, or `404` |
 
-Authentication, input validation, 404s and status codes are handled there.
+**`access`** decides who may read and write:
+
+| Mode | Read | Write | Example |
+|---|---|---|---|
+| `owner` | signed in, own rows | signed in, own rows | notes |
+| `public-owner` | everyone | signed in; change only own rows | posts |
+| `public-admin` | everyone | admins only | plants, blogs |
+| `admin` | admins only | admins only | moderation |
+
+**`paginate`** (default `true`): keyset pagination, newest first. Each page reads about
+`limit + 1` rows through the primary key, however big the table is. `paginate: false` returns a
+plain array of everything; use it only for small per-user lists.
+
+Every error answers `{ code, message, details? }` with a code from `packages/shared/src/errors.ts`.
 CSRF protection and rate limiting apply automatically to everything under `/api`.
 
 ## Steps
 
-The example adds `tasks`: each user's to-do items.
+The example adds `tasks`: each user's to-do items (`access: 'owner'`).
 
 ### 1. Define the table in `backend/src/db/schema.ts`
 
@@ -55,23 +76,23 @@ export const tasks = sqliteTable(
 )
 ```
 
-Every table that belongs to a user gets a `userId` column and an index on it.
+Every user-owned table gets `userId` and an index on it. Index every column you filter or join by.
 
 ### 2. Create and apply the migration (in `backend/`)
 
 ```
 npx drizzle-kit generate
-npx wrangler d1 migrations apply growme-db --local
-npx wrangler d1 migrations apply growme-db --remote
+npx wrangler d1 migrations apply <database-name> --local
+npx wrangler d1 migrations apply <database-name> --remote
 ```
 
-Read the generated SQL in `drizzle/` before applying it remotely. Adding a required
-(`notNull`) column to a table that already has rows fails unless the column has a default.
+Read the generated SQL in `drizzle/` before applying it remotely. Adding a required (`notNull`)
+column to a table that already has rows fails unless the column has a default.
 
-### 3. Create `backend/src/resources/tasks/`
+### 3. Add the contract to `packages/shared/src/tasks.ts`
 
-**`tasks.schema.ts`**: the fields a client may send. Never include `userId`, `id` or
-other server-controlled fields here.
+What clients may send (zod) and what they get back (types). Never include `userId`, `id` or other
+server-controlled fields in input schemas.
 
 ```ts
 import { z } from 'zod'
@@ -88,35 +109,46 @@ export const taskUpdate = z.object({
 
 export type TaskCreate = z.infer<typeof taskCreate>
 export type TaskUpdate = z.infer<typeof taskUpdate>
+export type Task = { id: number; title: string; done: boolean }
 ```
 
-**`tasks.repo.ts`**: every query filters by `ctx.userId`.
+Export it from `packages/shared/src/index.ts`: `export * from './tasks'`.
+
+### 4. Create `backend/src/resources/tasks/`
+
+**`tasks.repo.ts`**: the data logic. Every query on user data filters by `userId(ctx)`.
 
 ```ts
+import type { Task, TaskCreate, TaskUpdate } from '@growme/shared'
 import { and, desc, eq } from 'drizzle-orm'
 import { tasks } from '../../db/schema'
-import type { Ctx, Repo } from '../../lib/crud'
-import type { TaskCreate, TaskUpdate } from './tasks.schema'
+import { userId, type Ctx, type Repo } from '../../lib/crud'
+import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 
-type Task = typeof tasks.$inferSelect
+type Row = typeof tasks.$inferSelect
 
-const toJson = (t: Task) => ({ id: t.id, title: t.title, done: t.done })
-export type TaskJson = ReturnType<typeof toJson>
+/** The only fields that leave the server */
+const toJson = (t: Row): Task => ({ id: t.id, title: t.title, done: t.done })
 
 /** Only rows owned by the signed-in user */
-const mine = (ctx: Ctx, id: number) => and(eq(tasks.id, id), eq(tasks.userId, ctx.userId))
+const mine = (ctx: Ctx, id: number) => and(eq(tasks.id, id), eq(tasks.userId, userId(ctx)))
 
-export const tasksRepo: Repo<TaskCreate, TaskUpdate, TaskJson> = {
-  async list(ctx) {
-    const rows = await ctx.db.select().from(tasks).where(eq(tasks.userId, ctx.userId)).orderBy(desc(tasks.id))
-    return rows.map(toJson)
+export const tasksRepo: Repo<TaskCreate, TaskUpdate, Task> = {
+  async list(ctx, page) {
+    const rows = await ctx.db
+      .select()
+      .from(tasks)
+      .where(and(eq(tasks.userId, userId(ctx)), beforeCursor(tasks.id, page)))
+      .orderBy(desc(tasks.id))
+      .limit(fetchLimit(page) ?? -1)
+    return mapPage(toPage(rows, page, (t) => t.id), toJson)
   },
   async get(ctx, id) {
     const row = await ctx.db.select().from(tasks).where(mine(ctx, id)).get()
     return row ? toJson(row) : null
   },
   async create(ctx, input) {
-    const row = await ctx.db.insert(tasks).values({ ...input, userId: ctx.userId }).returning().get()
+    const row = await ctx.db.insert(tasks).values({ ...input, userId: userId(ctx) }).returning().get()
     return toJson(row)
   },
   async update(ctx, id, input) {
@@ -130,17 +162,20 @@ export const tasksRepo: Repo<TaskCreate, TaskUpdate, TaskJson> = {
 }
 ```
 
+For public resources (`public-owner`, `public-admin`), `list` and `get` must not call `userId(ctx)`
+(anonymous readers have no user), while writes in `public-owner` still filter by it.
+
 **`tasks.routes.ts`**:
 
 ```ts
+import { taskCreate, taskUpdate } from '@growme/shared'
 import { crudRoutes } from '../../lib/crud'
 import { tasksRepo } from './tasks.repo'
-import { taskCreate, taskUpdate } from './tasks.schema'
 
-export default crudRoutes({ create: taskCreate, update: taskUpdate, repo: tasksRepo })
+export default crudRoutes({ access: 'owner', create: taskCreate, update: taskUpdate, repo: tasksRepo })
 ```
 
-### 4. Mount it in `backend/src/index.ts`
+### 5. Mount it in `backend/src/index.ts`
 
 ```ts
 import tasksRoutes from './resources/tasks/tasks.routes'
@@ -151,17 +186,18 @@ const routes = app
   .route('/api/tasks', tasksRoutes)
 ```
 
-### 5. Check and deploy (in `backend/`)
+### 6. Check and deploy
 
 ```
-npx tsc --noEmit
-npm run deploy
+npm run typecheck --workspace backend
+npm run typecheck --workspace packages/shared
+npm run deploy --workspace backend
 ```
 
-### 6. Use it in the app
+### 7. Use it in the app
 
-Add `app/src/api/tasks.ts` with `list`, `create`, `update` and `remove`, following
-`app/src/api/notes.ts`, then build the screens under `app/src/app/(app)/`.
+Add an API file in the app following `app/src/api/notes.ts`, then build the screens under
+`app/src/app/(app)/`.
 
 ## Relationships
 
@@ -173,8 +209,8 @@ Add a column that points to the parent and filter by it in the repo. No helper i
 projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
 ```
 
-Before saving, check that the parent belongs to the user, e.g. with
-`ownsAll(ctx.db, projects, { id: projects.id, owner: projects.userId }, [projectId], ctx.userId)`.
+Before saving, check that the parent belongs to the user:
+`ownsAll(ctx.db, projects, { id: projects.id, owner: projects.userId }, [projectId], userId(ctx))`.
 
 ### Many-to-many (e.g. tasks ↔ tags)
 
@@ -195,8 +231,8 @@ Before saving, check that the parent belongs to the user, e.g. with
    parent's own update:
 
    ```ts
-   if (!(await ownsAll(ctx.db, tags, { id: tags.id, owner: tags.userId }, tagIds, ctx.userId))) {
-     throw new HttpError(400, 'Unknown tag')
+   if (!(await ownsAll(ctx.db, tags, { id: tags.id, owner: tags.userId }, tagIds, userId(ctx)))) {
+     throw new HttpError(400, 'UNKNOWN_TAG', 'Unknown tag')   // add the code to shared errors.ts
    }
    await ctx.db.batch([
      ctx.db.update(tasks).set({ title }).where(eq(tasks.id, id)),
@@ -206,36 +242,45 @@ Before saving, check that the parent belongs to the user, e.g. with
 
 4. Use `removedIds(before, after)` if unlinked rows need cleanup (as notes do with images).
 
-`resources/notes/notes.repo.ts` is a complete working example of this pattern.
+`resources/notes/notes.repo.ts` is a complete working example.
+
+### Counters and shared "likes"-style tables
+
+- Store counts on the parent row (e.g. `like_count`) and change them in the **same batch** as the
+  row they count, **only if** a row was actually inserted or deleted. Never `count(*)` per request.
+- A polymorphic table (e.g. one `likes` table with `target_type` + `target_id`) has no foreign key:
+  delete its rows in the same batch when the target is deleted.
 
 ## Routes that are not plain CRUD
 
 For uploads, actions or read-only endpoints, write a normal Hono router in
-`resources/<name>/<name>.routes.ts` that starts with `.use(requireAuth)`, and mount it the same way.
+`resources/<name>/<name>.routes.ts`. Start it with `.use(requireAuth)` (and `requireRole('admin')`
+for admin actions), throw `HttpError` with a code for errors, and mount it the same way.
 `resources/images/images.routes.ts` (file upload) is an example.
 
 ## Rules
 
-- **The owner comes from the session.** Use `ctx.userId` (or `c.get('user').id`). Never accept
-  `userId` from the request body.
+- **The owner comes from the session:** `userId(ctx)` in repos, `c.get('user').id` in routers.
+  Never accept `userId` from the request body.
 - **Every query on user data filters by owner.** Someone else's row must behave exactly like a
   missing row (404).
-- **Validate every input with zod**, with limits (lengths, array sizes).
-- **Return data through `toJson`.** Never send raw database rows to clients.
+- **Validate every input with zod** (in `packages/shared`), with limits (lengths, array sizes).
+- **Return data through `toJson`** typed with the shared type. Never send raw database rows.
 - **Check ownership of every linked id** (`ownsAll`) before creating links.
 - **Group related writes in `db.batch()`** so they succeed or fail together.
-- **Throw `HttpError(status, message)` for expected failures.** Unexpected errors are logged and
-  answered with a generic 500.
-- **Migrations:** apply every new migration with both `--local` and `--remote`, and commit the
-  `drizzle/` folder.
-- **After changing `wrangler.jsonc` or `.dev.vars`,** run `npm run cf-typegen`.
+- **Errors:** throw `HttpError(status, code, message)` with a code from the shared `ERROR_CODES`
+  (add new codes there). Unexpected errors are logged and answered as `INTERNAL`.
+- **New variables or bindings:** add them to `wrangler.jsonc` / `.dev.vars` **and** to the schema in
+  `lib/env.ts`, then run `npm run cf-typegen` in `backend/`.
+- **Migrations:** apply every new migration with both `--local` and `--remote`, and commit `drizzle/`.
 
 ## Checklist
 
-- [ ] Table in `db/schema.ts` (with `userId` and an index if user-owned)
+- [ ] Table in `db/schema.ts` (with `userId` and indexes if user-owned)
 - [ ] Migration generated, checked, applied locally and remotely
-- [ ] `resources/<name>/` with `schema.ts`, `repo.ts`, `routes.ts`
+- [ ] Contract in `packages/shared/src/<name>.ts`, exported from `index.ts`
+- [ ] `resources/<name>/` with `<name>.repo.ts` and `<name>.routes.ts` (right `access`)
 - [ ] Mounted in `index.ts`
-- [ ] `npx tsc --noEmit` passes
+- [ ] Typecheck passes for `backend` and `packages/shared`
 - [ ] Deployed
 - [ ] App API file and screens

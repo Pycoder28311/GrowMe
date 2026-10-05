@@ -1,6 +1,9 @@
+import { noteInput } from '@growme/shared'
 import { crudRoutes } from '../../lib/crud'
 import { notesRepo } from './notes.repo'
-import { noteInput } from './notes.schema'
 
-/** GET / · GET /:id · POST / · PATCH /:id · DELETE /:id, all scoped to the signed-in user */
-export default crudRoutes({ create: noteInput, update: noteInput, repo: notesRepo })
+/**
+ * GET / · GET /:id · POST / · PATCH /:id · DELETE /:id, each user only sees their own notes.
+ * paginate: false keeps GET / a plain array until the app switches to pages (see docs/plans/01).
+ */
+export default crudRoutes({ access: 'owner', paginate: false, create: noteInput, update: noteInput, repo: notesRepo })

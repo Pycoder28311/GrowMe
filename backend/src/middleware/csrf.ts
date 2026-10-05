@@ -1,5 +1,6 @@
 import { createMiddleware } from 'hono/factory'
-import { WEB_ORIGINS } from '../lib/origins'
+import { getConfig } from '../lib/config'
+import { HttpError } from '../lib/errors'
 import type { AppEnv } from './auth'
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
@@ -15,8 +16,8 @@ export const csrfProtection = createMiddleware<AppEnv>(async (c, next) => {
     if (c.req.path.startsWith('/api/auth/callback/')) return next() // sign-in providers post here
 
     const origin = c.req.header('origin')
-    if (origin && !WEB_ORIGINS.includes(origin)) {
-        return c.json({ message: 'Request blocked: untrusted origin.', code: 'FORBIDDEN_ORIGIN' }, 403)
+    if (origin && !getConfig(c.env).webOrigins.includes(origin)) {
+        throw new HttpError(403, 'FORBIDDEN_ORIGIN', 'Request blocked: untrusted origin.')
     }
     await next()
 })

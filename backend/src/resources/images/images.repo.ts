@@ -1,6 +1,6 @@
 import { inArray } from 'drizzle-orm'
-import type { Ctx } from '../../lib/crud'
 import { images } from '../../db/schema'
+import type { Ctx } from '../../lib/crud'
 
 /** Public URL for a stored image key */
 export const imageUrl = (env: CloudflareBindings, key: string) => `${env.IMAGES_URL}/${key}`
@@ -9,5 +9,5 @@ export const imageUrl = (env: CloudflareBindings, key: string) => `${env.IMAGES_
 export async function deleteImages({ db, env }: Ctx, ids: number[]) {
   if (ids.length === 0) return
   const rows = await db.delete(images).where(inArray(images.id, ids)).returning()
-  await env.images.delete(rows.map((img) => img.key))
+  await env.BUCKET.delete(rows.map((img) => img.key))
 }
