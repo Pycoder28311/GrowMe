@@ -40,7 +40,7 @@
 	"vars": {
 		"APP_NAME": "GrowMe",
 		"APP_SCHEME": "growme",
-		"WEB_ORIGINS": "",
+		"WEB_ORIGINS": "http://localhost:8081",
 		"IMAGES_URL": "https://images.testingggg.lol",
 		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
 		"EMAIL_FROM": "GrowMe <no-reply@testingggg.lol>"
