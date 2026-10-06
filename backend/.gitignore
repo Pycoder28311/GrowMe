@@ -31,3 +31,6 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+
+# built by `npm run build:admin` (wrangler runs it before dev and deploy)
+src/resources/admin/editor.client.js

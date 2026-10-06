@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { entityId, imageIds, queryId, type Author, type ImageRef } from './common'
+import { richDoc } from './rich-text'
 
 const name = z.string().trim().min(1).max(200)
 const content = z.string().trim().min(1).max(50000)
@@ -20,8 +21,11 @@ export const blogUpdate = z.object({
   imageIds: imageIds.optional(),
 })
 
-/** The admin dashboard's blog form (POST/PUT /api/admin/blogs): every field, photos in order */
-export const blogSave = z.object({ name, content, imageIds })
+/**
+ * The admin dashboard's blog form (POST/PUT /api/admin/blogs): every field, photos in order.
+ * `content` is the editor's document (see rich-text.ts); it is stored as JSON text in blogs.content.
+ */
+export const blogSave = z.object({ name, content: richDoc, imageIds })
 
 export type BlogCreate = z.infer<typeof blogCreate>
 export type BlogSave = z.infer<typeof blogSave>
@@ -30,6 +34,7 @@ export type BlogUpdate = z.infer<typeof blogUpdate>
 export type Blog = {
   id: number
   name: string
+  /** The editor's document as JSON text, or older plain text: read it with parseRichContent() */
   content: string
   images: ImageRef[]
   likeCount: number

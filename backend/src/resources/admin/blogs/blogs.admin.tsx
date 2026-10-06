@@ -1,14 +1,12 @@
-import { blogSave, type Blog } from '@growme/shared'
+import { blogSave, parseRichContent, readingMinutes, type Blog } from '@growme/shared'
 import { blogsRepo } from '../../blogs/blogs.repo'
 import { adminResource, numericId } from '../resource'
-import { TextArea, TextField } from '../ui/fields'
+import { TextField } from '../ui/fields'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { formatDate } from '../ui/format'
+import { EMPTY_DOC, RichTextEditor } from '../ui/rich-text-editor'
 import { saveBlog } from './blogs.save'
-
-/** Reading time like the app's badge: about 200 words a minute, at least 1 */
-const readMinutes = (text: string) => Math.max(1, Math.round(text.trim().split(/\s+/).length / 200))
 
 /** A blog in the dashboard's list: cover photo, title, date and counters */
 function BlogListItem({ item, href, deleteUrl }: { item: Blog; href: string | null; deleteUrl: string }) {
@@ -24,7 +22,7 @@ function BlogListItem({ item, href, deleteUrl }: { item: Blog; href: string | nu
   )
 }
 
-/** The blog form: laid out like the app's article page (photo, title with date and badges, text) */
+/** The blog form: laid out like the app's article page (photo, title with date and badges, formatted text) */
 function BlogForm({ item: b }: { item: Blog | null }) {
   return (
     <>
@@ -35,7 +33,7 @@ function BlogForm({ item: b }: { item: Blog | null }) {
         {b && (
           <div class="meta">
             <span class="badge">📅 {formatDate(b.createdAt)}</span>
-            <span class="badge">⏱ {readMinutes(b.content)}′ ανάγνωση</span>
+            <span class="badge">⏱ {readingMinutes(b.content)}′ ανάγνωση</span>
             <span class="badge">❤️ {b.likeCount}</span>
             <span class="badge">💬 {b.commentCount}</span>
           </div>
@@ -43,14 +41,12 @@ function BlogForm({ item: b }: { item: Blog | null }) {
       </div>
 
       <FormSection title="Κείμενο">
-        <TextArea
+        {/* Older plain-text articles open as paragraphs and are saved in the new format */}
+        <RichTextEditor
           field="content"
-          value={b?.content}
+          label="Κείμενο άρθρου"
+          value={b ? parseRichContent(b.content) : EMPTY_DOC}
           placeholder="Γράψε το άρθρο εδώ…"
-          hint="Άφησε μια κενή γραμμή ανάμεσα στις παραγράφους."
-          maxLength={50000}
-          large
-          required
         />
       </FormSection>
     </>

@@ -61,6 +61,7 @@
     if (type === 'bool') return input.checked
     if (type === 'number' || type === 'id') return raw === '' ? null : Number(raw)
     if (type === 'money') return raw === '' ? null : Math.round(Number(raw.replace(',', '.')) * 100)
+    if (type === 'json') return JSON.parse(input.value)
     return raw === '' && input.hasAttribute('data-nullable') ? null : raw
   }
 
@@ -133,6 +134,10 @@
     [/^Unknown image$/, 'Μια φωτογραφία δεν βρέθηκε. Ανέβασέ την ξανά.'],
     [/^Unknown combinationId$/, 'Ο συνδυασμός δεν βρέθηκε'],
     [/^Not found$/, 'Δεν βρέθηκε (ανανέωσε τη σελίδα)'],
+    [/^Write some text$/, 'Γράψε κάποιο κείμενο'],
+    [/^Links must start with/, 'Οι σύνδεσμοι πρέπει να ξεκινούν με https://, http:// ή mailto:'],
+    [/^The text is too long$/, 'Το κείμενο είναι πολύ μεγάλο'],
+    [/^Lists are nested too deeply$/, 'Πάρα πολλές λίστες η μία μέσα στην άλλη'],
   ]
   const greek = (message) => {
     for (const [pattern, text] of GREEK) {
@@ -384,7 +389,16 @@
   /* ─────────────── Start ─────────────── */
 
   for (const list of form.querySelectorAll('[data-sortable]')) refresh(list)
-  form.addEventListener('input', () => (dirty = true))
+  form.addEventListener('input', (event) => {
+    dirty = true
+    // Editing a field clears its error
+    const field = event.target.closest?.('.field.invalid')
+    if (field) {
+      field.classList.remove('invalid')
+      const slot = field.querySelector('.error')
+      if (slot) slot.textContent = ''
+    }
+  })
   window.addEventListener('beforeunload', (event) => {
     if (dirty) event.preventDefault()
   })

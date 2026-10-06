@@ -100,7 +100,6 @@ input[type=text], input[type=number], textarea, select {
 input:focus, textarea:focus, select:focus, button:focus-visible {
   outline: 2px solid var(--primary-soft); outline-offset: 1px; border-color: var(--primary); }
 textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
-textarea.large { min-height: 360px; line-height: 1.6; padding: var(--space-md); }
 .meta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-xs); }
 .badge { display: inline-flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm);
          border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: var(--text-small);
@@ -166,6 +165,54 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .gallery .list-row:not(:first-child) .cover { visibility: hidden; }
 .upload { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; margin-top: var(--space-sm); }
 .upload input[type=file] { font-size: var(--text-small); }
+
+/* Rich text editor (Tiptap): toolbar + the text, styled like the app's article page */
+.rich { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.rich.focused { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+.field.rich.invalid { border-color: var(--danger); }
+.rich > .error { padding: 0 var(--space-md) var(--space-sm); }
+.toolbar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: var(--space-xs);
+           padding: var(--space-xs); background: var(--surface); border-bottom: 1px solid var(--border);
+           border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.tool-group { display: flex; gap: 2px; padding-right: var(--space-xs); border-right: 1px solid var(--border); }
+.tool-group:last-child { border-right: 0; }
+.tool { min-width: 34px; height: 34px; padding: 0 var(--space-xs); border: 0; border-radius: var(--radius-sm);
+        background: transparent; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.tool:hover { background: var(--primary-soft); }
+.tool[aria-pressed="true"] { background: var(--primary); color: var(--surface); }
+.tool:disabled { opacity: .35; cursor: default; background: transparent; }
+.tool-italic { font-style: italic; }
+.tool-underline { text-decoration: underline; }
+.tool-strike { text-decoration: line-through; }
+.rich-area { padding: var(--space-md); min-height: 360px; }
+.rich-area .ProseMirror { min-height: 340px; outline: none; line-height: 1.6; }
+.ProseMirror { position: relative; word-wrap: break-word; white-space: pre-wrap; white-space: break-spaces;
+               font-variant-ligatures: none; font-feature-settings: "liga" 0; }
+.ProseMirror li { position: relative; }
+.ProseMirror-hideselection *::selection { background: transparent; }
+.ProseMirror-hideselection { caret-color: transparent; }
+.ProseMirror-selectednode { outline: 2px solid var(--primary); }
+.ProseMirror-separator { display: inline !important; border: none !important; margin: 0 !important; }
+.ProseMirror-gapcursor { display: none; pointer-events: none; position: absolute; }
+.ProseMirror-gapcursor:after { content: ""; display: block; position: absolute; top: -2px; width: 20px;
+                               border-top: 1px solid var(--ink); animation: gapcursor 1.1s steps(2, start) infinite; }
+@keyframes gapcursor { to { visibility: hidden; } }
+.ProseMirror-focused .ProseMirror-gapcursor { display: block; }
+.ProseMirror p { margin: 0 0 var(--space-sm); }
+.ProseMirror h2 { font-size: var(--text-big); margin: var(--space-lg) 0 var(--space-sm); color: var(--ink); }
+.ProseMirror h3 { font-size: 20px; margin: var(--space-md) 0 var(--space-xs); color: var(--ink); }
+.ProseMirror > :first-child { margin-top: 0; }
+.ProseMirror ul, .ProseMirror ol { padding-left: var(--space-lg); margin: 0 0 var(--space-sm); }
+.ProseMirror li > p { margin: 0; }
+.ProseMirror li::marker { color: var(--primary); }
+.ProseMirror blockquote { margin: 0 0 var(--space-sm); padding: var(--space-xs) var(--space-md);
+                          border-left: 4px solid var(--primary); background: var(--primary-soft);
+                          border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.ProseMirror hr { border: 0; border-top: 2px solid var(--border); margin: var(--space-md) 0; }
+.ProseMirror hr.ProseMirror-selectednode { border-top-color: var(--primary); outline: none; }
+.ProseMirror a { color: var(--primary); text-decoration: underline; cursor: text; }
+.ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; height: 0;
+                                                      color: var(--ink-muted); pointer-events: none; }
 
 /* Sticky save bar and toast */
 .save-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: var(--space-md);

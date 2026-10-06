@@ -1,5 +1,6 @@
 import type { Child } from 'hono/jsx'
 import ADMIN_JS from '../admin.client.js'
+import EDITOR_JS from '../editor.client.js'
 import { ADMIN_CSS } from './styles'
 
 /** Short content hash, so /admin.js?v=… and /admin.css?v=… can be cached and still update on deploy */
@@ -13,6 +14,8 @@ function hash(text: string) {
 export const ASSETS = {
   js: { path: '/admin.js', version: hash(ADMIN_JS), body: ADMIN_JS, type: 'text/javascript; charset=utf-8' },
   css: { path: '/admin.css', version: hash(ADMIN_CSS), body: ADMIN_CSS, type: 'text/css; charset=utf-8' },
+  // The article editor (Tiptap), built by `npm run build:admin`; loaded only by RichTextEditor
+  editor: { path: '/admin-editor.js', version: hash(EDITOR_JS), body: EDITOR_JS, type: 'text/javascript; charset=utf-8' },
 } as const
 
 /**

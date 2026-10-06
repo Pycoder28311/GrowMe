@@ -1,0 +1,15 @@
+{
+  // The dashboard's article editor runs in the browser: DOM types, no Worker types.
+  // Bundled by `npm run build:admin` into src/resources/admin/editor.client.js.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": []
+  },
+  "include": ["*.ts"]
+}

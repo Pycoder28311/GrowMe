@@ -6,8 +6,12 @@ import { removedIds, replaceLinks, runBatch } from '../../../lib/relations'
 import { assertAdminImages, deleteImages } from '../../images/images.repo'
 import { blogImageLinks } from '../../blogs/blogs.repo'
 
-/** Creates (id null) or replaces a blog with its photos, as the dashboard's form sends it */
-export async function saveBlog({ db, env }: Store, id: number | null, { imageIds, ...fields }: BlogSave) {
+/**
+ * Creates (id null) or replaces a blog with its photos, as the dashboard's form sends it.
+ * The text arrives as the editor's document, already cleaned by the schema, and is stored as JSON.
+ */
+export async function saveBlog({ db, env }: Store, id: number | null, { imageIds, name, content }: BlogSave) {
+  const fields = { name, content: JSON.stringify(content) }
   if (id === null) {
     await assertAdminImages(db, imageIds)
     const { id: newId } = await db.insert(blogs).values(fields).returning({ id: blogs.id }).get()

@@ -1,59 +1,74 @@
+import { parseRichContent } from '@growme/shared';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTopClearance } from '@/components/layout/app-shell';
 import { AppText } from '@/components/ui/app-text';
+import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
 import { CommentsSection } from '@/components/wiki/comments-section';
-import { PostBody } from '@/components/wiki/post-body';
 import { PostCarousel } from '@/components/wiki/post-carousel';
 import { ReadTimeBadge } from '@/components/wiki/read-time-badge';
+import { RichText } from '@/components/wiki/rich-text';
 import { ShareButtons } from '@/components/wiki/share-buttons';
-import { WIKI_POSTS } from '@/config/wiki-posts';
+import { publishedDate, readMinutes, useBlog, useBlogs } from '@/lib/blogs';
 import { colors, size, space } from '@/theme';
 
 // Photo height at the top of the post
 const PHOTO_HEIGHT = size.touch * 4;
 
-/** One Encyclopedia post: photo, text, sharing, comments and the other posts */
+/** One Encyclopedia article from the database: photo, text, sharing, comments and the other articles */
 export default function PostScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
-  const post = WIKI_POSTS.find((p) => p.id === id);
+  const { blog: post, state, retry } = useBlog(Number(id));
+  // The newest articles, for "Υπόλοιπα άρθρα"
+  const { blogs } = useBlogs();
 
-  if (!post) {
+  if (state === 'loading') {
+    return <ActivityIndicator color={colors.primary} style={{ marginTop: topClearance }} />;
+  }
+  if (state === 'error' || !post) {
     return (
-      <AppText color={colors.inkMuted} style={[styles.notFound, { marginTop: topClearance }]}>
-        Το άρθρο δεν βρέθηκε.
-      </AppText>
+      <View style={[styles.notFound, { marginTop: topClearance }]}>
+        <AppText color={colors.inkMuted} style={styles.center}>
+          Το άρθρο δεν βρέθηκε ή δεν ήταν δυνατή η φόρτωσή του.
+        </AppText>
+        <PillButton label="Δοκίμασε ξανά" onPress={retry} />
+      </View>
     );
   }
 
-  const others = WIKI_POSTS.filter((p) => p.id !== post.id);
+  const others = blogs.filter((p) => p.id !== post.id);
+  const cover = post.images[0];
 
   return (
-    // The photo starts at the very top, under the corner buttons
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.page}>
-      <Image source={post.image} contentFit="cover" accessibilityLabel={post.title} style={styles.photo} />
+    // The photo starts at the very top, under the corner buttons; without one the title clears them
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={[styles.page, !cover && { paddingTop: topClearance }]}>
+      {cover && (
+        <Image source={{ uri: cover.url }} contentFit="cover" accessibilityLabel={post.name} style={styles.photo} />
+      )}
 
       <View style={styles.body}>
         <View style={styles.titleRow}>
           <View style={styles.titleText}>
             <AppText size="big" bold accessibilityRole="header">
-              {post.title}
+              {post.name}
             </AppText>
             <AppText size="small" color={colors.inkMuted}>
-              {post.date}
+              {publishedDate(post)}
             </AppText>
           </View>
-          <ReadTimeBadge minutes={post.readMinutes} />
+          <ReadTimeBadge minutes={readMinutes(post)} />
         </View>
 
-        <PostBody blocks={post.content} />
+        <RichText doc={parseRichContent(post.content)} />
 
         <Section title="Μοιραστείτε το άρθρο:">
-          <ShareButtons title={post.title} />
+          <ShareButtons title={post.name} />
         </Section>
 
         <Section title="Αφήστε σχόλιο">
@@ -64,7 +79,7 @@ export default function PostScreen() {
           <Section title="Υπόλοιπα άρθρα">
             <PostCarousel
               posts={others}
-              onOpen={(other) => router.push({ pathname: '/wiki/[id]', params: { id: other.id } })}
+              onOpen={(other) => router.push({ pathname: '/wiki/[id]', params: { id: String(other.id) } })}
             />
           </Section>
         )}
@@ -95,6 +110,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notFound: {
+    alignItems: 'center',
+    gap: space.md,
+    paddingHorizontal: space.md,
+  },
+  center: {
     textAlign: 'center',
   },
 });

@@ -31,6 +31,8 @@ const contentSecurityPolicy = (imagesUrl: string) =>
     "default-src 'none'",
     "script-src 'self'",
     "style-src 'self' https://fonts.googleapis.com",
+    // The article editor writes text alignment as style="" attributes (never <style> tags or scripts)
+    "style-src-attr 'unsafe-inline'",
     'font-src https://fonts.gstatic.com',
     `img-src 'self' ${new URL(imagesUrl).origin}`,
     "connect-src 'self'",

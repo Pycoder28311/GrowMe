@@ -63,8 +63,6 @@ export function TextArea(
     placeholder?: string
     required?: boolean
     maxLength?: number
-    /** Tall, roomy text (e.g. an article's body) */
-    large?: boolean
   },
 ) {
   return (
@@ -73,7 +71,6 @@ export function TextArea(
         data-field={props.field}
         data-type="text"
         data-nullable={props.nullable ? '' : undefined}
-        class={props.large ? 'large' : undefined}
         rows={props.rows ?? 3}
         maxlength={props.maxLength ?? 10000}
         placeholder={props.placeholder ?? props.label}

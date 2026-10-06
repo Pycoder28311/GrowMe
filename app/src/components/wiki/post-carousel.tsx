@@ -1,20 +1,20 @@
+import type { Blog } from '@growme/shared';
 import { useRef, useState } from 'react';
 import { FlatList, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ArrowButton } from '@/components/ui/arrow-button';
 import { PostCard } from '@/components/wiki/post-card';
-import type { WikiPost } from '@/config/wiki-posts';
 import { size, space } from '@/theme';
 
 type PostCarouselProps = {
-  posts: WikiPost[];
-  onOpen: (post: WikiPost) => void;
+  posts: Blog[];
+  onOpen: (post: Blog) => void;
 };
 
 /** Post cards side by side, one at a time with the next one peeking in; arrows step through them */
 export function PostCarousel({ posts, onOpen }: PostCarouselProps) {
   const screenWidth = useWindowDimensions().width;
-  const listRef = useRef<FlatList<WikiPost>>(null);
+  const listRef = useRef<FlatList<Blog>>(null);
   const [index, setIndex] = useState(0);
   // Leaves a strip of the next card visible on the right
   const cardWidth = screenWidth - space.md * 2 - space.lg;
@@ -32,7 +32,7 @@ export function PostCarousel({ posts, onOpen }: PostCarouselProps) {
       <FlatList
         ref={listRef}
         data={posts}
-        keyExtractor={(post) => post.id}
+        keyExtractor={(post) => String(post.id)}
         horizontal
         showsHorizontalScrollIndicator={false}
         snapToInterval={step}
