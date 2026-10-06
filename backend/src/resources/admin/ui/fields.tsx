@@ -56,7 +56,16 @@ export function TextField(
 }
 
 export function TextArea(
-  props: Base & { value?: string | null; nullable?: boolean; rows?: number; placeholder?: string; required?: boolean },
+  props: Base & {
+    value?: string | null
+    nullable?: boolean
+    rows?: number
+    placeholder?: string
+    required?: boolean
+    maxLength?: number
+    /** Tall, roomy text (e.g. an article's body) */
+    large?: boolean
+  },
 ) {
   return (
     <Field label={props.label} hint={props.hint}>
@@ -64,8 +73,9 @@ export function TextArea(
         data-field={props.field}
         data-type="text"
         data-nullable={props.nullable ? '' : undefined}
+        class={props.large ? 'large' : undefined}
         rows={props.rows ?? 3}
-        maxlength={10000}
+        maxlength={props.maxLength ?? 10000}
         placeholder={props.placeholder ?? props.label}
         aria-label={props.label ?? props.placeholder}
         required={props.required}

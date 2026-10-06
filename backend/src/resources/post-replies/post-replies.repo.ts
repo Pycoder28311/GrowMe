@@ -1,6 +1,7 @@
 import type { PostReply, ReplyCreate, ReplyFilter, ReplyUpdate } from '@growme/shared'
 import { and, desc, eq, exists, sql } from 'drizzle-orm'
 import { postReplies, posts } from '../../db/schema'
+import type { Db } from '../../db'
 import { ownedOrAdmin, userId, type Ctx, type Repo } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { assertExists } from '../../lib/relations'
@@ -65,16 +66,23 @@ export const postRepliesRepo: Repo<ReplyCreate, ReplyUpdate, PostReply, ReplyFil
   async remove(ctx, id) {
     const existing = await findWhere(ctx, and(eq(postReplies.id, id), ownedOrAdmin(ctx, postReplies.userId)))
     if (!existing) return false
-    const stillThere = ctx.db.select({ id: postReplies.id }).from(postReplies).where(eq(postReplies.id, id))
-    await ctx.db.batch([
-      // -1 only if the reply still exists in this transaction (no double count on parallel deletes)
-      ctx.db
-        .update(posts)
-        .set({ replyCount: sql`${posts.replyCount} - 1` })
-        .where(and(eq(posts.id, existing.postId), exists(stillThere))),
-      deleteLikesOf(ctx.db, 'post_reply', id),
-      ctx.db.delete(postReplies).where(eq(postReplies.id, id)),
-    ])
-    return true
+    return deletePostReply(ctx.db, id)
   },
+}
+
+/** Deletes a reply with its likes and lowers its post's reply count. No ownership check: callers do it. */
+export async function deletePostReply(db: Db, id: number) {
+  const existing = await db.select({ postId: postReplies.postId }).from(postReplies).where(eq(postReplies.id, id)).get()
+  if (!existing) return false
+  const stillThere = db.select({ id: postReplies.id }).from(postReplies).where(eq(postReplies.id, id))
+  await db.batch([
+    // -1 only if the reply still exists in this transaction (no double count on parallel deletes)
+    db
+      .update(posts)
+      .set({ replyCount: sql`${posts.replyCount} - 1` })
+      .where(and(eq(posts.id, existing.postId), exists(stillThere))),
+    deleteLikesOf(db, 'post_reply', id),
+    db.delete(postReplies).where(eq(postReplies.id, id)),
+  ])
+  return true
 }

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { FilterSheet, type ButtonFrame } from '@/components/filters/filter-sheet';
 import { FiltersButton } from '@/components/filters/filters-button';
@@ -7,18 +7,19 @@ import { useTopClearance } from '@/components/layout/app-shell';
 import { PlantCard } from '@/components/plants/plant-card';
 import { AppText } from '@/components/ui/app-text';
 import { CategoryTabs } from '@/components/ui/category-tabs';
-import { CATEGORY_TABS, matchesFilters } from '@/config/filters';
-import { PLANTS } from '@/config/plants';
-import { useExploreFilters } from '@/lib/explore-filters';
+import { PillButton } from '@/components/ui/pill-button';
+import { CATEGORY_TABS } from '@/config/filters';
+import { usePlants } from '@/lib/plants';
 import { colors, size, space } from '@/theme';
 
-/** Plants matching the Explore filters, narrowed further by the category tabs */
+/**
+ * The plants from the database, newest first; more load while scrolling.
+ * The category tabs and the Explore filters don't filter yet: the database has no plant types so far.
+ */
 export default function ResultsScreen() {
   const topClearance = useTopClearance();
-  const { filters } = useExploreFilters();
   const [categoryId, setCategoryId] = useState('all');
-  const category = CATEGORY_TABS.find((tab) => tab.id === categoryId) ?? CATEGORY_TABS[0];
-  const plants = PLANTS.filter((plant) => matchesFilters(plant, filters) && category.matches(plant));
+  const { plants, loading, error, loadMore, refresh } = usePlants();
   const filtersButtonRef = useRef<View>(null);
   // Set while the filters sheet is open: where the button is, so the sheet's Submit button covers it exactly
   const [filtersFrame, setFiltersFrame] = useState<ButtonFrame | null>(null);
@@ -30,7 +31,7 @@ export default function ResultsScreen() {
     <View style={styles.page}>
       <FlatList
         data={plants}
-        keyExtractor={(plant) => plant.id}
+        keyExtractor={(plant) => String(plant.id)}
         renderItem={({ item }) => <PlantCard plant={item} />}
         ItemSeparatorComponent={() => <View style={styles.gap} />}
         ListHeaderComponent={
@@ -38,10 +39,26 @@ export default function ResultsScreen() {
             <CategoryTabs tabs={CATEGORY_TABS} activeId={categoryId} onChange={setCategoryId} />
           </View>
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
-          <AppText color={colors.inkMuted} style={styles.empty}>
-            Δεν βρέθηκαν φυτά με αυτά τα φίλτρα.
-          </AppText>
+          loading || error ? null : (
+            <AppText color={colors.inkMuted} style={styles.empty}>
+              Δεν υπάρχουν φυτά ακόμα.
+            </AppText>
+          )
+        }
+        ListFooterComponent={
+          loading ? (
+            <ActivityIndicator color={colors.primary} style={styles.footer} />
+          ) : error ? (
+            <View style={styles.footer}>
+              <AppText color={colors.inkMuted} style={styles.empty}>
+                Δεν ήταν δυνατή η φόρτωση των φυτών.
+              </AppText>
+              <PillButton label="Δοκίμασε ξανά" onPress={plants.length ? loadMore : refresh} />
+            </View>
+          ) : null
         }
         // Top clears the corner buttons; bottom leaves room for the floating filters button
         contentContainerStyle={[styles.list, { paddingTop: topClearance }]}
@@ -74,6 +91,11 @@ const styles = StyleSheet.create({
   empty: {
     marginTop: space.lg,
     textAlign: 'center',
+  },
+  footer: {
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.lg,
   },
   filtersBar: {
     position: 'absolute',

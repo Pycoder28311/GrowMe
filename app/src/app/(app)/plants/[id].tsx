@@ -1,39 +1,45 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTopClearance } from '@/components/layout/app-shell';
 import { LifeCycleCard } from '@/components/plants/life-cycle-card';
 import { PlantFacts } from '@/components/plants/plant-facts';
 import { PlantGallery } from '@/components/plants/plant-gallery';
-import { RelatedPlants } from '@/components/plants/related-plants';
 import { AppText } from '@/components/ui/app-text';
 import { BulletList } from '@/components/ui/bullet-list';
+import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
-import { plantDetails, plantGallery } from '@/config/plant-details';
-import { PLANTS } from '@/config/plants';
+import { priceLabel } from '@/config/plant-traits';
+import { usePlant } from '@/lib/plants';
 import { colors, radius, size, space } from '@/theme';
 
-/** One plant's page, opened from a result: photos, characteristics, care and related plants */
+/** One plant's page, opened from a result: photos, characteristics, care, from the database */
 export default function PlantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
-  const plant = PLANTS.find((p) => p.id === id);
+  const { plant, state, retry } = usePlant(Number(id));
 
-  if (!plant) {
+  if (state === 'loading') {
+    return <ActivityIndicator color={colors.primary} style={{ marginTop: topClearance }} />;
+  }
+  if (state === 'error' || !plant) {
     return (
-      <AppText color={colors.inkMuted} style={[styles.notFound, { marginTop: topClearance }]}>
-        Το φυτό δεν βρέθηκε.
-      </AppText>
+      <View style={[styles.notFound, { marginTop: topClearance }]}>
+        <AppText color={colors.inkMuted} style={styles.center}>
+          Το φυτό δεν βρέθηκε ή δεν ήταν δυνατή η φόρτωσή του.
+        </AppText>
+        <PillButton label="Δοκίμασε ξανά" onPress={retry} />
+      </View>
     );
   }
 
-  const details = plantDetails(plant);
-  const related = PLANTS.filter((p) => details.relatedIds.includes(p.id));
+  const price = priceLabel(plant);
+  const photos = plant.images.map((image) => ({ uri: image.url }));
 
   return (
-    // The photos start at the very top, under the corner buttons
-    <ScrollView contentContainerStyle={styles.page}>
-      <PlantGallery photos={plantGallery(plant)} label={plant.name} />
+    // The photos start at the very top, under the corner buttons; without photos the title clears them
+    <ScrollView contentContainerStyle={[styles.page, photos.length === 0 && { paddingTop: topClearance }]}>
+      {photos.length > 0 && <PlantGallery photos={photos} label={plant.name} />}
 
       <View style={styles.body}>
         <View>
@@ -41,52 +47,60 @@ export default function PlantScreen() {
             <AppText size="big" bold accessibilityRole="header" style={styles.name}>
               {plant.name}
             </AppText>
-            <AppText bold color={colors.accent}>
-              {plant.price.min}–{plant.price.max} €
-            </AppText>
+            {price && (
+              <AppText bold color={colors.accent}>
+                {price}
+              </AppText>
+            )}
           </View>
-          {details.scientificName !== '' && (
-            <AppText size="small" color={colors.inkMuted}>
-              {details.scientificName}
-            </AppText>
-          )}
+          <AppText size="small" color={colors.inkMuted}>
+            {plant.scientificName}
+          </AppText>
         </View>
 
-        <PlantFacts plant={plant} details={details} />
-        <LifeCycleCard milestones={details.lifecycle} />
+        <PlantFacts plant={plant} />
+        {plant.lifecycles.length > 0 && <LifeCycleCard stages={plant.lifecycles} />}
 
         {/* Optional sections: shown only when the plant has them */}
-        {details.tips.length > 0 && (
+        {plant.tips.length > 0 && (
           <Section title="Συμβουλές">
-            <BulletList items={details.tips} />
-          </Section>
-        )}
-        {details.diseases.length > 0 && (
-          <Section title="Ασθένειες">
             <BulletList
-              items={details.diseases.map((disease) => (
+              items={plant.tips.map((tip) => (
                 <>
-                  <AppText bold>{disease.name}:</AppText> {disease.text}
+                  <AppText bold>{tip.title}:</AppText> {tip.content}
                 </>
               ))}
             />
           </Section>
         )}
-        {details.description && (
-          <Section title="Περιγραφή">
-            <AppText>{details.description}</AppText>
+        {plant.diseases.length > 0 && (
+          <Section title="Ασθένειες">
+            <BulletList
+              items={plant.diseases.map((disease) => (
+                <>
+                  <AppText bold>
+                    {disease.title}
+                    {disease.label ? ` (${disease.label})` : ''}:
+                  </AppText>{' '}
+                  {disease.content}
+                </>
+              ))}
+            />
           </Section>
         )}
-
-        {related.length > 0 && (
-          <Section title="Σχετικά φυτά">
-            <RelatedPlants plants={related} />
+        {plant.description && (
+          <Section title="Περιγραφή">
+            <AppText>{plant.description}</AppText>
           </Section>
         )}
 
         {/* Placeholder: the combinations content comes later */}
         <Section title="Συνδυασμοί με αυτό το φυτό">
-          <View style={styles.combinations} />
+          {plant.combination ? (
+            <AppText bold>{plant.combination.title}</AppText>
+          ) : (
+            <View style={styles.combinations} />
+          )}
         </Section>
       </View>
     </ScrollView>
@@ -118,6 +132,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
   notFound: {
+    alignItems: 'center',
+    gap: space.md,
+    paddingHorizontal: space.md,
+  },
+  center: {
     textAlign: 'center',
   },
 });

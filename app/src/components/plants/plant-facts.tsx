@@ -1,10 +1,17 @@
+import type { PlantSummary } from '@growme/shared';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { card } from '@/components/ui/styles';
-import type { PlantDetails } from '@/config/plant-details';
-import { EFFORT, PROPAGATION, SUNLIGHT, USE, type Trait } from '@/config/plant-traits';
-import type { Plant } from '@/config/plants';
+import {
+  effortTrait,
+  propagationTrait,
+  seasonTrait,
+  sunlightHoursLabel,
+  sunlightTrait,
+  useTrait,
+  type Trait,
+} from '@/config/plant-traits';
 import { colors, radius, space } from '@/theme';
 
 function FactRow({ trait }: { trait: Trait }) {
@@ -28,20 +35,29 @@ function InfoPill({ emoji, text }: { emoji: string; text: string }) {
   );
 }
 
-/** The plant's main characteristics at a glance */
-export function PlantFacts({ plant, details }: { plant: Plant; details: PlantDetails }) {
+/** The plant's main characteristics at a glance (only those it has values for) */
+export function PlantFacts({ plant }: { plant: PlantSummary }) {
+  const sun = sunlightTrait(plant);
+  const sunHours = sunlightHoursLabel(plant);
+  const season = seasonTrait(plant);
+  const rows = [
+    sun && { ...sun, label: sunHours ?? sun.label },
+    effortTrait(plant),
+    useTrait(plant),
+    season && { emoji: season.emoji, label: `Φύτεμα: ${season.label}` },
+  ].filter((trait): trait is Trait => !!trait);
+  const propagation = propagationTrait(plant);
+
   return (
     <View style={styles.root}>
       <View style={styles.card}>
-        <FactRow trait={SUNLIGHT[plant.light]} />
-        <FactRow trait={EFFORT[plant.care]} />
-        <FactRow trait={USE[plant.use]} />
-        <FactRow trait={{ emoji: '🪴', label: details.potSize }} />
+        {rows.map((trait) => (
+          <FactRow key={trait.label} trait={trait} />
+        ))}
       </View>
 
-      <InfoPill emoji={PROPAGATION[plant.propagation].emoji} text={details.growing} />
-      <InfoPill emoji="📍" text={details.nativeTo} />
-      <InfoPill emoji="🌡️" text={details.climate} />
+      <InfoPill emoji={propagation.emoji} text={propagation.label} />
+      {plant.native && <InfoPill emoji="📍" text="Ιθαγενές φυτό" />}
     </View>
   );
 }

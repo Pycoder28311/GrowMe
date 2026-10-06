@@ -1,28 +1,34 @@
 import type { Child } from 'hono/jsx'
 import { AdminLayout } from './layout'
 
-/** An object type's list: a Create button, one card per item linking to its form, "more" for the next page */
+/**
+ * An object type's list: one card per item, "more" for the next page, and a Create button when the
+ * type has a form (`canCreate`). Cards of types without a form have their own delete buttons.
+ */
 export function ListPage(props: {
   title: string
-  singular: string
   email: string
   basePath: string
   nextCursor: string | null
-  children: Child[]
+  canCreate: boolean
+  children?: Child
 }) {
+  // The JSX runtime may hand over one child or an array: count the real items either way
+  const items = ([props.children] as unknown[]).flat(3).filter((c) => c != null && c !== false) as Child[]
   return (
     <AdminLayout title={props.title} email={props.email} back={{ href: '/', label: 'Αρχική' }}>
-      <div class="head-actions">
-        <a class="button" href={`${props.basePath}/new`}>
-          + Δημιουργία
-        </a>
-      </div>
-      <h2>{props.title}</h2>
-      {props.children.length === 0 ? (
-        <div class="card empty muted">Δεν υπάρχει κανένα ακόμα. Πάτησε «Δημιουργία».</div>
-      ) : (
-        <div class="items">{props.children}</div>
+      {props.canCreate && (
+        <div class="head-actions">
+          <a class="button" href={`${props.basePath}/new`}>
+            + Δημιουργία
+          </a>
+        </div>
       )}
+      <h2>{props.title}</h2>
+      <div class={items.length === 0 ? 'card empty muted' : 'card empty muted hidden'} data-empty>
+        {props.canCreate ? 'Δεν υπάρχει κανένα ακόμα. Πάτησε «Δημιουργία».' : 'Δεν υπάρχει κανένα.'}
+      </div>
+      {items.length > 0 && <div class="items">{items}</div>}
       {props.nextCursor && (
         <div class="more">
           <a class="button secondary" href={`${props.basePath}?cursor=${encodeURIComponent(props.nextCursor)}`}>
@@ -87,5 +93,57 @@ export function FormSection(props: { title: string; children: Child }) {
       </div>
       {props.children}
     </section>
+  )
+}
+
+/**
+ * A list item: optional photo, a title, a few short lines, and either a link to its form (`href`) or
+ * a delete button (admin.client.js asks `confirm` first, deletes, then removes the card).
+ */
+export function ItemCard(props: {
+  title: string
+  lines?: (string | null | undefined)[]
+  image?: string | null
+  emoji?: string
+  href: string | null
+  deleteUrl: string
+  confirm?: string
+}) {
+  const body = (
+    <>
+      {props.image ? (
+        <img class="thumb" src={props.image} alt="" loading="lazy" />
+      ) : (
+        props.emoji && <span class="thumb">{props.emoji}</span>
+      )}
+      <div class="item-text">
+        <div class="name">{props.title}</div>
+        {(props.lines ?? []).filter(Boolean).map((line) => (
+          <div class="small muted line">{line}</div>
+        ))}
+      </div>
+    </>
+  )
+  if (props.href) {
+    return (
+      <a class="card item" href={props.href} data-item>
+        {body}
+      </a>
+    )
+  }
+  return (
+    <div class="card item" data-item>
+      {body}
+      <button
+        type="button"
+        class="icon-button remove"
+        data-delete-item={props.deleteUrl}
+        data-confirm={props.confirm ?? `Να διαγραφεί οριστικά το «${props.title}»;`}
+        aria-label={`Διαγραφή: ${props.title}`}
+        title="Διαγραφή"
+      >
+        ✕
+      </button>
+    </div>
   )
 }

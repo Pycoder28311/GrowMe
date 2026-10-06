@@ -20,8 +20,11 @@ import { parseOrThrow, validate } from './validate'
  */
 export type Access = 'owner' | 'public-owner' | 'public-admin' | 'admin'
 
+/** The database and bindings: enough for work that doesn't depend on who asks (e.g. the admin's deletes) */
+export type Store = { db: Db; env: CloudflareBindings }
+
 /** Everything a data function needs: the database, the bindings and who is asking (null = anonymous) */
-export type Ctx = { db: Db; env: CloudflareBindings; user: SessionUser | null }
+export type Ctx = Store & { user: SessionUser | null }
 
 /** The signed-in user's id; throws 401 when anonymous (use it in every owner filter) */
 export function userId(ctx: Ctx): string {

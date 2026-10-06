@@ -20,7 +20,11 @@ export const blogUpdate = z.object({
   imageIds: imageIds.optional(),
 })
 
+/** The admin dashboard's blog form (POST/PUT /api/admin/blogs): every field, photos in order */
+export const blogSave = z.object({ name, content, imageIds })
+
 export type BlogCreate = z.infer<typeof blogCreate>
+export type BlogSave = z.infer<typeof blogSave>
 export type BlogUpdate = z.infer<typeof blogUpdate>
 
 export type Blog = {

@@ -1,7 +1,7 @@
 import { plantSave, type Plant, type PlantSummary } from '@growme/shared'
 import { combinationsRepo } from '../../combinations/combinations.repo'
 import { plantsRepo } from '../../plants/plants.repo'
-import { adminResource } from '../resource'
+import { adminResource, numericId } from '../resource'
 import {
   Choices,
   MoneyField,
@@ -14,7 +14,7 @@ import {
   type Option,
 } from '../ui/fields'
 import { ImagePicker } from '../ui/image-picker'
-import { FormSection } from '../ui/pages'
+import { FormSection, ItemCard } from '../ui/pages'
 import { RepeatableList } from '../ui/repeatable-list'
 import { savePlant } from './plants.save'
 
@@ -37,21 +37,17 @@ function priceText(p: PlantSummary) {
 }
 
 /** A plant in the dashboard's list: cover photo, names, price and difficulty */
-function PlantListItem({ item, href }: { item: PlantSummary; href: string }) {
-  const cover = item.images[0]
+function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: string | null; deleteUrl: string }) {
   const price = priceText(item)
   return (
-    <a class="card item" href={href}>
-      {cover ? <img class="thumb" src={cover.url} alt="" loading="lazy" /> : <span class="thumb">🪴</span>}
-      <div>
-        <div class="name">{item.name}</div>
-        <div class="small muted">{item.scientificName}</div>
-        <div class="small">
-          {price && <strong class="price-text">{price} · </strong>}
-          {DIFFICULTY[item.difficulty - 1]?.label}
-        </div>
-      </div>
-    </a>
+    <ItemCard
+      title={item.name}
+      lines={[item.scientificName, [price, DIFFICULTY[item.difficulty - 1]?.label].filter(Boolean).join(' · ')]}
+      image={item.images[0]?.url}
+      emoji="🪴"
+      href={href}
+      deleteUrl={deleteUrl}
+    />
   )
 }
 
@@ -175,16 +171,24 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: { combin
 export const plantsAdmin = adminResource({
   path: 'plants',
   title: 'Φυτά',
-  singular: 'φυτό',
-  schema: plantSave,
   list: (ctx, page) => plantsRepo.list(ctx, page, {}),
-  get: (ctx, id) => plantsRepo.get(ctx, id),
-  save: savePlant,
-  remove: (ctx, id) => plantsRepo.remove(ctx, id),
-  options: async (ctx) => ({
-    combinations: (await combinationsRepo.list(ctx, null, undefined)).items.map((c) => ({ value: c.id, label: c.title })),
-  }),
-  itemTitle: (p) => p.name,
+  remove: async (ctx, raw) => {
+    const id = numericId(raw)
+    return id !== null && plantsRepo.remove(ctx, id)
+  },
   ListItem: PlantListItem,
-  Form: PlantForm,
+  edit: {
+    singular: 'φυτό',
+    schema: plantSave,
+    get: (ctx, id) => plantsRepo.get(ctx, id),
+    save: savePlant,
+    options: async (ctx) => ({
+      combinations: (await combinationsRepo.list(ctx, null, undefined)).items.map((c) => ({
+        value: c.id,
+        label: c.title,
+      })),
+    }),
+    itemTitle: (p) => p.name,
+    Form: PlantForm,
+  },
 })

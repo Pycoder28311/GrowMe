@@ -8,6 +8,17 @@ import { requireAccess, type AdminEnv } from '../../middleware/access'
 import { storeImages } from '../images/images.repo'
 import { tableCounts } from './admin.repo'
 import { DashboardPage } from './admin.page'
+import { blogsAdmin } from './blogs/blogs.admin'
+import {
+  blogCommentsAdmin,
+  combinationsAdmin,
+  imagesAdmin,
+  likesAdmin,
+  notesAdmin,
+  postRepliesAdmin,
+  postsAdmin,
+  usersAdmin,
+} from './lists'
 import { plantsAdmin } from './plants/plants.admin'
 import { ASSETS } from './ui/layout'
 
@@ -57,7 +68,18 @@ const adminApp = new Hono<AdminEnv>()
     const files = [body.files].flat().filter((f): f is File => f instanceof File)
     return c.json(await storeImages(c.env, files, null), 201)
   })
+  // Objects with forms (list, create, edit, delete)
   .route('/', plantsAdmin)
+  .route('/', blogsAdmin)
+  // Lists with delete only
+  .route('/', usersAdmin)
+  .route('/', combinationsAdmin)
+  .route('/', postsAdmin)
+  .route('/', postRepliesAdmin)
+  .route('/', blogCommentsAdmin)
+  .route('/', likesAdmin)
+  .route('/', imagesAdmin)
+  .route('/', notesAdmin)
 
 // The script and the CSS (behind Access like everything else); ?v= changes on every edit
 for (const asset of Object.values(ASSETS)) {

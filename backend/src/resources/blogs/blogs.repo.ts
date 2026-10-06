@@ -7,7 +7,7 @@ import { removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/re
 import { assertCanLinkImages, deleteImages, toImageRefs } from '../images/images.repo'
 import { deleteLikesOf } from '../likes/likes.repo'
 
-const blogImageLinks: LinkTable<typeof blogImages> = {
+export const blogImageLinks: LinkTable<typeof blogImages> = {
   table: blogImages,
   parent: blogImages.blogId,
   toRow: (blogId, imageId, position) => ({ blogId, imageId, position }),

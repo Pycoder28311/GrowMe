@@ -60,3 +60,55 @@ export function plantingPeriod(range: [number, number]): Trait {
   }, firstSeason);
   return { emoji: best.emoji, label };
 }
+
+/* ─────────────── From the database's plant fields (see @growme/shared PlantSummary) ─────────────── */
+
+type PlantFields = {
+  priceMin: number | null;
+  priceMax: number | null;
+  difficulty: number;
+  sunlightHoursMin: number | null;
+  sunlightHoursMax: number | null;
+  monthStart: number | null;
+  monthEnd: number | null;
+  food: boolean;
+  seeds: boolean;
+};
+
+const euros = (cents: number) => (cents / 100).toLocaleString('el-GR', { maximumFractionDigits: 2 });
+
+/** "3–6 €", "3 €" or "από 3 €"; null without a price */
+export function priceLabel({ priceMin: min, priceMax: max }: PlantFields): string | null {
+  if (min != null && max != null) return min === max ? `${euros(min)} €` : `${euros(min)}–${euros(max)} €`;
+  if (min != null) return `από ${euros(min)} €`;
+  if (max != null) return `έως ${euros(max)} €`;
+  return null;
+}
+
+/** Sun from the daily sun hours (the fewest it needs): 6+ full sun, 3–5 partial shade, less shade */
+export function sunlightTrait({ sunlightHoursMin: min, sunlightHoursMax: max }: PlantFields): Trait | null {
+  const hours = min ?? max;
+  if (hours == null) return null;
+  if (hours >= 6) return SUNLIGHT['full-sun'];
+  return hours >= 3 ? SUNLIGHT['partial-shade'] : SUNLIGHT.shade;
+}
+
+/** "6–8 ώρες ήλιου"; null when not set */
+export function sunlightHoursLabel({ sunlightHoursMin: min, sunlightHoursMax: max }: PlantFields): string | null {
+  if (min == null && max == null) return null;
+  const hours = min != null && max != null && min !== max ? `${min}–${max}` : String(min ?? max);
+  return `${hours} ώρες ήλιου τη μέρα`;
+}
+
+/** Difficulty 1–5: 1–2 easy, 3 moderate, 4–5 hard */
+export const effortTrait = ({ difficulty }: PlantFields): Trait =>
+  difficulty <= 2 ? EFFORT.easy : difficulty === 3 ? EFFORT.moderate : EFFORT.expert;
+
+/** Only food plants get a label (the database doesn't store decorative/flowering yet) */
+export const useTrait = ({ food }: PlantFields): Trait | null => (food ? USE.edible : null);
+
+export const propagationTrait = ({ seeds }: PlantFields): Trait => (seeds ? PROPAGATION.seed : PROPAGATION.plant);
+
+/** The planting season label and icon; null when the months aren't set */
+export const seasonTrait = ({ monthStart, monthEnd }: PlantFields): Trait | null =>
+  monthStart != null && monthEnd != null ? plantingPeriod([monthStart, monthEnd]) : null;

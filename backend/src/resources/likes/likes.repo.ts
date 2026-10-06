@@ -46,6 +46,18 @@ export const deleteLikesOf = (db: Db, type: LikedType, ids: number | SQLWrapper)
     .delete(likes)
     .where(and(eq(likes.likedType, type), typeof ids === 'number' ? eq(likes.likedId, ids) : inArray(likes.likedId, ids)))
 
+/** Deletes one like or dislike by its row id, lowering the item's like count for a like (admin moderation) */
+export async function deleteLike(db: Db, likeId: number) {
+  const like = await db.select().from(likes).where(eq(likes.id, likeId)).get()
+  if (!like) return false
+  const stillLiked = sql`EXISTS (SELECT 1 FROM ${likes} WHERE ${likes.id} = ${likeId} AND ${likes.isLike} = 1)`
+  await db.batch([
+    changeCount(db, like.likedType, like.likedId, -1, stillLiked),
+    db.delete(likes).where(eq(likes.id, likeId)),
+  ])
+  return true
+}
+
 export const likesRepo = {
   /** Like (isLike true) or dislike (false). like_count counts likes only; repeating changes nothing. */
   async set(ctx: Ctx, type: LikedType, id: number, isLike: boolean): Promise<LikeState> {

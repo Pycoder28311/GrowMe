@@ -1,12 +1,13 @@
 // The dashboard's browser script, served as /admin.js (plain JS, no build step). It works on the
-// markup of resources/admin/ui: forms (data-admin-form), lists (data-list, data-sortable), photos
-// (data-images) and fields (data-field + data-type). The server validates everything again.
+// markup of resources/admin/ui: list pages' delete buttons (data-delete-item), forms (data-admin-form),
+// lists (data-list, data-sortable), photos (data-images) and fields (data-field + data-type).
+// The server validates everything again.
 ;(() => {
   'use strict'
 
-  function toast(text) {
+  function toast(text, isError = false) {
     const el = document.createElement('div')
-    el.className = 'toast'
+    el.className = isError ? 'toast error' : 'toast'
     el.setAttribute('role', 'status')
     el.textContent = text
     document.body.append(el)
@@ -19,6 +20,30 @@
     sessionStorage.removeItem('admin-toast')
     toast(message)
   }
+
+  /* ─────────────── List pages: delete one item ─────────────── */
+
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-delete-item]')
+    if (!button || !confirm(button.dataset.confirm)) return
+    button.disabled = true
+    try {
+      const res = await fetch(button.dataset.deleteItem, { method: 'DELETE', credentials: 'same-origin' })
+      if (res.status !== 204) {
+        const data = (res.headers.get('content-type') || '').includes('json') ? await res.json() : null
+        toast(data?.code === 'NOT_FOUND' ? 'Έχει ήδη διαγραφεί. Ανανέωσε τη σελίδα.' : 'Η διαγραφή απέτυχε.', true)
+        return
+      }
+      const items = button.closest('.items')
+      button.closest('[data-item]').remove()
+      if (items && !items.querySelector('[data-item]')) document.querySelector('[data-empty]')?.classList.remove('hidden')
+      toast('Διαγράφηκε')
+    } catch {
+      toast('Δεν ήταν δυνατή η σύνδεση. Δοκίμασε ξανά.', true)
+    } finally {
+      button.disabled = false
+    }
+  })
 
   const form = document.querySelector('[data-admin-form]')
   if (!form) return

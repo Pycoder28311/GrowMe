@@ -1,28 +1,28 @@
+import type { Lifecycle } from '@growme/shared';
 import { Fragment } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { card } from '@/components/ui/styles';
-import type { PlantDetails } from '@/config/plant-details';
 import { colors, radius, space } from '@/theme';
 
-/** The plant's milestones (first flowers, full bloom, lifespan) in a titled card */
-export function LifeCycleCard({ milestones }: { milestones: PlantDetails['lifecycle'] }) {
+/** The plant's life cycle stages (e.g. first flowers → 1 month), in their saved order, in a titled card */
+export function LifeCycleCard({ stages }: { stages: Lifecycle[] }) {
   return (
     <View style={styles.card}>
       <AppText bold accessibilityRole="header">
         🌱 Κύκλος ζωής
       </AppText>
       <View style={styles.inner}>
-        {milestones.map((milestone, index) => (
-          <Fragment key={milestone.label}>
+        {stages.map((stage, index) => (
+          <Fragment key={stage.id}>
             {index > 0 && <View style={styles.divider} />}
             <View style={styles.row}>
               <AppText size="small" color={colors.inkMuted}>
-                {milestone.label}
+                {stage.title}
               </AppText>
-              <AppText size="small" bold color={colors.primary}>
-                {milestone.value}
+              <AppText size="small" bold color={colors.primary} style={styles.value}>
+                {stage.content}
               </AppText>
             </View>
           </Fragment>
@@ -48,6 +48,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.md,
     paddingVertical: space.sm,
+  },
+  // Long texts wrap on the right instead of pushing the title out
+  value: {
+    flexShrink: 1,
+    textAlign: 'right',
   },
   divider: {
     height: 1,

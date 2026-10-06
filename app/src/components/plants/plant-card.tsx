@@ -6,8 +6,16 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
-import { EFFORT, PROPAGATION, SUNLIGHT, USE, plantingPeriod, type Trait } from '@/config/plant-traits';
-import type { Plant } from '@/config/plants';
+import type { PlantSummary } from '@growme/shared';
+import {
+  effortTrait,
+  priceLabel,
+  propagationTrait,
+  seasonTrait,
+  sunlightTrait,
+  useTrait,
+  type Trait,
+} from '@/config/plant-traits';
 import { alpha, colors, iconSize, radius, space } from '@/theme';
 
 // Fixed square photo; the details column is laid out to fit within the same height
@@ -22,28 +30,46 @@ function TraitLabel({ trait }: { trait: Trait }) {
 }
 
 /** One search result: photo with its planting months on the left, details on the right. Opens the plant's page. */
-export function PlantCard({ plant }: { plant: Plant }) {
-  const season = plantingPeriod(plant.months);
-  const propagation = PROPAGATION[plant.propagation];
+export function PlantCard({ plant }: { plant: PlantSummary }) {
+  const season = seasonTrait(plant);
+  const propagation = propagationTrait(plant);
+  const price = priceLabel(plant);
+  const cover = plant.images[0];
+  // Only the labels this plant has values for
+  const traits = [sunlightTrait(plant), effortTrait(plant), useTrait(plant)].filter((t): t is Trait => t !== null);
 
   return (
     <PressableScale
       accessibilityRole="link"
       accessibilityLabel={plant.name}
-      onPress={() => router.push({ pathname: '/plants/[id]', params: { id: plant.id } })}
+      onPress={() => router.push({ pathname: '/plants/[id]', params: { id: String(plant.id) } })}
       pressedScale={0.98}
       style={styles.card}>
       <View style={styles.photo}>
-        <Image source={plant.image} contentFit="cover" accessibilityLabel={plant.name} style={StyleSheet.absoluteFill} />
-        <View style={styles.season}>
-          {/* The month emoji is muted so it reads as a quiet label on the photo */}
-          <AppText size="small" style={styles.seasonEmoji}>
-            {season.emoji}
-          </AppText>
-          <AppText size="small" bold numberOfLines={1}>
-            {season.label}
-          </AppText>
-        </View>
+        {cover ? (
+          <Image
+            source={{ uri: cover.url }}
+            contentFit="cover"
+            transition={150}
+            accessibilityLabel={plant.name}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <View style={styles.noPhoto}>
+            <AppText size="big">🪴</AppText>
+          </View>
+        )}
+        {season && (
+          <View style={styles.season}>
+            {/* The month emoji is muted so it reads as a quiet label on the photo */}
+            <AppText size="small" style={styles.seasonEmoji}>
+              {season.emoji}
+            </AppText>
+            <AppText size="small" bold numberOfLines={1}>
+              {season.label}
+            </AppText>
+          </View>
+        )}
       </View>
 
       <View style={styles.details}>
@@ -51,15 +77,17 @@ export function PlantCard({ plant }: { plant: Plant }) {
           <AppText bold numberOfLines={1} style={styles.name}>
             {plant.name}
           </AppText>
-          <AppText bold color={colors.accent}>
-            {plant.price.min}–{plant.price.max} €
-          </AppText>
+          {price && (
+            <AppText bold color={colors.accent}>
+              {price}
+            </AppText>
+          )}
         </View>
 
         <View style={styles.traits}>
-          <TraitLabel trait={SUNLIGHT[plant.light]} />
-          <TraitLabel trait={EFFORT[plant.care]} />
-          <TraitLabel trait={USE[plant.use]} />
+          {traits.map((trait) => (
+            <TraitLabel key={trait.label} trait={trait} />
+          ))}
         </View>
 
         <View style={styles.footer}>
@@ -103,6 +131,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     backgroundColor: alpha(colors.surface, 0.9),
     paddingHorizontal: space.xs,
+  },
+  noPhoto: {
+    position: 'absolute',
+    inset: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
   },
   seasonEmoji: {
     opacity: 0.7,

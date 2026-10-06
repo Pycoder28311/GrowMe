@@ -1,7 +1,7 @@
 import type { Note, NoteInput } from '@growme/shared'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { images, noteImages, notes } from '../../db/schema'
-import { userId, type Ctx, type Repo } from '../../lib/crud'
+import { userId, type Ctx, type Repo, type Store } from '../../lib/crud'
 import { HttpError } from '../../lib/errors'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { ownsAll, removedIds, replaceLinks, type LinkTable } from '../../lib/relations'
@@ -69,10 +69,19 @@ export const notesRepo: Repo<NoteInput, NoteInput, Note> = {
   },
 
   async remove(ctx, id) {
-    const existing = await find(ctx, id)
-    if (!existing) return false
-    await ctx.db.delete(notes).where(eq(notes.id, id))
-    await deleteImages(ctx, existing.images.map((l) => l.imageId))
-    return true
+    if (!(await find(ctx, id))) return false
+    return deleteNote(ctx, id)
   },
+}
+
+/** Deletes a note and its photos. No ownership check: callers do it. */
+export async function deleteNote({ db, env }: Store, id: number) {
+  const links = await db.select({ imageId: noteImages.imageId }).from(noteImages).where(eq(noteImages.noteId, id))
+  const deleted = await db.delete(notes).where(eq(notes.id, id)).returning({ id: notes.id })
+  if (deleted.length === 0) return false
+  await deleteImages(
+    { db, env },
+    links.map((l) => l.imageId),
+  )
+  return true
 }

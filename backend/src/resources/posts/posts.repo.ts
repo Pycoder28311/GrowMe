@@ -1,7 +1,7 @@
 import type { Post, PostCreate, PostUpdate } from '@growme/shared'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { postImages, postReplies, posts } from '../../db/schema'
-import { hasChanges, ownedOrAdmin, userId, type Ctx, type Repo } from '../../lib/crud'
+import { hasChanges, ownedOrAdmin, userId, type Ctx, type Repo, type Store } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/relations'
 import { authorColumns, toAuthor } from '../authors'
@@ -85,17 +85,24 @@ export const postsRepo: Repo<PostCreate, PostUpdate, Post> = {
   async remove(ctx, id) {
     const existing = await findWhere(ctx, and(eq(posts.id, id), ownedOrAdmin(ctx, posts.userId)))
     if (!existing) return false
-    const replies = ctx.db.select({ id: postReplies.id }).from(postReplies).where(eq(postReplies.postId, id))
-    // Likes have no foreign key: remove those of the post and its replies together with the post
-    await ctx.db.batch([
-      deleteLikesOf(ctx.db, 'post_reply', replies),
-      deleteLikesOf(ctx.db, 'post', id),
-      ctx.db.delete(posts).where(eq(posts.id, id)), // replies and image links cascade
-    ])
-    await deleteImages(
-      ctx,
-      existing.images.map((l) => l.imageId),
-    )
-    return true
+    return deletePost(ctx, id)
   },
+}
+
+/** Deletes a post with its replies, their likes and its photos. No ownership check: callers do it. */
+export async function deletePost({ db, env }: Store, id: number) {
+  const links = await db.select({ imageId: postImages.imageId }).from(postImages).where(eq(postImages.postId, id))
+  const replies = db.select({ id: postReplies.id }).from(postReplies).where(eq(postReplies.postId, id))
+  // Likes have no foreign key: remove those of the post and its replies together with the post
+  const [, , deleted] = await db.batch([
+    deleteLikesOf(db, 'post_reply', replies),
+    deleteLikesOf(db, 'post', id),
+    db.delete(posts).where(eq(posts.id, id)).returning({ id: posts.id }), // replies and image links cascade
+  ])
+  if (deleted.length === 0) return false
+  await deleteImages(
+    { db, env },
+    links.map((l) => l.imageId),
+  )
+  return true
 }

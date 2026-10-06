@@ -2,6 +2,7 @@ import type { BlogComment, CommentCreate, CommentFilter, CommentUpdate } from '@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { blogComments, blogs } from '../../db/schema'
 import { HttpError } from '../../lib/errors'
+import type { Db } from '../../db'
 import { ownedOrAdmin, userId, type Ctx, type Repo } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { assertExists } from '../../lib/relations'
@@ -95,15 +96,25 @@ export const blogCommentsRepo: Repo<CommentCreate, CommentUpdate, BlogComment, C
   async remove(ctx, id) {
     const existing = await findWhere(ctx, and(eq(blogComments.id, id), ownedOrAdmin(ctx, blogComments.userId)))
     if (!existing) return false
-    await ctx.db.batch([
-      // counted inside the transaction: 0 if a parallel request already deleted it
-      ctx.db
-        .update(blogs)
-        .set({ commentCount: sql`${blogs.commentCount} - (${thread(id, 'count(*)')})` })
-        .where(eq(blogs.id, existing.blogId)),
-      deleteLikesOf(ctx.db, 'blog_comment', sql`(${thread(id, 'id')})`),
-      ctx.db.delete(blogComments).where(eq(blogComments.id, id)),
-    ])
-    return true
+    return deleteBlogComment(ctx.db, id)
   },
+}
+
+/**
+ * Deletes a comment with all its answers and their likes, and lowers the blog's comment count.
+ * No ownership check: callers do it.
+ */
+export async function deleteBlogComment(db: Db, id: number) {
+  const existing = await db.select({ blogId: blogComments.blogId }).from(blogComments).where(eq(blogComments.id, id)).get()
+  if (!existing) return false
+  await db.batch([
+    // counted inside the transaction: 0 if a parallel request already deleted it
+    db
+      .update(blogs)
+      .set({ commentCount: sql`${blogs.commentCount} - (${thread(id, 'count(*)')})` })
+      .where(eq(blogs.id, existing.blogId)),
+    deleteLikesOf(db, 'blog_comment', sql`(${thread(id, 'id')})`),
+    db.delete(blogComments).where(eq(blogComments.id, id)),
+  ])
+  return true
 }
