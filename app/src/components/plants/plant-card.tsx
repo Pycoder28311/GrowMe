@@ -1,12 +1,14 @@
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { card } from '@/components/ui/styles';
 import { EFFORT, PROPAGATION, SUNLIGHT, USE, plantingPeriod, type Trait } from '@/config/plant-traits';
 import type { Plant } from '@/config/plants';
-import { alpha, colors, iconSize, outline, radius, shadow, space } from '@/theme';
+import { alpha, colors, iconSize, radius, space } from '@/theme';
 
 // Fixed square photo; the details column is laid out to fit within the same height
 const PHOTO_SIZE = 98;
@@ -19,13 +21,18 @@ function TraitLabel({ trait }: { trait: Trait }) {
   );
 }
 
-/** One search result: photo with its planting months on the left, details on the right */
+/** One search result: photo with its planting months on the left, details on the right. Opens the plant's page. */
 export function PlantCard({ plant }: { plant: Plant }) {
   const season = plantingPeriod(plant.months);
   const propagation = PROPAGATION[plant.propagation];
 
   return (
-    <View style={styles.card}>
+    <PressableScale
+      accessibilityRole="link"
+      accessibilityLabel={plant.name}
+      onPress={() => router.push({ pathname: '/plants/[id]', params: { id: plant.id } })}
+      pressedScale={0.98}
+      style={styles.card}>
       <View style={styles.photo}>
         <Image source={plant.image} contentFit="cover" accessibilityLabel={plant.name} style={StyleSheet.absoluteFill} />
         <View style={styles.season}>
@@ -61,27 +68,24 @@ export function PlantCard({ plant }: { plant: Plant }) {
               {propagation.emoji} {propagation.label}
             </AppText>
           </View>
-          <PressableScale accessibilityRole="button" style={styles.more}>
+          {/* Looks like a link; the whole card is the tap target */}
+          <View style={styles.more}>
             <AppText size="small" bold color={colors.primary}>
               Δες περισσότερα
             </AppText>
             <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
-          </PressableScale>
+          </View>
         </View>
       </View>
-    </View>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    ...card,
     flexDirection: 'row',
     overflow: 'hidden',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: outline,
-    backgroundColor: alpha(colors.surface, 0.95),
-    boxShadow: shadow.card,
   },
   photo: {
     width: PHOTO_SIZE,

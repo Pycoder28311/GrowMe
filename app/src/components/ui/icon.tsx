@@ -12,6 +12,7 @@ const ICONS = {
   settings: { ios: 'gearshape', android: 'settings', web: 'settings' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
   chevronRight: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
+  chevronLeft: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
   check: { ios: 'checkmark', android: 'check', web: 'check' },
   filter: { ios: 'line.3.horizontal.decrease', android: 'filter_list', web: 'filter_list' },
   notes: { ios: 'note.text', android: 'sticky_note_2', web: 'sticky_note_2' },

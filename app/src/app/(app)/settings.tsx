@@ -6,9 +6,10 @@ import { useTopClearance } from '@/components/layout/app-shell';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { card } from '@/components/ui/styles';
 import { authClient } from '@/lib/auth-client';
 import { openCookieSettings } from '@/lib/consent';
-import { alpha, colors, iconSize, outline, radius, shadow, space } from '@/theme';
+import { colors, iconSize, space } from '@/theme';
 
 type Row = { icon: IconName; label: string; onPress: () => void; color?: string };
 
@@ -69,12 +70,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.xs,
   },
   card: {
+    ...card,
     overflow: 'hidden',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: outline,
-    backgroundColor: alpha(colors.surface, 0.95),
-    boxShadow: shadow.card,
   },
   row: {
     flexDirection: 'row',

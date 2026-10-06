@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useImperativeHandle, useState, type ReactNode, type Ref } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -27,6 +27,10 @@ type BottomSheetProps = {
   headerAction?: ReactNode;
   /** Pinned to the bottom of the screen while the sheet is open (e.g. the apply button) */
   footer?: ReactNode;
+  /** Drawn above everything, positioned by the caller (e.g. a button kept in its on-screen place) */
+  floating?: ReactNode;
+  /** Extra space under the content so it can scroll clear of `floating` */
+  contentBottomInset?: number;
   children: ReactNode;
   initialSnap?: 'half' | 'full';
   /** Called once the sheet has slid away */
@@ -38,7 +42,17 @@ type BottomSheetProps = {
  * Mount it to open: it slides up, can be dragged by its header to full or half height, and
  * animates out before calling onClose. `ref.current.close()` closes it from outside.
  */
-export function BottomSheet({ title, headerAction, footer, children, initialSnap = 'half', onClose, ref }: BottomSheetProps) {
+export function BottomSheet({
+  title,
+  headerAction,
+  footer,
+  floating,
+  contentBottomInset = 0,
+  children,
+  initialSnap = 'half',
+  onClose,
+  ref,
+}: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const height = useWindowDimensions().height * SHEET_HEIGHT;
   const halfOffset = height * HALF_OPEN;
@@ -122,7 +136,7 @@ export function BottomSheet({ title, headerAction, footer, children, initialSnap
           <ScrollView
             style={styles.content}
             // Leave room so the last content can scroll clear of the pinned footer
-            contentContainerStyle={{ paddingBottom: footer ? footerHeight + space.md : bottomPadding }}>
+            contentContainerStyle={{ paddingBottom: (footer ? footerHeight + space.md : bottomPadding) + contentBottomInset }}>
             {children}
           </ScrollView>
         </Animated.View>
@@ -134,6 +148,8 @@ export function BottomSheet({ title, headerAction, footer, children, initialSnap
             {footer}
           </Animated.View>
         )}
+
+        {floating}
       </GestureHandlerRootView>
     </Modal>
   );

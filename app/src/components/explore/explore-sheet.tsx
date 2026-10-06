@@ -6,6 +6,7 @@ import { AppText } from '@/components/ui/app-text';
 import { BottomSheet, type BottomSheetHandle } from '@/components/ui/bottom-sheet';
 import { Chip } from '@/components/ui/chip';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { Section } from '@/components/ui/section';
 import { FILTER_GROUPS, type Filters } from '@/config/filters';
 import { colors, space } from '@/theme';
 
@@ -58,10 +59,7 @@ export function ExploreSheet({ initialFilters, onClose }: ExploreSheetProps) {
       }>
       <View style={styles.groups}>
         {FILTER_GROUPS.map((group) => (
-          <View key={group.id}>
-            <AppText bold style={styles.legend}>
-              {group.label}
-            </AppText>
+          <Section key={group.id} title={group.label}>
             <View style={styles.options}>
               {group.options.map((option) => (
                 <Chip
@@ -72,7 +70,7 @@ export function ExploreSheet({ initialFilters, onClose }: ExploreSheetProps) {
                 />
               ))}
             </View>
-          </View>
+          </Section>
         ))}
       </View>
     </BottomSheet>
@@ -85,9 +83,6 @@ const styles = StyleSheet.create({
   },
   groups: {
     gap: space.lg,
-  },
-  legend: {
-    marginBottom: space.md,
   },
   options: {
     flexDirection: 'row',
