@@ -9,6 +9,7 @@ const TOKENS = `
   --ink-muted: rgba(31, 61, 36, 0.7);
   --surface: #ffffff;
   --border: #e5e7eb;
+  --surface-muted: #f3f4f6;
   --danger: #b42318;
   --outline: rgba(31, 61, 36, 0.05);
   --text-small: 12px;
@@ -178,8 +179,8 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .tool-group:last-child { border-right: 0; }
 .tool { min-width: 34px; height: 34px; padding: 0 var(--space-xs); border: 0; border-radius: var(--radius-sm);
         background: transparent; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
-.tool:hover { background: var(--primary-soft); }
-.tool[aria-pressed="true"] { background: var(--primary); color: var(--surface); }
+.tool:hover { background: var(--surface-muted); }
+.tool[aria-pressed="true"] { background: var(--border); color: var(--ink); }
 .tool:disabled { opacity: .35; cursor: default; background: transparent; }
 .tool-italic { font-style: italic; }
 .tool-underline { text-decoration: underline; }
@@ -221,7 +222,7 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
                           border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .ProseMirror hr { border: 0; border-top: 2px solid var(--border); margin: var(--space-md) 0; }
 .ProseMirror hr.ProseMirror-selectednode { border-top-color: var(--primary); outline: none; }
-.ProseMirror a { color: var(--primary); text-decoration: underline; cursor: text; }
+.ProseMirror a { color: var(--primary); text-decoration: underline; cursor: pointer; }
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; height: 0;
                                                       color: var(--ink-muted); pointer-events: none; }
 

@@ -4,6 +4,20 @@ import { ASSETS } from './layout'
 
 type Tool = { cmd: string; label: string; icon: Child }
 
+/** Lucide's "link" icon (ISC licence, the set react-icons ships as Lu): two chain links */
+const LinkIcon = () => (
+  <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path
+      d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+)
+
 /** Word's alignment icons: four lines, short ones placed left, centered, right, or all full width */
 function AlignIcon({ short }: { short: 'left' | 'center' | 'right' | null }) {
   // x-range of the 2nd and 4th (shorter) lines
@@ -37,7 +51,7 @@ const TOOLS: Tool[][] = [
     { cmd: 'italic', label: 'Πλάγια', icon: 'I' },
     { cmd: 'underline', label: 'Υπογράμμιση', icon: 'U' },
     { cmd: 'strike', label: 'Διακριτή διαγραφή', icon: 'S' },
-    { cmd: 'link', label: 'Σύνδεσμος', icon: '🔗' },
+    { cmd: 'link', label: 'Σύνδεσμος', icon: <LinkIcon /> },
   ],
   [
     { cmd: 'bulletList', label: 'Λίστα με κουκκίδες', icon: '•≡' },

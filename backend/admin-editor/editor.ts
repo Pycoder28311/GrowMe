@@ -128,7 +128,8 @@ const COMMANDS: Record<string, Command> = {
   blockquote: { run: (e) => e.chain().focus().toggleBlockquote().run(), active: (e) => e.isActive('blockquote') },
   alignLeft: {
     run: (e) => e.chain().focus().setTextAlign('left').run(),
-    active: (e) => e.isActive({ textAlign: 'left' }),
+    // Text never aligned is left-aligned too (as in Word)
+    active: (e) => !['center', 'right', 'justify'].some((textAlign) => e.isActive({ textAlign })),
   },
   alignCenter: {
     run: (e) => e.chain().focus().setTextAlign('center').run(),
@@ -163,7 +164,7 @@ function mount(root: HTMLElement) {
         code: false,
         codeBlock: false,
         link: {
-          openOnClick: false,
+          openOnClick: false, // handleClick below opens links (in a new tab)
           autolink: true,
           defaultProtocol: 'https',
           HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: null },
@@ -174,7 +175,20 @@ function mount(root: HTMLElement) {
     ],
     content: JSON.parse(input.value),
     editorProps: {
-      attributes: { 'aria-label': root.dataset.label ?? 'Κείμενο', 'aria-multiline': 'true', role: 'textbox' },
+      attributes: {
+        'aria-label': root.dataset.label ?? 'Κείμενο',
+        'aria-multiline': 'true',
+        role: 'textbox',
+        // No red spelling underlines
+        spellcheck: 'false',
+      },
+      // A click on a link opens it in a new tab; the cursor still lands there, so 🔗 can edit it
+      handleClick: (_view, _pos, event) => {
+        const anchor = (event.target as HTMLElement | null)?.closest?.('a[href]')
+        const href = anchor?.getAttribute('href')
+        if (href && /^(https?:\/\/|mailto:)/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer')
+        return false
+      },
     },
     onUpdate: ({ editor }) => {
       input.value = JSON.stringify(editor.getJSON())
