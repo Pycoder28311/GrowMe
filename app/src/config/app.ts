@@ -13,3 +13,9 @@ export const NAV_ITEMS: { id: NavId; label: string; icon: IconName; tapAnimation
   { id: 'wiki', label: 'Εγκυκλοπαίδεια', icon: 'book', tapAnimation: 'flap' },
   { id: 'settings', label: 'Ρυθμίσεις', icon: 'settings', tapAnimation: 'spin' },
 ];
+
+// "Ακολούθησέ μας" on the home page. Placeholders: replace with the app's real pages.
+export const SOCIAL_LINKS = [
+  { label: 'Facebook', url: 'https://www.facebook.com' },
+  { label: 'Instagram', url: 'https://www.instagram.com' },
+];

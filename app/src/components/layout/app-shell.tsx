@@ -7,6 +7,7 @@ import { BackgroundSlideshow, PlainBackground } from '@/components/layout/backgr
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { IconButton } from '@/components/ui/icon-button';
 import type { NavId } from '@/config/app';
+import { BackgroundBlurProvider } from '@/lib/background-blur';
 import { colors, size, space } from '@/theme';
 
 type AppShellProps = {
@@ -28,20 +29,23 @@ export function AppShell({ children, activeNavId, onNavigate, background }: AppS
   const cornerTop = insets.top + space.md;
 
   return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      {background === 'scene' ? <BackgroundSlideshow /> : <PlainBackground />}
-      {/* Pages scroll on their own, so the nav can sit at the bottom without overlapping them */}
-      <View style={styles.main}>{children}</View>
-      <IconButton
-        icon="home"
-        label="Αρχική"
-        onPress={() => onNavigate('home')}
-        style={[styles.corner, { top: cornerTop, left: space.md }]}
-      />
-      <IconButton icon="search" label="Αναζήτηση" style={[styles.corner, { top: cornerTop, right: space.md }]} />
-      <BottomNav activeId={activeNavId} onNavigate={onNavigate} />
-    </View>
+    // Pages can blur the background photos (e.g. the home page while scrolling)
+    <BackgroundBlurProvider>
+      <View style={styles.root}>
+        <StatusBar style="dark" />
+        {background === 'scene' ? <BackgroundSlideshow /> : <PlainBackground />}
+        {/* Pages scroll on their own, so the nav can sit at the bottom without overlapping them */}
+        <View style={styles.main}>{children}</View>
+        <IconButton
+          icon="home"
+          label="Αρχική"
+          onPress={() => onNavigate('home')}
+          style={[styles.corner, { top: cornerTop, left: space.md }]}
+        />
+        <IconButton icon="search" label="Αναζήτηση" style={[styles.corner, { top: cornerTop, right: space.md }]} />
+        <BottomNav activeId={activeNavId} onNavigate={onNavigate} />
+      </View>
+    </BackgroundBlurProvider>
   );
 }
 

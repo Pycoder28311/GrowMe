@@ -19,6 +19,10 @@ const ICONS = {
   privacy: { ios: 'hand.raised', android: 'shield', web: 'shield' },
   cookie: { ios: 'hand.raised', android: 'cookie', web: 'cookie' },
   signOut: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' },
+  like: { ios: 'hand.thumbsup', android: 'thumb_up', web: 'thumb_up' },
+  dislike: { ios: 'hand.thumbsdown', android: 'thumb_down', web: 'thumb_down' },
+  send: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' },
+  share: { ios: 'square.and.arrow.up', android: 'share', web: 'share' },
 } satisfies Record<string, SymbolViewProps['name']>;
 
 export type IconName = keyof typeof ICONS;

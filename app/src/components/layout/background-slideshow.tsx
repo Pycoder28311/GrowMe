@@ -1,32 +1,41 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { BACKGROUND_PHOTOS, type BackgroundPhoto } from '@/config/background-photos';
+import { useBackgroundBlur } from '@/lib/background-blur';
 import { alpha, colors } from '@/theme';
 
 const SLIDE_DURATION_MS = 6000;
 const FADE_MS = 1500;
 const ZOOM_MS = 7500;
+// How soft the fully blurred copy is (px)
+const BLUR_RADIUS = 12;
 
-// Shown photo: fades in and zooms very slightly; hidden photo: fades out, then resets its zoom
-function Slide({ photo, active }: { photo: BackgroundPhoto; active: boolean }) {
-  const opacity = useSharedValue(active ? 1 : 0);
+type SlideProps = {
+  photo: BackgroundPhoto;
+  active: boolean;
+  /** The very first photo shows at once; later ones fade in over the previous one */
+  initiallyVisible: boolean;
+};
+
+// Shown photo: fades in and zooms very slightly; the one before it fades out underneath.
+// A permanently blurred copy sits on top and fades in with the page's scroll (useBackgroundBlur).
+function Slide({ photo, active, initiallyVisible }: SlideProps) {
+  const blur = useBackgroundBlur();
+  const opacity = useSharedValue(initiallyVisible ? 1 : 0);
   const scale = useSharedValue(1);
 
   useEffect(() => {
     const ease = Easing.out(Easing.ease);
-    if (active) {
-      opacity.set(withTiming(1, { duration: FADE_MS, easing: ease }));
-      scale.set(withTiming(1.03, { duration: ZOOM_MS, easing: ease }));
-    } else {
-      opacity.set(withTiming(0, { duration: FADE_MS, easing: ease }));
-      scale.set(withDelay(FADE_MS, withTiming(1, { duration: 0 })));
-    }
+    opacity.set(withTiming(active ? 1 : 0, { duration: FADE_MS, easing: ease }));
+    if (active) scale.set(withTiming(1.03, { duration: ZOOM_MS, easing: ease }));
   }, [active, opacity, scale]);
 
   const style = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
+  // Opacity only (no animated blur filter): cheap to change on every scroll frame
+  const blurredStyle = useAnimatedStyle(() => ({ opacity: blur.value }));
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
@@ -36,26 +45,46 @@ function Slide({ photo, active }: { photo: BackgroundPhoto; active: boolean }) {
         contentPosition={photo.position ?? 'center'}
         style={StyleSheet.absoluteFill}
       />
+      <Animated.View style={[StyleSheet.absoluteFill, blurredStyle]}>
+        <Image
+          source={photo.source}
+          contentFit="cover"
+          contentPosition={photo.position ?? 'center'}
+          blurRadius={BLUR_RADIUS}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
     </Animated.View>
   );
 }
 
-/** Full-screen photos that cross-fade, with soft washes on top so text stays readable */
+/**
+ * Full-screen photos that cross-fade, with soft washes on top so text stays readable.
+ * Only the shown photo and the one fading out are mounted, to keep memory low.
+ */
 export function BackgroundSlideshow() {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [slides, setSlides] = useState<{ active: number; previous: number | null }>({ active: 0, previous: null });
 
   useEffect(() => {
     const timer = setInterval(
-      () => setActiveIndex((index) => (index + 1) % BACKGROUND_PHOTOS.length),
+      () => setSlides(({ active }) => ({ active: (active + 1) % BACKGROUND_PHOTOS.length, previous: active })),
       SLIDE_DURATION_MS,
     );
     return () => clearInterval(timer);
   }, []);
 
+  // The previous photo underneath, the new one fading in on top
+  const mounted = slides.previous === null ? [slides.active] : [slides.previous, slides.active];
+
   return (
     <View pointerEvents="none" importantForAccessibility="no-hide-descendants" style={styles.root}>
-      {BACKGROUND_PHOTOS.map((photo, index) => (
-        <Slide key={index} photo={photo} active={index === activeIndex} />
+      {mounted.map((index) => (
+        <Slide
+          key={index}
+          photo={BACKGROUND_PHOTOS[index]}
+          active={index === slides.active}
+          initiallyVisible={slides.previous === null}
+        />
       ))}
       {/* Soft white wash plus a glow behind the title, text and buttons */}
       <View style={styles.wash} />

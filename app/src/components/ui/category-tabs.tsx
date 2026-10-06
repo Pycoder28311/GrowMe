@@ -2,19 +2,19 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { CATEGORY_TABS } from '@/config/filters';
 import { alpha, colors, outline, radius, shadow, space } from '@/theme';
 
 type CategoryTabsProps = {
+  tabs: { id: string; label: string }[];
   activeId: string;
   onChange: (id: string) => void;
 };
 
-/** Single-choice quick filters shown as three equal pills */
-export function CategoryTabs({ activeId, onChange }: CategoryTabsProps) {
+/** Single-choice quick filters shown as equal pills in one row (e.g. Όλα · Κηπευτικά · Με άνθη) */
+export function CategoryTabs({ tabs, activeId, onChange }: CategoryTabsProps) {
   return (
     <View style={styles.row}>
-      {CATEGORY_TABS.map(({ id, label }) => {
+      {tabs.map(({ id, label }) => {
         const isActive = id === activeId;
         return (
           <PressableScale

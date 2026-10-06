@@ -2,9 +2,9 @@ import { Image } from 'expo-image';
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
 
-import { Icon } from '@/components/ui/icon';
+import { ArrowButton } from '@/components/ui/arrow-button';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { alpha, colors, iconSize, radius, shadow, size, space } from '@/theme';
+import { colors, radius, shadow, size, space } from '@/theme';
 
 // Photo height: a little over a third of a phone screen
 const PHOTO_HEIGHT = 280;
@@ -48,13 +48,19 @@ export function PlantGallery({ photos, label }: PlantGalleryProps) {
 
       {photos.length > 1 && (
         <>
-          <Arrow icon="chevronLeft" label="Προηγούμενη φωτογραφία" disabled={index === 0} onPress={() => show(index - 1)} side="left" />
-          <Arrow
-            icon="chevronRight"
+          <ArrowButton
+            direction="previous"
+            label="Προηγούμενη φωτογραφία"
+            disabled={index === 0}
+            onPress={() => show(index - 1)}
+            style={[styles.arrow, { left: space.md }]}
+          />
+          <ArrowButton
+            direction="next"
             label="Επόμενη φωτογραφία"
             disabled={index === photos.length - 1}
             onPress={() => show(index + 1)}
-            side="right"
+            style={[styles.arrow, { right: space.md }]}
           />
 
           {/* Thumbnails overlap the photo's bottom edge; the shown one is outlined */}
@@ -77,42 +83,10 @@ export function PlantGallery({ photos, label }: PlantGalleryProps) {
   );
 }
 
-type ArrowProps = {
-  icon: 'chevronLeft' | 'chevronRight';
-  label: string;
-  side: 'left' | 'right';
-  disabled: boolean;
-  onPress: () => void;
-};
-
-function Arrow({ icon, label, side, disabled, onPress }: ArrowProps) {
-  return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ disabled }}
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.arrow, { [side]: space.md }, disabled && styles.arrowDisabled]}>
-      <Icon name={icon} size={iconSize.big} color={colors.ink} bold />
-    </PressableScale>
-  );
-}
-
 const styles = StyleSheet.create({
   arrow: {
     position: 'absolute',
     top: PHOTO_HEIGHT / 2 - size.touch / 2,
-    width: size.touch,
-    height: size.touch,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.full,
-    backgroundColor: alpha(colors.surface, 0.85),
-    boxShadow: shadow.raised,
-  },
-  arrowDisabled: {
-    opacity: 0.4,
   },
   thumbs: {
     flexDirection: 'row',

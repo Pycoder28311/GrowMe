@@ -4,9 +4,9 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { FilterSheet, type ButtonFrame } from '@/components/filters/filter-sheet';
 import { FiltersButton } from '@/components/filters/filters-button';
 import { useTopClearance } from '@/components/layout/app-shell';
-import { CategoryTabs } from '@/components/plants/category-tabs';
 import { PlantCard } from '@/components/plants/plant-card';
 import { AppText } from '@/components/ui/app-text';
+import { CategoryTabs } from '@/components/ui/category-tabs';
 import { CATEGORY_TABS, matchesFilters } from '@/config/filters';
 import { PLANTS } from '@/config/plants';
 import { useExploreFilters } from '@/lib/explore-filters';
@@ -35,7 +35,7 @@ export default function ResultsScreen() {
         ItemSeparatorComponent={() => <View style={styles.gap} />}
         ListHeaderComponent={
           <View style={styles.tabs}>
-            <CategoryTabs activeId={categoryId} onChange={setCategoryId} />
+            <CategoryTabs tabs={CATEGORY_TABS} activeId={categoryId} onChange={setCategoryId} />
           </View>
         }
         ListEmptyComponent={
