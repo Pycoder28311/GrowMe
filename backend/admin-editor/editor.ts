@@ -15,18 +15,96 @@ type Command = {
   enabled?: (editor: Editor) => boolean
 }
 
-/** Asks for a link; empty removes it. Plain addresses get https:// in front. */
-function editLink(editor: Editor) {
-  const current = (editor.getAttributes('link').href as string | undefined) ?? ''
-  const answer = window.prompt('Διεύθυνση συνδέσμου (κενό για αφαίρεση):', current || 'https://')
-  if (answer === null) return
-  const text = answer.trim()
-  if (text === '' || text === 'https://') {
-    editor.chain().focus().extendMarkRange('link').unsetLink().run()
-    return
+/** A typed address as a link: plain addresses get https:// in front; null when it isn't a web or email link */
+function toHref(typed: string): string | null {
+  const text = typed.trim()
+  if (text === '' || /\s/.test(text)) return null
+  if (/^mailto:/i.test(text)) return text
+  if (/^[^@/]+@[^@/]+\.[^@/]+$/.test(text)) return `mailto:${text}`
+  const href = /^https?:\/\//i.test(text) ? text : `https://${text}`
+  try {
+    const url = new URL(href)
+    return url.hostname.includes('.') || url.hostname === 'localhost' ? href : null
+  } catch {
+    return null
   }
-  const href = /^(https?:\/\/|mailto:)/i.test(text) ? text : `https://${text}`
-  editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
+}
+
+/**
+ * The link dialog of one editor: opens with the selected text (or the link under the cursor) and
+ * applies text + address. Same text as before keeps its other formatting (bold…); new text replaces it.
+ */
+function linkDialog(root: HTMLElement, editor: Editor) {
+  const dialog = root.querySelector<HTMLDialogElement>('[data-link-dialog]')
+  const textInput = root.querySelector<HTMLInputElement>('[data-link-text]')
+  const hrefInput = root.querySelector<HTMLInputElement>('[data-link-href]')
+  const error = root.querySelector<HTMLElement>('[data-link-error]')
+  const removeButton = root.querySelector<HTMLButtonElement>('[data-link-remove]')
+  if (!dialog || !textInput || !hrefInput || !error || !removeButton) return () => {}
+
+  let range = { from: 0, to: 0 }
+  let originalText = ''
+
+  const close = () => {
+    dialog.close()
+    editor.commands.focus()
+  }
+
+  function apply() {
+    const href = toHref(hrefInput!.value)
+    if (!href) {
+      error!.textContent = 'Γράψε μια σωστή διεύθυνση, π.χ. https://growme.gr'
+      hrefInput!.focus()
+      return
+    }
+    const text = textInput!.value.trim() || hrefInput!.value.trim()
+    const chain = editor.chain().focus()
+    if (range.from !== range.to && text === originalText) {
+      chain.setTextSelection(range).setLink({ href }).setTextSelection(range.to)
+    } else {
+      chain.insertContentAt(range, { type: 'text', text, marks: [{ type: 'link', attrs: { href } }] })
+    }
+    // The cursor is now right after the link: typing there continues as normal text
+    chain.unsetMark('link').run()
+    dialog!.close()
+  }
+
+  function remove() {
+    editor.chain().focus().setTextSelection(range).unsetLink().run()
+    dialog!.close()
+  }
+
+  for (const input of [textInput, hrefInput]) {
+    input.addEventListener('keydown', (event) => {
+      // Enter applies (it must not send the whole article form)
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        apply()
+      }
+    })
+  }
+  hrefInput.addEventListener('input', () => (error.textContent = ''))
+  root.querySelector('[data-link-save]')?.addEventListener('click', apply)
+  root.querySelector('[data-link-cancel]')?.addEventListener('click', close)
+  removeButton.addEventListener('click', remove)
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault() // Esc
+    close()
+  })
+
+  return function open() {
+    const editing = editor.isActive('link')
+    if (editing) editor.chain().extendMarkRange('link').run()
+    const { from, to } = editor.state.selection
+    range = { from, to }
+    originalText = editor.state.doc.textBetween(from, to, ' ')
+    textInput.value = originalText
+    hrefInput.value = editing ? ((editor.getAttributes('link').href as string | undefined) ?? '') : ''
+    error.textContent = ''
+    removeButton.hidden = !editing
+    dialog.showModal()
+    ;(originalText ? hrefInput : textInput).focus()
+  }
 }
 
 const COMMANDS: Record<string, Command> = {
@@ -43,7 +121,8 @@ const COMMANDS: Record<string, Command> = {
   italic: { run: (e) => e.chain().focus().toggleItalic().run(), active: (e) => e.isActive('italic') },
   underline: { run: (e) => e.chain().focus().toggleUnderline().run(), active: (e) => e.isActive('underline') },
   strike: { run: (e) => e.chain().focus().toggleStrike().run(), active: (e) => e.isActive('strike') },
-  link: { run: editLink, active: (e) => e.isActive('link') },
+  // run is set per editor: it opens that editor's link dialog
+  link: { run: () => {}, active: (e) => e.isActive('link') },
   bulletList: { run: (e) => e.chain().focus().toggleBulletList().run(), active: (e) => e.isActive('bulletList') },
   orderedList: { run: (e) => e.chain().focus().toggleOrderedList().run(), active: (e) => e.isActive('orderedList') },
   blockquote: { run: (e) => e.chain().focus().toggleBlockquote().run(), active: (e) => e.isActive('blockquote') },
@@ -120,8 +199,10 @@ function mount(root: HTMLElement) {
   root.querySelector('[data-toolbar]')?.addEventListener('mousedown', (event) => {
     if ((event.target as HTMLElement).closest('button')) event.preventDefault()
   })
+  const openLink = linkDialog(root, editor)
+  const commands: Record<string, Command> = { ...COMMANDS, link: { ...COMMANDS.link, run: openLink } }
   for (const button of buttons) {
-    button.addEventListener('click', () => COMMANDS[button.dataset.cmd ?? '']?.run(editor))
+    button.addEventListener('click', () => commands[button.dataset.cmd ?? '']?.run(editor))
   }
 
   // Clicking the label or an error moves into the text

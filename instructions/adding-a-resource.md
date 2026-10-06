@@ -317,7 +317,7 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
    - `ui/rich-text-editor.tsx`: `RichTextEditor` (Tiptap, Word-like). Its schema is `richDoc` from
      `@growme/shared` (validates and cleans); store `JSON.stringify(doc)` and read it back with
      `parseRichContent()`. The editor's code is `backend/admin-editor/editor.ts`, bundled by
-     `npm run build:admin` (wrangler runs it before every `dev` and `deploy`; the output is gitignored)
+     `npm run build:admin` (`admin-editor/build.mjs`; wrangler runs it before every `dev` and `deploy`; the output is gitignored)
    Every input has `data-field` (its key) and `data-type`; the server's validation errors appear
    under the input with the same path (e.g. `tips.2.title`).
 4. **Mount** it in `admin.app.tsx` (`.route('/', <name>Admin)`). For a new table, also add it to

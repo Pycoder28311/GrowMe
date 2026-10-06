@@ -1,7 +1,25 @@
 import type { RichDoc } from '@growme/shared'
+import type { Child } from 'hono/jsx'
 import { ASSETS } from './layout'
 
-type Tool = { cmd: string; label: string; icon: string }
+type Tool = { cmd: string; label: string; icon: Child }
+
+/** Word's alignment icons: four lines, short ones placed left, centered, right, or all full width */
+function AlignIcon({ short }: { short: 'left' | 'center' | 'right' | null }) {
+  // x-range of the 2nd and 4th (shorter) lines
+  const [x1, x2] = short === 'left' ? [3, 15] : short === 'center' ? [6, 18] : short === 'right' ? [9, 21] : [3, 21]
+  return (
+    <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        d={`M3 5h18M${x1} 10h${x2 - x1}M3 15h18M${x1} 20h${x2 - x1}`}
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+    </svg>
+  )
+}
 
 // Toolbar groups, left to right (the editor script runs each data-cmd)
 const TOOLS: Tool[][] = [
@@ -28,12 +46,46 @@ const TOOLS: Tool[][] = [
     { cmd: 'horizontalRule', label: 'Οριζόντια γραμμή', icon: '―' },
   ],
   [
-    { cmd: 'alignLeft', label: 'Στοίχιση αριστερά', icon: '⇤' },
-    { cmd: 'alignCenter', label: 'Στοίχιση στο κέντρο', icon: '↔' },
-    { cmd: 'alignRight', label: 'Στοίχιση δεξιά', icon: '⇥' },
-    { cmd: 'alignJustify', label: 'Πλήρης στοίχιση', icon: '☰' },
+    { cmd: 'alignLeft', label: 'Στοίχιση αριστερά', icon: <AlignIcon short="left" /> },
+    { cmd: 'alignCenter', label: 'Στοίχιση στο κέντρο', icon: <AlignIcon short="center" /> },
+    { cmd: 'alignRight', label: 'Στοίχιση δεξιά', icon: <AlignIcon short="right" /> },
+    { cmd: 'alignJustify', label: 'Πλήρης στοίχιση', icon: <AlignIcon short={null} /> },
   ],
 ]
+
+/**
+ * Add or edit a link: the text people see and the address it opens. The editor script fills it from
+ * the selection (or the link under the cursor) and applies it. Its inputs have no data-field, so the
+ * form never sends them.
+ */
+function LinkDialog() {
+  return (
+    <dialog class="link-dialog" data-link-dialog aria-label="Σύνδεσμος">
+      <h3>Σύνδεσμος</h3>
+      <label class="field">
+        <span class="caption">Κείμενο που εμφανίζεται</span>
+        <input type="text" maxlength={500} placeholder="π.χ. Δες το κατάστημα" data-link-text />
+      </label>
+      <label class="field">
+        <span class="caption">Διεύθυνση (URL)</span>
+        <input type="url" maxlength={2000} placeholder="https://" inputmode="url" data-link-href />
+        <p class="error" aria-live="polite" data-link-error />
+      </label>
+      <div class="dialog-actions">
+        <button type="button" class="button danger" data-link-remove>
+          Αφαίρεση
+        </button>
+        <span class="spacer" />
+        <button type="button" class="button secondary" data-link-cancel>
+          Ακύρωση
+        </button>
+        <button type="button" class="button" data-link-save>
+          Εφαρμογή
+        </button>
+      </div>
+    </dialog>
+  )
+}
 
 /** An empty document: what a new article starts with */
 export const EMPTY_DOC: RichDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
@@ -69,6 +121,7 @@ export function RichTextEditor(props: { field: string; value: RichDoc; label: st
         <p class="small muted">Ο επεξεργαστής κειμένου χρειάζεται JavaScript.</p>
       </noscript>
       <p class="error" aria-live="polite" />
+      <LinkDialog />
       <script src={`${ASSETS.editor.path}?v=${ASSETS.editor.version}`} defer />
     </div>
   )

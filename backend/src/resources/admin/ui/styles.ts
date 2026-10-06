@@ -39,7 +39,7 @@ h1 { margin: 0; font-size: var(--text-big); color: var(--primary); }
 h2 { font-size: var(--text-normal); margin: var(--space-lg) 0 var(--space-sm); }
 .muted { color: var(--ink-muted); }
 .small { font-size: var(--text-small); }
-.hidden { display: none !important; }
+.hidden, [hidden] { display: none !important; }
 
 /* Header */
 .top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap;
@@ -94,7 +94,7 @@ a.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-raised); }
 .field .error { margin: 0; font-size: var(--text-small); color: var(--danger); }
 .field .error:empty { display: none; }
 .field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--danger); }
-input[type=text], input[type=number], textarea, select {
+input[type=text], input[type=number], input[type=url], textarea, select {
   width: 100%; font: inherit; color: var(--ink); background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-sm); }
 input:focus, textarea:focus, select:focus, button:focus-visible {
@@ -184,6 +184,17 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .tool-italic { font-style: italic; }
 .tool-underline { text-decoration: underline; }
 .tool-strike { text-decoration: line-through; }
+.tool .icon { display: block; margin: 0 auto; }
+
+/* Link dialog */
+.link-dialog { width: min(440px, calc(100vw - 32px)); border: 0; border-radius: var(--radius-md); padding: var(--space-lg);
+               box-shadow: var(--shadow-raised); color: var(--ink); }
+.link-dialog::backdrop { background: rgba(31, 61, 36, 0.3); }
+.link-dialog h3 { margin: 0 0 var(--space-md); font-size: var(--text-normal); }
+.link-dialog .field { margin-bottom: var(--space-md); }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); align-items: center; }
+.dialog-actions .spacer { flex: 1; }
+.dialog-actions .button { min-height: 40px; padding: 0 var(--space-md); }
 .rich-area { padding: var(--space-md); min-height: 360px; }
 .rich-area .ProseMirror { min-height: 340px; outline: none; line-height: 1.6; }
 .ProseMirror { position: relative; word-wrap: break-word; white-space: pre-wrap; white-space: break-spaces;
