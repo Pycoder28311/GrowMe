@@ -10,7 +10,7 @@ import { toDisease } from '../diseases/diseases.repo'
 import { toLifecycle } from '../lifecycles/lifecycles.repo'
 import { toTip } from '../tips/tips.repo'
 
-const plantImageLinks: LinkTable<typeof plantImages> = {
+export const plantImageLinks: LinkTable<typeof plantImages> = {
   table: plantImages,
   parent: plantImages.plantId,
   toRow: (plantId, imageId, position) => ({ plantId, imageId, position }),
@@ -22,7 +22,7 @@ const withImages = { images: { orderBy: asc(plantImages.position), with: { image
 const withDetails = {
   ...withImages,
   combination: true,
-  lifecycles: { orderBy: asc(lifecycles.id) },
+  lifecycles: { orderBy: (l: typeof lifecycles._.columns) => [asc(l.position), asc(l.id)] },
   tips: { orderBy: (t: typeof tips._.columns) => [asc(t.position), asc(t.id)] },
   diseases: { orderBy: asc(diseases.id) },
 } as const

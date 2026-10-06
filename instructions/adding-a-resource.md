@@ -289,6 +289,34 @@ For uploads, actions or read-only endpoints, write a normal Hono router in
 for admin actions), throw `HttpError` with a code for errors, and mount it the same way.
 `resources/images/images.routes.ts` (file upload) is an example.
 
+## Adding an admin dashboard page
+
+The dashboard (`admin.testingggg.lol`, behind Cloudflare Access) lives in `backend/src/resources/admin/`.
+Pages are server-rendered with Hono JSX; `admin.client.js` (plain browser JS, served as `/admin.js`)
+adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`) is the example.
+
+1. **Save schema** in `packages/shared`: every field of the form, plus child lists as arrays of
+   `{ id?, ...fields }` (with id = existing row, without = new, left out = deleted; the order is the
+   position). See `plantSave`.
+2. **Save function** (`admin/<name>/<name>.save.ts`): create or replace in one `runBatch`. For child
+   tables use `assertOwnChildren()` then `syncChildren()` (`lib/relations.ts`); for photos
+   `assertAdminImages()` + `replaceLinks()`, and `deleteImages()` for the removed ones.
+3. **Config** (`admin/<name>/<name>.admin.tsx`): `adminResource({ path, title, singular, schema, list,
+   get, save, remove, options, itemTitle, ListItem, Form })`. It creates the list, new and edit pages
+   and `POST/PUT/DELETE /api/admin/<path>`. Build the form from `ui/`:
+   - `ui/fields.tsx`: `TextField`, `TextArea`, `NumberField`, `MoneyField` (euros on screen, cents
+     sent), `Toggle`, `Select`, `Choices`, `RangeField`, `MonthRange`
+   - `ui/repeatable-list.tsx`: `RepeatableList` (add/remove, `sortable` for drag and ↑/↓)
+   - `ui/image-picker.tsx`: `ImagePicker` (uploads to `/api/admin/images`, no owner)
+   - `ui/pages.tsx`: `FormSection`
+   Every input has `data-field` (its key) and `data-type`; the server's validation errors appear
+   under the input with the same path (e.g. `tips.2.title`).
+4. **Mount** it in `admin.app.tsx` (`.route('/', <name>Admin)`) and add its link in `PAGES`
+   (`admin.page.tsx`).
+
+Admin pages send a strict Content-Security-Policy: no inline `<style>`, `style=""` or `<script>`.
+Put CSS in `ui/styles.ts` and behaviour in `admin.client.js`.
+
 ## Rules
 
 - **The owner comes from the session:** `userId(ctx)` in repos, `c.get('user').id` in routers

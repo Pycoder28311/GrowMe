@@ -105,11 +105,15 @@ export const plantChildFilter = z.object({
 
 export type PlantChildFilter = z.infer<typeof plantChildFilter>
 
-export const lifecycleCreate = z.object({ plantId: entityId, title, content: text })
-export const lifecycleUpdate = z.object({ title: title.optional(), content: text.optional() })
+export const lifecycleCreate = z.object({ plantId: entityId, position: nonNegative, title, content: text })
+export const lifecycleUpdate = z.object({
+  position: nonNegative.optional(),
+  title: title.optional(),
+  content: text.optional(),
+})
 export type LifecycleCreate = z.infer<typeof lifecycleCreate>
 export type LifecycleUpdate = z.infer<typeof lifecycleUpdate>
-export type Lifecycle = { id: number; plantId: number; title: string; content: string }
+export type Lifecycle = { id: number; plantId: number; position: number; title: string; content: string }
 
 export const tipCreate = z.object({ plantId: entityId, position: nonNegative, title, content: text })
 export const tipUpdate = z.object({ position: nonNegative.optional(), title: title.optional(), content: text.optional() })
@@ -123,6 +127,30 @@ export const diseaseUpdate = z.object({ title: title.optional(), label: label.nu
 export type DiseaseCreate = z.infer<typeof diseaseCreate>
 export type DiseaseUpdate = z.infer<typeof diseaseUpdate>
 export type Disease = { id: number; plantId: number; title: string; label: string | null; content: string }
+
+/* ─────────────── Admin dashboard: a plant with all its details in one save ─────────────── */
+
+/** With id: an existing row (updated); without: a new row. A row left out of the list is deleted. */
+const childId = entityId.optional()
+
+/** Both months set (a season) or both empty */
+const monthsTogether = (p: { monthStart: number | null; monthEnd: number | null }) =>
+  (p.monthStart == null) === (p.monthEnd == null)
+
+/**
+ * The plant form's body (PUT/POST /api/admin/plants). Every field is sent (nothing is optional);
+ * the order of lifecycles, tips and imageIds is their position.
+ */
+export const plantSave = plantFields
+  .extend({
+    lifecycles: z.array(z.object({ id: childId, title, content: text })).max(50),
+    tips: z.array(z.object({ id: childId, title, content: text })).max(50),
+    diseases: z.array(z.object({ id: childId, title, label: label.nullable(), content: text })).max(50),
+  })
+  .refine(rangesInOrder, rangeMessage)
+  .refine(monthsTogether, { message: 'Set both months or neither', path: ['monthEnd'] })
+
+export type PlantSave = z.infer<typeof plantSave>
 
 /* ─────────────── Combinations ─────────────── */
 

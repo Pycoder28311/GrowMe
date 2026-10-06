@@ -7,6 +7,7 @@ export * from './auth-schema'
 const id = () => integer('id').primaryKey({ autoIncrement: true })
 const createdAt = () => integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 const owner = () => text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' })
+const optionalOwner = () => text('user_id').references(() => user.id, { onDelete: 'cascade' })
 
 /* ─────────────── Notes (existing) ─────────────── */
 
@@ -24,7 +25,7 @@ export const notes = sqliteTable(
 
 export const images = sqliteTable('images', {
     id: id(),
-    userId: owner(),
+    userId: optionalOwner(), // null = uploaded by the admin (dashboard)
     key: text('key').notNull().unique(),
     contentType: text('content_type').notNull(),
     size: integer('size').notNull(),
@@ -149,10 +150,11 @@ export const lifecycles = sqliteTable(
     {
         id: id(),
         plantId: integer('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
+        position: integer('position').notNull().default(0),
         title: text('title').notNull(),
         content: text('content').notNull(),
     },
-    (t) => [index('lifecycles_plant_id_idx').on(t.plantId)],
+    (t) => [index('lifecycles_plant_id_idx').on(t.plantId, t.position)],
 )
 
 export const tips = sqliteTable(

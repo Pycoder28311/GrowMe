@@ -3,6 +3,8 @@
 	"name": "growme",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-10-02",
+	// The admin dashboard's browser script is bundled as text and served by the Worker (resources/admin)
+	"rules": [{ "type": "Text", "globs": ["**/*.client.js"], "fallthrough": true }],
 	// The admin dashboard's address (protected by Cloudflare Access). A custom domain: Cloudflare creates
 	// its DNS record and certificate on deploy. The API stays on workers.dev as well.
 	"routes": [{ "pattern": "admin.testingggg.lol", "custom_domain": true }],

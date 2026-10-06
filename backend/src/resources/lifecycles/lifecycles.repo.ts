@@ -7,14 +7,19 @@ import { assertExists } from '../../lib/relations'
 export const toLifecycle = (l: typeof lifecycles.$inferSelect): Lifecycle => ({
   id: l.id,
   plantId: l.plantId,
+  position: l.position,
   title: l.title,
   content: l.content,
 })
 
-/** The lifecycle stages of one plant (?plantId=), in order; admins write */
+/** The lifecycle stages of one plant (?plantId=), by position; admins write */
 export const lifecyclesRepo: Repo<LifecycleCreate, LifecycleUpdate, Lifecycle, PlantChildFilter> = {
   async list(ctx, _page, { plantId }) {
-    const rows = await ctx.db.select().from(lifecycles).where(eq(lifecycles.plantId, plantId)).orderBy(asc(lifecycles.id))
+    const rows = await ctx.db
+      .select()
+      .from(lifecycles)
+      .where(eq(lifecycles.plantId, plantId))
+      .orderBy(asc(lifecycles.position), asc(lifecycles.id))
     return { items: rows.map(toLifecycle), nextCursor: null }
   },
   async get(ctx, id) {
