@@ -316,7 +316,10 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
    - `ui/pages.tsx`: `FormSection`, `ItemCard`; `ui/format.ts`: `formatDate`, `snippet`, `fileSize`
    - `ui/rich-text-editor.tsx`: `RichTextEditor` (Tiptap, Word-like). Its schema is `richDoc` from
      `@growme/shared` (validates and cleans); store `JSON.stringify(doc)` and read it back with
-     `parseRichContent()`. The editor's code is `backend/admin-editor/editor.ts`, bundled by
+     `parseRichContent()`. Images in the text are blocks storing only `imageId`, `width` (25–100 %),
+     `alt` and `ratio`: link them on save (`richImageIds()`, see `blog_content_images` in `saveBlog`)
+     and give readers their URLs separately (`Blog.contentImages`). The editor's code is
+     `backend/admin-editor/editor.ts` (images: `admin-editor/image.ts`), bundled by
      `npm run build:admin` (`admin-editor/build.mjs`; wrangler runs it before every `dev` and `deploy`; the output is gitignored)
    Every input has `data-field` (its key) and `data-type`; the server's validation errors appear
    under the input with the same path (e.g. `tips.2.title`).

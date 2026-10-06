@@ -6,6 +6,7 @@ import { Editor } from '@tiptap/core'
 import TextAlign from '@tiptap/extension-text-align'
 import { Placeholder } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
+import { ArticleImage, dropImage, insertImages } from './image'
 
 type Command = {
   run: (editor: Editor) => void
@@ -123,6 +124,8 @@ const COMMANDS: Record<string, Command> = {
   strike: { run: (e) => e.chain().focus().toggleStrike().run(), active: (e) => e.isActive('strike') },
   // run is set per editor: it opens that editor's link dialog
   link: { run: () => {}, active: (e) => e.isActive('link') },
+  // run is set per editor: it opens the file picker
+  image: { run: () => {} },
   bulletList: { run: (e) => e.chain().focus().toggleBulletList().run(), active: (e) => e.isActive('bulletList') },
   orderedList: { run: (e) => e.chain().focus().toggleOrderedList().run(), active: (e) => e.isActive('orderedList') },
   blockquote: { run: (e) => e.chain().focus().toggleBlockquote().run(), active: (e) => e.isActive('blockquote') },
@@ -153,6 +156,9 @@ function mount(root: HTMLElement) {
   const area = root.querySelector<HTMLElement>('[data-editor-area]')
   if (!input || !area) return
   const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-cmd]')]
+  const uploadUrl = root.dataset.upload ?? ''
+  const fileInput = root.querySelector<HTMLInputElement>('[data-image-file]')
+  const status = root.querySelector<HTMLElement>('[data-image-status]') ?? document.createElement('p')
 
   const editor = new Editor({
     element: area,
@@ -171,6 +177,7 @@ function mount(root: HTMLElement) {
         },
       }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      ArticleImage,
       Placeholder.configure({ placeholder: root.dataset.placeholder ?? '' }),
     ],
     content: JSON.parse(input.value),
@@ -183,6 +190,22 @@ function mount(root: HTMLElement) {
         spellcheck: 'false',
       },
       // A click on a link opens it in a new tab; the cursor still lands there, so 🔗 can edit it
+      // Image files pasted or dropped into the text are uploaded and placed there
+      handlePaste: (_view, event) => {
+        const files = [...(event.clipboardData?.files ?? [])]
+        if (!files.some((f) => f.type.startsWith('image/'))) return false
+        insertImages(editor, uploadUrl, files, status)
+        return true
+      },
+      handleDrop: (view, event, _slice, moved) => {
+        if (dropImage(view, event, moved)) return true
+        const files = [...(event.dataTransfer?.files ?? [])]
+        if (moved || !files.some((f) => f.type.startsWith('image/'))) return false
+        const at = view.posAtCoords({ left: event.clientX, top: event.clientY })
+        insertImages(editor, uploadUrl, files, status, at?.pos)
+        event.preventDefault()
+        return true
+      },
       handleClick: (_view, _pos, event) => {
         const anchor = (event.target as HTMLElement | null)?.closest?.('a[href]')
         const href = anchor?.getAttribute('href')
@@ -214,7 +237,16 @@ function mount(root: HTMLElement) {
     if ((event.target as HTMLElement).closest('button')) event.preventDefault()
   })
   const openLink = linkDialog(root, editor)
-  const commands: Record<string, Command> = { ...COMMANDS, link: { ...COMMANDS.link, run: openLink } }
+  const commands: Record<string, Command> = {
+    ...COMMANDS,
+    link: { ...COMMANDS.link, run: openLink },
+    image: { run: () => fileInput?.click() },
+  }
+  fileInput?.addEventListener('change', () => {
+    const files = [...(fileInput.files ?? [])]
+    fileInput.value = ''
+    insertImages(editor, uploadUrl, files, status)
+  })
   for (const button of buttons) {
     button.addEventListener('click', () => commands[button.dataset.cmd ?? '']?.run(editor))
   }

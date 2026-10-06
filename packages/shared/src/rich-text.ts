@@ -2,7 +2,8 @@ import { z } from 'zod'
 
 // Formatted text written with the dashboard's editor (Tiptap) and shown natively by the app.
 // Stored as the editor's JSON document. Only what is listed here is allowed: parsing with `richDoc`
-// drops every other attribute (e.g. a link's target or class), and unknown blocks or marks fail.
+// drops every other attribute (e.g. a link's target or class, or an image's src), and unknown blocks
+// or marks fail. Images are stored by id only; readers get their URLs separately (Blog.contentImages).
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
@@ -14,6 +15,16 @@ export type RichInline = { type: 'text'; text: string; marks?: RichMark[] } | { 
 
 export type RichListItem = { type: 'listItem'; content: RichBlock[] }
 
+/** Display widths of an image, in % of the text's width */
+export const IMAGE_WIDTHS = [25, 50, 75, 100] as const
+export type ImageWidth = (typeof IMAGE_WIDTHS)[number]
+
+/** A photo between lines of text: an uploaded image (by id), its width, a description, width ÷ height */
+export type RichImage = {
+  type: 'image'
+  attrs: { imageId: number; width: ImageWidth; alt: string; ratio: number | null }
+}
+
 export type RichBlock =
   | { type: 'paragraph'; attrs?: { textAlign?: TextAlign | null }; content?: RichInline[] }
   | { type: 'heading'; attrs: { level: 2 | 3; textAlign?: TextAlign | null }; content?: RichInline[] }
@@ -21,6 +32,7 @@ export type RichBlock =
   | { type: 'orderedList'; attrs?: { start?: number }; content: RichListItem[] }
   | { type: 'blockquote'; content: RichBlock[] }
   | { type: 'horizontalRule' }
+  | RichImage
 
 export type RichDoc = { type: 'doc'; content: RichBlock[] }
 
@@ -64,6 +76,15 @@ const block: z.ZodType<RichBlock> = z.lazy(() =>
     }),
     z.object({ type: z.literal('blockquote'), content: z.array(block).min(1).max(200) }),
     z.object({ type: z.literal('horizontalRule') }),
+    z.object({
+      type: z.literal('image'),
+      attrs: z.object({
+        imageId: z.number().int().positive(),
+        width: z.union([z.literal(25), z.literal(50), z.literal(75), z.literal(100)]), // IMAGE_WIDTHS
+        alt: z.string().trim().max(300).default(''),
+        ratio: z.number().min(0.1).max(10).nullable().default(null),
+      }),
+    }),
   ]),
 )
 
@@ -89,6 +110,7 @@ export const richDoc: z.ZodType<RichDoc> = z
   .object({ type: z.literal('doc'), content: z.array(block).min(1).max(2000) })
   .refine((doc) => plainTextOf(doc).trim().length > 0, { message: 'Write some text' })
   .refine((doc) => depthOf(doc.content) <= 8, { message: 'Lists are nested too deeply' })
+  .refine((doc) => richImageIds(doc).length <= 50, { message: 'Too many images' })
   .refine((doc) => JSON.stringify(doc).length <= MAX_JSON_LENGTH, { message: 'The text is too long' })
 
 /** The text without formatting (for reading time, previews and search) */
@@ -106,10 +128,29 @@ export function plainTextOf(doc: RichDoc): string {
       case 'blockquote':
         return b.content.map(blockText).join('\n')
       case 'horizontalRule':
+      case 'image':
         return ''
     }
   }
   return doc.content.map(blockText).join('\n\n')
+}
+
+/** Every block of a document, at any depth (inside lists and quotes too) */
+function allBlocks(blocks: RichBlock[]): RichBlock[] {
+  return blocks.flatMap((b) => [
+    b,
+    ...(b.type === 'bulletList' || b.type === 'orderedList'
+      ? allBlocks(b.content.flatMap((item) => item.content))
+      : b.type === 'blockquote'
+        ? allBlocks(b.content)
+        : []),
+  ])
+}
+
+/** Ids of the images placed in a document (each once) */
+export function richImageIds(doc: RichDoc): number[] {
+  const ids = allBlocks(doc.content).flatMap((b) => (b.type === 'image' ? [b.attrs.imageId] : []))
+  return [...new Set(ids)]
 }
 
 /** Plain text as a document: an empty line starts a new paragraph, a single newline breaks the line */

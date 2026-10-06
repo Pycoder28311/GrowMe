@@ -1,4 +1,4 @@
-import type { RichDoc } from '@growme/shared'
+import type { ImageRef, RichBlock, RichDoc } from '@growme/shared'
 import type { Child } from 'hono/jsx'
 import { ASSETS } from './layout'
 
@@ -9,6 +9,20 @@ const LinkIcon = () => (
   <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
     <path
       d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+)
+
+/** Lucide's "image" icon (ISC licence): a framed picture */
+const ImageIcon = () => (
+  <svg class="icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <path
+      d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 7a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM21 15l-3.09-3.09a2 2 0 0 0-2.82 0L6 21"
       fill="none"
       stroke="currentColor"
       stroke-width="2"
@@ -56,6 +70,7 @@ const TOOLS: Tool[][] = [
   [
     { cmd: 'bulletList', label: 'Λίστα με κουκκίδες', icon: '•≡' },
     { cmd: 'orderedList', label: 'Αριθμημένη λίστα', icon: '1≡' },
+    { cmd: 'image', label: 'Εικόνα (ανέβασμα αρχείου)', icon: <ImageIcon /> },
     { cmd: 'blockquote', label: 'Παράθεση', icon: '❝' },
     { cmd: 'horizontalRule', label: 'Οριζόντια γραμμή', icon: '―' },
   ],
@@ -105,13 +120,49 @@ function LinkDialog() {
 export const EMPTY_DOC: RichDoc = { type: 'doc', content: [{ type: 'paragraph' }] }
 
 /**
+ * The document as the editor needs it: each image block gets its URL (`src`, which is never stored:
+ * the server drops it on save). Images whose file was deleted are left out.
+ */
+export function withImageSources(doc: RichDoc, images: ImageRef[]): object {
+  const urls = new Map(images.map((i) => [i.id, i.url]))
+  const blocks = (list: RichBlock[]): object[] =>
+    list.flatMap((b): object[] => {
+      if (b.type === 'image') {
+        const src = urls.get(b.attrs.imageId)
+        return src ? [{ ...b, attrs: { ...b.attrs, src } }] : []
+      }
+      if (b.type === 'bulletList' || b.type === 'orderedList') {
+        return [{ ...b, content: b.content.map((item) => ({ ...item, content: blocks(item.content) })) }]
+      }
+      if (b.type === 'blockquote') return [{ ...b, content: blocks(b.content) }]
+      return [b]
+    })
+  const content = blocks(doc.content)
+  return { type: 'doc', content: content.length ? content : EMPTY_DOC.content }
+}
+
+/**
  * A Word-like text editor (Tiptap, loaded only on pages that use it). The document travels as JSON in
  * a hidden input under `field`, so admin.client.js sends it like any other field and shows the
  * server's errors for it below the editor.
  */
-export function RichTextEditor(props: { field: string; value: RichDoc; label: string; placeholder?: string }) {
+export function RichTextEditor(props: {
+  field: string
+  /** The document, with image URLs (see withImageSources) */
+  value: object
+  label: string
+  placeholder?: string
+  /** Where the image button uploads (POST multipart "files" → [{ id, url }]) */
+  uploadUrl: string
+}) {
   return (
-    <div class="field rich" data-rich-editor data-label={props.label} data-placeholder={props.placeholder ?? ''}>
+    <div
+      class="field rich"
+      data-rich-editor
+      data-label={props.label}
+      data-placeholder={props.placeholder ?? ''}
+      data-upload={props.uploadUrl}
+    >
       <div class="toolbar" role="toolbar" aria-label="Μορφοποίηση κειμένου" data-toolbar>
         {TOOLS.map((group) => (
           <div class="tool-group">
@@ -130,6 +181,8 @@ export function RichTextEditor(props: { field: string; value: RichDoc; label: st
         ))}
       </div>
       <div class="rich-area" data-editor-area />
+      <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden data-image-file />
+      <p class="small muted upload-status" aria-live="polite" data-image-status />
       <input type="hidden" data-field={props.field} data-type="json" value={JSON.stringify(props.value)} />
       <noscript>
         <p class="small muted">Ο επεξεργαστής κειμένου χρειάζεται JavaScript.</p>

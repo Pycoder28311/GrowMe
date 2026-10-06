@@ -36,7 +36,10 @@ export type Blog = {
   name: string
   /** The editor's document as JSON text, or older plain text: read it with parseRichContent() */
   content: string
+  /** Cover photos, in order */
   images: ImageRef[]
+  /** URLs of the photos inside the text (the document's image blocks have only their ids) */
+  contentImages: ImageRef[]
   likeCount: number
   commentCount: number
   createdAt: string

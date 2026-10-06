@@ -5,7 +5,7 @@ import { TextField } from '../ui/fields'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { formatDate } from '../ui/format'
-import { EMPTY_DOC, RichTextEditor } from '../ui/rich-text-editor'
+import { EMPTY_DOC, RichTextEditor, withImageSources } from '../ui/rich-text-editor'
 import { saveBlog } from './blogs.save'
 
 /** A blog in the dashboard's list: cover photo, title, date and counters */
@@ -45,8 +45,9 @@ function BlogForm({ item: b }: { item: Blog | null }) {
         <RichTextEditor
           field="content"
           label="Κείμενο άρθρου"
-          value={b ? parseRichContent(b.content) : EMPTY_DOC}
+          value={b ? withImageSources(parseRichContent(b.content), b.contentImages) : EMPTY_DOC}
           placeholder="Γράψε το άρθρο εδώ…"
+          uploadUrl="/api/admin/images"
         />
       </FormSection>
     </>

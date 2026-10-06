@@ -1,12 +1,16 @@
-import type { RichBlock, RichDoc, RichInline, RichListItem, RichMark } from '@growme/shared';
-import { Fragment } from 'react';
+import type { ImageRef, RichBlock, RichDoc, RichImage, RichInline, RichListItem, RichMark } from '@growme/shared';
+import { Image } from 'expo-image';
+import { createContext, Fragment, useContext } from 'react';
 import { Linking, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { colors, fontFamily, radius, space } from '@/theme';
 
 // Shows an article written with the dashboard's editor: headings, paragraphs, lists, quotes, lines,
-// and bold / italic / underline / strike / links inside the text. Native views only (no HTML).
+// images, and bold / italic / underline / strike / links inside the text. Native views only (no HTML).
+
+/** Image URLs by id (the document stores only ids) */
+const ImageUrls = createContext<Map<number, string>>(new Map());
 
 /** Opens web and email links only (the server allows nothing else either) */
 const openLink = (href: string) => {
@@ -69,8 +73,26 @@ function ListItems({ items, ordered, start = 1 }: { items: RichListItem[]; order
   );
 }
 
+/** A photo between lines: its width in % of the text, centered, keeping its shape while it loads */
+function ArticleImage({ image }: { image: RichImage }) {
+  const url = useContext(ImageUrls).get(image.attrs.imageId);
+  if (!url) return null; // its file was deleted
+  return (
+    <Image
+      source={{ uri: url }}
+      contentFit="cover"
+      transition={150}
+      accessibilityLabel={image.attrs.alt || undefined}
+      accessible={!!image.attrs.alt}
+      style={[styles.image, { width: `${image.attrs.width}%`, aspectRatio: image.attrs.ratio ?? 1.5 }]}
+    />
+  );
+}
+
 function Block({ block }: { block: RichBlock }) {
   switch (block.type) {
+    case 'image':
+      return <ArticleImage image={block} />;
     case 'paragraph':
       return (
         <AppText style={[styles.paragraph, { textAlign: block.attrs?.textAlign ?? 'left' }]}>
@@ -112,9 +134,20 @@ function Blocks({ blocks, tight }: { blocks: RichBlock[]; tight?: boolean }) {
   );
 }
 
-/** An article's formatted text */
-export function RichText({ doc }: { doc: RichDoc }) {
-  return <Blocks blocks={doc.content} />;
+/** Empty paragraphs at the end (the editor keeps one after a final image so you can type there) */
+function withoutTrailingEmpty(blocks: RichBlock[]) {
+  let end = blocks.length;
+  while (end > 0 && blocks[end - 1].type === 'paragraph' && !(blocks[end - 1] as { content?: unknown[] }).content?.length) end--;
+  return blocks.slice(0, end);
+}
+
+/** An article's formatted text; `images` gives the URLs of the photos placed in it */
+export function RichText({ doc, images = [] }: { doc: RichDoc; images?: ImageRef[] }) {
+  return (
+    <ImageUrls.Provider value={new Map(images.map((i) => [i.id, i.url]))}>
+      <Blocks blocks={withoutTrailingEmpty(doc.content)} />
+    </ImageUrls.Provider>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -160,6 +193,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
+  },
+  image: {
+    alignSelf: 'center',
+    marginVertical: space.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.border,
   },
   rule: {
     height: 2,

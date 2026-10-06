@@ -138,6 +138,7 @@
     [/^Links must start with/, 'Οι σύνδεσμοι πρέπει να ξεκινούν με https://, http:// ή mailto:'],
     [/^The text is too long$/, 'Το κείμενο είναι πολύ μεγάλο'],
     [/^Lists are nested too deeply$/, 'Πάρα πολλές λίστες η μία μέσα στην άλλη'],
+    [/^Too many images$/, 'Έως 50 εικόνες σε ένα άρθρο'],
   ]
   const greek = (message) => {
     for (const [pattern, text] of GREEK) {

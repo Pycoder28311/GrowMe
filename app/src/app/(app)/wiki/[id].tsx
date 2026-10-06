@@ -65,7 +65,7 @@ export default function PostScreen() {
           <ReadTimeBadge minutes={readMinutes(post)} />
         </View>
 
-        <RichText doc={parseRichContent(post.content)} />
+        <RichText doc={parseRichContent(post.content)} images={post.contentImages} />
 
         <Section title="Μοιραστείτε το άρθρο:">
           <ShareButtons title={post.name} />

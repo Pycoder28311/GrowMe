@@ -1,6 +1,6 @@
 import type { Blog, BlogCreate, BlogUpdate } from '@growme/shared'
 import { asc, desc, eq } from 'drizzle-orm'
-import { blogComments, blogImages, blogs } from '../../db/schema'
+import { blogComments, blogContentImages, blogImages, blogs } from '../../db/schema'
 import { hasChanges, type Ctx, type Repo } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/relations'
@@ -13,7 +13,17 @@ export const blogImageLinks: LinkTable<typeof blogImages> = {
   toRow: (blogId, imageId, position) => ({ blogId, imageId, position }),
 }
 
-const withImages = { images: { orderBy: asc(blogImages.position), with: { image: true } } } as const
+/** Photos inside a blog's text: one row per image (see saveBlog in the dashboard) */
+export const blogContentImageLinks: LinkTable<typeof blogContentImages> = {
+  table: blogContentImages,
+  parent: blogContentImages.blogId,
+  toRow: (blogId, imageId) => ({ blogId, imageId }),
+}
+
+const withImages = {
+  images: { orderBy: asc(blogImages.position), with: { image: true } },
+  contentImages: { with: { image: true } },
+} as const
 
 const find = (ctx: Ctx, id: number) => ctx.db.query.blogs.findFirst({ where: eq(blogs.id, id), with: withImages })
 
@@ -24,6 +34,7 @@ const toJson = (env: CloudflareBindings, b: Row): Blog => ({
   name: b.name,
   content: b.content,
   images: toImageRefs(env, b.images),
+  contentImages: toImageRefs(env, b.contentImages),
   likeCount: b.likeCount,
   commentCount: b.commentCount,
   createdAt: b.createdAt.toISOString(),
@@ -80,10 +91,7 @@ export const blogsRepo: Repo<BlogCreate, BlogUpdate, Blog> = {
       deleteLikesOf(ctx.db, 'blog', id),
       ctx.db.delete(blogs).where(eq(blogs.id, id)), // comments and image links cascade
     ])
-    await deleteImages(
-      ctx,
-      existing.images.map((l) => l.imageId),
-    )
+    await deleteImages(ctx, [...existing.images, ...existing.contentImages].map((l) => l.imageId))
     return true
   },
 }

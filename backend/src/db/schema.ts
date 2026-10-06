@@ -213,6 +213,16 @@ export const blogImages = sqliteTable(
     (t) => [primaryKey({ columns: [t.blogId, t.imageId] })],
 )
 
+/** Photos placed inside a blog's text (the editor's image blocks); kept in sync on every save */
+export const blogContentImages = sqliteTable(
+    'blog_content_images',
+    {
+        blogId: integer('blog_id').notNull().references(() => blogs.id, { onDelete: 'cascade' }),
+        imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
+    },
+    (t) => [primaryKey({ columns: [t.blogId, t.imageId] })],
+)
+
 export const plantImages = sqliteTable(
     'plant_images',
     {
@@ -243,6 +253,7 @@ export const postRepliesRelations = relations(postReplies, ({ one }) => ({
 export const blogsRelations = relations(blogs, ({ many }) => ({
     comments: many(blogComments),
     images: many(blogImages),
+    contentImages: many(blogContentImages),
 }))
 
 export const blogCommentsRelations = relations(blogComments, ({ one, many }) => ({
@@ -293,6 +304,11 @@ export const postImagesRelations = relations(postImages, ({ one }) => ({
 export const blogImagesRelations = relations(blogImages, ({ one }) => ({
     blog: one(blogs, { fields: [blogImages.blogId], references: [blogs.id] }),
     image: one(images, { fields: [blogImages.imageId], references: [images.id] }),
+}))
+
+export const blogContentImagesRelations = relations(blogContentImages, ({ one }) => ({
+    blog: one(blogs, { fields: [blogContentImages.blogId], references: [blogs.id] }),
+    image: one(images, { fields: [blogContentImages.imageId], references: [images.id] }),
 }))
 
 export const plantImagesRelations = relations(plantImages, ({ one }) => ({

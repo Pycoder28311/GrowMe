@@ -187,6 +187,32 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .tool-strike { text-decoration: line-through; }
 .tool .icon { display: block; margin: 0 auto; }
 
+/* Images inside the text: a block, dragged up or down; its panel shows while it is selected */
+.ProseMirror .article-image { position: relative; margin: var(--space-md) auto; cursor: grab; }
+.ProseMirror .article-image.w-25 { width: 25%; }
+.ProseMirror .article-image.w-50 { width: 50%; }
+.ProseMirror .article-image.w-75 { width: 75%; }
+.ProseMirror .article-image.w-100 { width: 100%; }
+.ProseMirror .article-image img { display: block; width: 100%; height: auto; border-radius: var(--radius-md);
+                                   background: var(--surface-muted); min-height: 48px; }
+.ProseMirror .article-image.selected img { outline: 3px solid var(--primary); outline-offset: 2px; }
+.ProseMirror .article-image.ProseMirror-selectednode { outline: none; }
+.image-panel { display: none; position: absolute; top: var(--space-sm); left: 50%; transform: translateX(-50%);
+               z-index: 3; align-items: center; gap: var(--space-xs); padding: var(--space-xs);
+               background: var(--surface); border-radius: var(--radius-sm); box-shadow: var(--shadow-raised);
+               cursor: default; white-space: nowrap; }
+.article-image.selected .image-panel { display: flex; }
+.image-sizes { display: flex; gap: 2px; }
+.image-tool { display: inline-flex; align-items: center; gap: var(--space-xs); height: 32px; padding: 0 var(--space-sm);
+              border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink);
+              font: inherit; font-size: var(--text-small); font-weight: 700; cursor: pointer; }
+.image-tool:hover { background: var(--surface-muted); }
+.image-tool[aria-pressed="true"] { background: var(--border); }
+.image-delete { color: var(--danger); }
+.image-panel input { width: 160px; height: 32px; padding: 0 var(--space-sm); font-size: var(--text-small); }
+.upload-status { margin: 0; padding: 0 var(--space-md); }
+.upload-status:empty { display: none; }
+
 /* Link dialog */
 .link-dialog { width: min(440px, calc(100vw - 32px)); border: 0; border-radius: var(--radius-md); padding: var(--space-lg);
                box-shadow: var(--shadow-raised); color: var(--ink); }
