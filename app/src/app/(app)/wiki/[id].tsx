@@ -72,7 +72,7 @@ export default function PostScreen() {
         </Section>
 
         <Section title="Αφήστε σχόλιο">
-          <CommentsSection />
+          <CommentsSection blogId={post.id} commentCount={post.commentCount} />
         </Section>
 
         {others.length > 0 && (

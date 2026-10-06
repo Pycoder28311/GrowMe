@@ -286,7 +286,9 @@ everything a repo needs:
   number of direct answers counted in the list query (a subquery, never stored). Deleting one deletes
   its whole thread: subtract the thread's size from the parent's counter and delete its likes with a
   recursive CTE (see `deletePostReply` / `deleteBlogComment`). drizzle-kit leaves `ON DELETE cascade`
-  out of an *added* column: check the generated SQL (see `drizzle/0008_*`).
+  out of an *added* column: check the generated SQL (see `drizzle/0008_*`). In the app, one
+  `<ReplyLevel>` shows any such tree: give it a `ThreadSource` (list / create / liked type, see
+  `usePostThread` and `useCommentThread`).
 
 ## Routes that are not plain CRUD
 

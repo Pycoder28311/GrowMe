@@ -1,4 +1,4 @@
-import type { Blog, Page } from '@growme/shared';
+import type { Blog, BlogComment, Page } from '@growme/shared';
 import { request } from './client';
 
 /** Encyclopedia articles written in the admin dashboard (public: no sign-in needed) */
@@ -7,4 +7,20 @@ export const blogsApi = {
   list: (cursor?: string | null) =>
     request<Page<Blog>>(`/blogs?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`),
   get: (id: number) => request<Blog>(`/blogs/${id}`),
+};
+
+/** Readers' comments on an article, nested like Reddit: parentCommentId null = a top-level comment */
+export const blogCommentsApi = {
+  /** 20 per call, newest first: the article's own comments, or the answers to one comment */
+  list: (blogId: number, parentCommentId: number | null, cursor?: string | null) =>
+    request<Page<BlogComment>>(
+      `/blog-comments?blogId=${blogId}${parentCommentId ? `&parentCommentId=${parentCommentId}` : ''}&limit=20${
+        cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''
+      }`,
+    ),
+  create: (blogId: number, parentCommentId: number | null, content: string) =>
+    request<BlogComment>('/blog-comments', {
+      method: 'POST',
+      body: JSON.stringify({ blogId, parentCommentId, content }),
+    }),
 };

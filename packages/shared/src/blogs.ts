@@ -78,5 +78,7 @@ export type BlogComment = {
   content: string
   author: Author
   likeCount: number
+  /** Direct answers to this comment (not the deeper ones) */
+  replyCount: number
   createdAt: string
 }

@@ -1,28 +1,43 @@
 import type { BlogComment, CommentCreate, CommentFilter, CommentUpdate } from '@growme/shared'
-import { and, desc, eq, isNull, sql } from 'drizzle-orm'
-import { blogComments, blogs } from '../../db/schema'
+import { and, desc, eq, isNull, sql, type SQL } from 'drizzle-orm'
+import { blogComments, blogs, user } from '../../db/schema'
 import { HttpError } from '../../lib/errors'
 import type { Db } from '../../db'
-import { ownedOrAdmin, userId, type Ctx, type Repo } from '../../lib/crud'
+import { ownedOrAdmin, userId, type Repo } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { assertExists } from '../../lib/relations'
-import { authorColumns, toAuthor } from '../authors'
+import { toAuthor } from '../authors'
 import { deleteLikesOf } from '../likes/likes.repo'
 
-const findWhere = (ctx: Ctx, where: ReturnType<typeof and>) =>
-  ctx.db.query.blogComments.findFirst({ where, with: { user: authorColumns } })
+/** Comments with their author and their number of direct answers (counted, never stored: it can't drift) */
+const selectComments = (db: Db) =>
+  db
+    .select({
+      comment: blogComments,
+      author: { id: user.id, name: user.name, image: user.image },
+      replyCount: sql<number>`(SELECT count(*) FROM blog_comments a WHERE a.parent_comment_id = ${blogComments.id})`,
+    })
+    .from(blogComments)
+    .innerJoin(user, eq(user.id, blogComments.userId))
 
-type Row = NonNullable<Awaited<ReturnType<typeof findWhere>>>
+type Row = {
+  comment: typeof blogComments.$inferSelect
+  author: { id: string; name: string; image: string | null }
+  replyCount: number
+}
 
-const toJson = (c: Row): BlogComment => ({
+const toJson = ({ comment: c, author, replyCount }: Row): BlogComment => ({
   id: c.id,
   blogId: c.blogId,
   parentCommentId: c.parentCommentId,
   content: c.content,
-  author: toAuthor(c.user),
+  author: toAuthor(author),
   likeCount: c.likeCount,
+  replyCount,
   createdAt: c.createdAt.toISOString(),
 })
+
+const findWhere = (db: Db, where: SQL | undefined) => selectComments(db).where(where).get()
 
 /** A comment and all its answers, at any depth: `SELECT <what> FROM thread` */
 const thread = (id: number, what: string) =>
@@ -38,25 +53,25 @@ const thread = (id: number, what: string) =>
  */
 export const blogCommentsRepo: Repo<CommentCreate, CommentUpdate, BlogComment, CommentFilter> = {
   async list(ctx, page, { blogId, parentCommentId }) {
-    const rows = await ctx.db.query.blogComments.findMany({
-      where: and(
-        eq(blogComments.blogId, blogId),
-        parentCommentId ? eq(blogComments.parentCommentId, parentCommentId) : isNull(blogComments.parentCommentId),
-        beforeCursor(blogComments.id, page),
-      ),
-      orderBy: desc(blogComments.id),
-      limit: fetchLimit(page),
-      with: { user: authorColumns },
-    })
+    const rows = await selectComments(ctx.db)
+      .where(
+        and(
+          eq(blogComments.blogId, blogId),
+          parentCommentId ? eq(blogComments.parentCommentId, parentCommentId) : isNull(blogComments.parentCommentId),
+          beforeCursor(blogComments.id, page),
+        ),
+      )
+      .orderBy(desc(blogComments.id))
+      .limit(fetchLimit(page) ?? -1)
     return mapPage(
-      toPage(rows, page, (c) => c.id),
+      toPage(rows, page, (r) => r.comment.id),
       toJson,
     )
   },
 
   async get(ctx, id) {
-    const comment = await findWhere(ctx, eq(blogComments.id, id))
-    return comment ? toJson(comment) : null
+    const row = await findWhere(ctx.db, eq(blogComments.id, id))
+    return row ? toJson(row) : null
   },
 
   async create(ctx, { blogId, parentCommentId, content }) {
@@ -80,7 +95,7 @@ export const blogCommentsRepo: Repo<CommentCreate, CommentUpdate, BlogComment, C
         .set({ commentCount: sql`${blogs.commentCount} + 1` })
         .where(eq(blogs.id, blogId)),
     ])
-    return toJson((await findWhere(ctx, eq(blogComments.id, comment.id)))!)
+    return toJson((await findWhere(ctx.db, eq(blogComments.id, comment.id)))!)
   },
 
   async update(ctx, id, { content }) {
@@ -89,12 +104,16 @@ export const blogCommentsRepo: Repo<CommentCreate, CommentUpdate, BlogComment, C
       .set({ content })
       .where(and(eq(blogComments.id, id), eq(blogComments.userId, userId(ctx))))
       .returning({ id: blogComments.id })
-    return row ? toJson((await findWhere(ctx, eq(blogComments.id, id)))!) : null
+    return row ? toJson((await findWhere(ctx.db, eq(blogComments.id, id)))!) : null
   },
 
   /** Deletes the comment with all its answers (they cascade), their likes and their share of the count */
   async remove(ctx, id) {
-    const existing = await findWhere(ctx, and(eq(blogComments.id, id), ownedOrAdmin(ctx, blogComments.userId)))
+    const existing = await ctx.db
+      .select({ id: blogComments.id })
+      .from(blogComments)
+      .where(and(eq(blogComments.id, id), ownedOrAdmin(ctx, blogComments.userId)))
+      .get()
     if (!existing) return false
     return deleteBlogComment(ctx.db, id)
   },

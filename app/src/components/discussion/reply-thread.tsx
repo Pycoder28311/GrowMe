@@ -1,51 +1,73 @@
-import type { PostReply } from '@growme/shared';
-import { useState } from 'react';
+import type { Author, LikedType, Page } from '@growme/shared';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { postRepliesApi } from '@/api/posts';
 import { DiscussionItem } from '@/components/discussion/discussion-item';
 import { AppText } from '@/components/ui/app-text';
 import { MessageInput } from '@/components/ui/message-input';
 import { PillButton } from '@/components/ui/pill-button';
 import { timeAgo } from '@/lib/format';
-import { useReplies } from '@/lib/posts';
 import { useReactions, type Reaction } from '@/lib/reactions';
+import { usePagedList } from '@/lib/use-api';
 import { colors, space } from '@/theme';
 
 // Deeper replies stop indenting further, so text never gets too narrow on a phone
 const MAX_INDENT_DEPTH = 3;
 
-type LevelProps = {
-  postId: number;
-  /** null = the post's own replies */
-  parentReplyId: number | null;
+/** What a tree shows of each reply: post replies and blog comments both have this shape */
+export type ThreadItem = {
+  id: number;
+  content: string;
+  author: Author;
+  likeCount: number;
+  /** Direct answers */
+  replyCount: number;
+  createdAt: string;
+};
+
+/**
+ * Where a tree's replies come from (one post's replies, one blog's comments). parentId null = the
+ * top level. Keep it stable (useMemo): a new object reloads every level.
+ */
+export type ThreadSource<T extends ThreadItem> = {
+  likedType: LikedType;
+  list: (parentId: number | null, cursor: string | null) => Promise<Page<T>>;
+  create: (parentId: number | null, content: string) => Promise<T>;
+  /** The texts that differ between replies and comments */
+  words: { loadError: string; sendError: string; more: string };
+};
+
+type LevelProps<T extends ThreadItem> = {
+  source: ThreadSource<T>;
+  /** null = the top level */
+  parentId: number | null;
   depth?: number;
   /** Replies written on this screen, shown first (they may not be in the loaded page yet) */
-  added?: PostReply[];
-  /** A reply was written anywhere below (the post's count goes up) */
+  added?: T[];
+  /** A reply was written anywhere below (the parent's count goes up) */
   onReplied: () => void;
 };
 
 /** One reply: its actions, an answer box after «Απάντηση», and its answers after «Απαντήσεις (n)» */
-function ReplyNode(props: {
-  postId: number;
-  reply: PostReply;
+function ReplyNode<T extends ThreadItem>(props: {
+  source: ThreadSource<T>;
+  reply: T;
   depth: number;
   reaction: Reaction;
   likeCount: number;
   onReact: (pressed: Exclude<Reaction, null>) => void;
   onReplied: () => void;
 }) {
-  const { postId, reply, depth } = props;
+  const { source, reply, depth } = props;
   const [open, setOpen] = useState(false);
   const [answering, setAnswering] = useState(false);
-  const [answers, setAnswers] = useState<PostReply[]>([]);
+  const [answers, setAnswers] = useState<T[]>([]);
   const [error, setError] = useState(false);
 
   const answer = async (text: string) => {
     setError(false);
     try {
-      const created = await postRepliesApi.create(postId, reply.id, text);
+      const created = await source.create(reply.id, text);
       setAnswers((current) => [created, ...current]);
       setAnswering(false);
       setOpen(true);
@@ -75,26 +97,28 @@ function ReplyNode(props: {
           <MessageInput placeholder={`Απάντηση στον/στην ${reply.author.name}...`} autoFocus onSend={answer} />
           {error && (
             <AppText size="small" color={colors.accent}>
-              Η απάντηση δεν στάλθηκε. Δοκίμασε ξανά.
+              {source.words.sendError}
             </AppText>
           )}
         </View>
       )}
       {open && (
-        <ReplyLevel postId={postId} parentReplyId={reply.id} depth={depth + 1} added={answers} onReplied={props.onReplied} />
+        <ReplyLevel source={source} parentId={reply.id} depth={depth + 1} added={answers} onReplied={props.onReplied} />
       )}
     </View>
   );
 }
 
 /**
- * One level of a post's replies (the post's own, or the answers to one reply), loaded from the API a
- * page at a time, nested like Reddit: each reply can open its own answers below it.
+ * One level of a reply tree (the top level, or the answers to one reply), loaded from the API a page
+ * at a time, nested like Reddit: each reply can open its own answers below it. Used for post replies
+ * and blog comments.
  */
-export function ReplyLevel({ postId, parentReplyId, depth = 0, added = [], onReplied }: LevelProps) {
-  const { replies, loading, error, hasMore, loadMore, refresh } = useReplies(postId, parentReplyId);
+export function ReplyLevel<T extends ThreadItem>({ source, parentId, depth = 0, added = [], onReplied }: LevelProps<T>) {
+  const fetchPage = useCallback((cursor: string | null) => source.list(parentId, cursor), [source, parentId]);
+  const { items: replies, loading, error, hasMore, loadMore, refresh } = usePagedList(fetchPage);
   const shown = [...added.filter((a) => !replies.some((r) => r.id === a.id)), ...replies];
-  const reactions = useReactions('post_reply', shown);
+  const reactions = useReactions(source.likedType, shown);
 
   return (
     <View>
@@ -103,7 +127,7 @@ export function ReplyLevel({ postId, parentReplyId, depth = 0, added = [], onRep
         return (
           <View key={reply.id} style={depth === 0 && index > 0 && styles.divider}>
             <ReplyNode
-              postId={postId}
+              source={source}
               reply={reply}
               depth={depth}
               reaction={reaction}
@@ -118,14 +142,14 @@ export function ReplyLevel({ postId, parentReplyId, depth = 0, added = [], onRep
       {error && !loading && (
         <View style={styles.status}>
           <AppText size="small" color={colors.inkMuted}>
-            Δεν ήταν δυνατή η φόρτωση των απαντήσεων.
+            {source.words.loadError}
           </AppText>
           <PillButton label="Δοκίμασε ξανά" onPress={shown.length ? loadMore : refresh} />
         </View>
       )}
       {hasMore && !loading && !error && (
         <View style={styles.status}>
-          <PillButton label="Περισσότερες απαντήσεις" onPress={loadMore} />
+          <PillButton label={source.words.more} onPress={loadMore} />
         </View>
       )}
       {reactions.error && (

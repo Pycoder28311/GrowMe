@@ -1,46 +1,45 @@
+import type { BlogComment } from '@growme/shared';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { DiscussionItem } from '@/components/discussion/discussion-item';
+import { ReplyLevel } from '@/components/discussion/reply-thread';
+import { AppText } from '@/components/ui/app-text';
 import { MessageInput } from '@/components/ui/message-input';
-import { EXAMPLE_COMMENTS, type PostComment } from '@/config/post-comments';
-import { authClient } from '@/lib/auth-client';
+import { useCommentThread } from '@/lib/blogs';
 import { colors, space } from '@/theme';
 
-/** Write a comment and read the others. New comments stay on this screen only (not saved yet). */
-export function CommentsSection() {
-  const { data: session } = authClient.useSession();
-  const [comments, setComments] = useState<PostComment[]>(EXAMPLE_COMMENTS);
+/**
+ * An article's comments from the API, nested like the community's replies: likes / dislikes, and
+ * any comment can be answered and opens its own answers.
+ */
+export function CommentsSection({ blogId, commentCount }: { blogId: number; commentCount: number }) {
+  const thread = useCommentThread(blogId);
+  // Comments written on this page to the article itself (shown first)
+  const [added, setAdded] = useState<BlogComment[]>([]);
+  const [error, setError] = useState(false);
 
-  const add = (text: string) =>
-    setComments((current) => [
-      {
-        id: `new-${current.length}`,
-        author: session?.user.name || 'Εσύ',
-        date: 'Μόλις τώρα',
-        text,
-        replyCount: 0,
-        likeCount: 0,
-      },
-      ...current,
-    ]);
+  const comment = async (text: string) => {
+    setError(false);
+    try {
+      const created = await thread.create(null, text);
+      setAdded((current) => [created, ...current]);
+    } catch {
+      setError(true);
+    }
+  };
 
   return (
     <View style={styles.root}>
-      <MessageInput placeholder="Γράψε σχόλιο..." onSend={add} />
-      <View>
-        {comments.map((comment) => (
-          <DiscussionItem
-            key={comment.id}
-            author={comment.author}
-            date={comment.date}
-            text={comment.text}
-            likeCount={comment.likeCount}
-            replyCount={comment.replyCount}
-            style={styles.comment}
-          />
-        ))}
-      </View>
+      <MessageInput placeholder="Γράψε σχόλιο..." onSend={comment} />
+      {error && (
+        <AppText size="small" color={colors.accent} accessibilityLiveRegion="polite">
+          {thread.words.sendError}
+        </AppText>
+      )}
+      <ReplyLevel source={thread} parentId={null} added={added} onReplied={() => {}} />
+      {commentCount === 0 && added.length === 0 && (
+        <AppText color={colors.inkMuted}>Γράψε το πρώτο σχόλιο!</AppText>
+      )}
     </View>
   );
 }
@@ -48,10 +47,5 @@ export function CommentsSection() {
 const styles = StyleSheet.create({
   root: {
     gap: space.sm,
-  },
-  comment: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    paddingVertical: space.sm,
   },
 });

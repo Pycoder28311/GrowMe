@@ -14,7 +14,7 @@ import { MessageInput } from '@/components/ui/message-input';
 import { PillButton } from '@/components/ui/pill-button';
 import { card } from '@/components/ui/styles';
 import { timeAgo } from '@/lib/format';
-import { firstSentence, usePost } from '@/lib/posts';
+import { firstSentence, usePost, usePostThread } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
 import { colors, space } from '@/theme';
 
@@ -24,6 +24,7 @@ export default function CommunityPostScreen() {
   const topClearance = useTopClearance();
   const { post, state, retry, update } = usePost(Number(id));
   const reactions = useReactions('post', post ? [post] : []);
+  const thread = usePostThread(Number(id));
   // Replies written on this page to the post itself (shown first)
   const [added, setAdded] = useState<PostReply[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +91,7 @@ export default function CommunityPostScreen() {
         </View>
 
         <View style={styles.card}>
-          <ReplyLevel postId={post.id} parentReplyId={null} added={added} onReplied={countReply} />
+          <ReplyLevel source={thread} parentId={null} added={added} onReplied={countReply} />
           {post.replyCount === 0 && added.length === 0 && (
             <AppText color={colors.inkMuted}>Γράψε την πρώτη απάντηση!</AppText>
           )}

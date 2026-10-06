@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -21,12 +21,9 @@ type DiscussionItemProps = {
   /** Shown under the text (e.g. the post's photos) */
   children?: ReactNode;
   likeCount: number;
-  /**
-   * My reaction, when the screen keeps it (saved through the API). Without `onReact` the item keeps a
-   * local reaction (example content).
-   */
-  reaction?: Reaction;
-  onReact?: (pressed: Exclude<Reaction, null>) => void;
+  /** My reaction (the screen keeps it and saves it through the API: useReactions) */
+  reaction: Reaction;
+  onReact: (pressed: Exclude<Reaction, null>) => void;
   /** Shows "Απαντήσεις (n)" */
   replyCount?: number;
   /** "Απαντήσεις (n)" opens/closes the answers in place instead of `onPress` */
@@ -78,7 +75,7 @@ export function DiscussionItem({
   textLines,
   children,
   likeCount,
-  reaction: savedReaction,
+  reaction,
   onReact,
   replyCount,
   onToggleReplies,
@@ -87,14 +84,6 @@ export function DiscussionItem({
   onPress,
   style,
 }: DiscussionItemProps) {
-  const [localReaction, setLocalReaction] = useState<Reaction>(null);
-  const controlled = onReact !== undefined;
-  const reaction = controlled ? (savedReaction ?? null) : localReaction;
-  const toggle = (next: Exclude<Reaction, null>) =>
-    controlled ? onReact(next) : setLocalReaction((current) => (current === next ? null : next));
-  // Saved reactions come with their count from the server; local ones add theirs
-  const likes = controlled ? likeCount : likeCount + (reaction === 'like' ? 1 : 0);
-
   const content = (
     <>
       <View style={styles.header}>
@@ -132,8 +121,8 @@ export function DiscussionItem({
             </AppText>
           </ItemAction>
         )}
-        <ReactionButton icon="like" label="Μου αρέσει" active={reaction === 'like'} count={likes} onPress={() => toggle('like')} />
-        <ReactionButton icon="dislike" label="Δεν μου αρέσει" active={reaction === 'dislike'} onPress={() => toggle('dislike')} />
+        <ReactionButton icon="like" label="Μου αρέσει" active={reaction === 'like'} count={likeCount} onPress={() => onReact('like')} />
+        <ReactionButton icon="dislike" label="Δεν μου αρέσει" active={reaction === 'dislike'} onPress={() => onReact('dislike')} />
       </View>
     </>
   );

@@ -1,6 +1,8 @@
-import { readingMinutes, type Blog } from '@growme/shared';
+import { readingMinutes, type Blog, type BlogComment } from '@growme/shared';
+import { useMemo } from 'react';
 
-import { blogsApi } from '@/api/blogs';
+import { blogCommentsApi, blogsApi } from '@/api/blogs';
+import type { ThreadSource } from '@/components/discussion/reply-thread';
 import { useApiItem, usePagedList } from '@/lib/use-api';
 
 /** The Encyclopedia's articles from the API, newest first, a page at a time */
@@ -13,6 +15,23 @@ export function useBlogs() {
 export function useBlog(id: number) {
   const { item, ...rest } = useApiItem(blogsApi.get, id);
   return { blog: item, ...rest };
+}
+
+/** An article's comment tree, for <ReplyLevel> */
+export function useCommentThread(blogId: number): ThreadSource<BlogComment> {
+  return useMemo(
+    () => ({
+      likedType: 'blog_comment',
+      list: (parentId, cursor) => blogCommentsApi.list(blogId, parentId, cursor),
+      create: (parentId, content) => blogCommentsApi.create(blogId, parentId, content),
+      words: {
+        loadError: 'Δεν ήταν δυνατή η φόρτωση των σχολίων.',
+        sendError: 'Το σχόλιο δεν στάλθηκε. Δοκίμασε ξανά.',
+        more: 'Περισσότερα σχόλια',
+      },
+    }),
+    [blogId],
+  );
 }
 
 /** Reading time in minutes (same as the dashboard's badge) */

@@ -1,6 +1,8 @@
-import { useCallback } from 'react';
+import type { PostReply } from '@growme/shared';
+import { useMemo } from 'react';
 
 import { postRepliesApi, postsApi } from '@/api/posts';
+import type { ThreadSource } from '@/components/discussion/reply-thread';
 import { useApiItem, usePagedList } from '@/lib/use-api';
 
 /** The community's posts, newest first, a page at a time */
@@ -15,14 +17,21 @@ export function usePost(id: number) {
   return { post: item, ...rest };
 }
 
-/** One level of a post's replies: the post's own (parentReplyId null) or the answers to one reply */
-export function useReplies(postId: number, parentReplyId: number | null) {
-  const fetchPage = useCallback(
-    (cursor: string | null) => postRepliesApi.list(postId, parentReplyId, cursor),
-    [postId, parentReplyId],
+/** A post's reply tree, for <ReplyLevel> */
+export function usePostThread(postId: number): ThreadSource<PostReply> {
+  return useMemo(
+    () => ({
+      likedType: 'post_reply',
+      list: (parentId, cursor) => postRepliesApi.list(postId, parentId, cursor),
+      create: (parentId, content) => postRepliesApi.create(postId, parentId, content),
+      words: {
+        loadError: 'Δεν ήταν δυνατή η φόρτωση των απαντήσεων.',
+        sendError: 'Η απάντηση δεν στάλθηκε. Δοκίμασε ξανά.',
+        more: 'Περισσότερες απαντήσεις',
+      },
+    }),
+    [postId],
   );
-  const { items, ...rest } = usePagedList(fetchPage);
-  return { replies: items, ...rest };
 }
 
 const MAX_TITLE = 120;
