@@ -9,6 +9,7 @@ import { card } from '@/components/ui/styles';
 import type { PlantSummary } from '@growme/shared';
 import {
   effortTrait,
+  originTrait,
   priceLabel,
   propagationTrait,
   seasonTrait,
@@ -36,7 +37,9 @@ export function PlantCard({ plant }: { plant: PlantSummary }) {
   const price = priceLabel(plant);
   const cover = plant.images[0];
   // Only the labels this plant has values for
-  const traits = [sunlightTrait(plant), effortTrait(plant), useTrait(plant)].filter((t): t is Trait => t !== null);
+  const traits = [sunlightTrait(plant), effortTrait(plant), useTrait(plant), originTrait(plant)].filter(
+    (t): t is Trait => t !== null,
+  );
 
   return (
     <PressableScale
@@ -91,11 +94,15 @@ export function PlantCard({ plant }: { plant: PlantSummary }) {
         </View>
 
         <View style={styles.footer}>
-          <View style={styles.propagation}>
-            <AppText size="small" bold color={colors.primary} numberOfLines={1}>
-              {propagation.emoji} {propagation.label}
-            </AppText>
-          </View>
+          {propagation ? (
+            <View style={styles.propagation}>
+              <AppText size="small" bold color={colors.primary} numberOfLines={1}>
+                {propagation.emoji} {propagation.label}
+              </AppText>
+            </View>
+          ) : (
+            <View />
+          )}
           {/* Looks like a link; the whole card is the tap target */}
           <View style={styles.more}>
             <AppText size="small" bold color={colors.primary}>
@@ -158,10 +165,11 @@ const styles = StyleSheet.create({
   name: {
     flexShrink: 1,
   },
+  // Wraps: the texts come from the dashboard and can be long (e.g. «📍 Ιθαγενές της Μεσογείου»)
   traits: {
     flexDirection: 'row',
-    gap: space.xs,
-    overflow: 'hidden',
+    flexWrap: 'wrap',
+    columnGap: space.sm,
   },
   footer: {
     flexDirection: 'row',

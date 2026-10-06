@@ -1,6 +1,7 @@
-import { plantSave, type Plant, type PlantSummary } from '@growme/shared'
+import { PLANT_TRAIT_SUGGESTIONS, plantSave, type Plant, type PlantSummary, type Tip } from '@growme/shared'
 import { combinationsRepo } from '../../combinations/combinations.repo'
 import { plantsRepo } from '../../plants/plants.repo'
+import { tipsRepo } from '../../tips/tips.repo'
 import { adminResource, numericId } from '../resource'
 import {
   Choices,
@@ -8,14 +9,16 @@ import {
   MonthRange,
   RangeField,
   Select,
+  SuggestField,
   TextArea,
   TextField,
-  Toggle,
   type Option,
 } from '../ui/fields'
+import { snippet } from '../ui/format'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { RepeatableList } from '../ui/repeatable-list'
+import { SearchOptions, SearchSelect, type SearchOption } from '../ui/search-select'
 import { savePlant } from './plants.save'
 
 const DIFFICULTY: Option[] = [
@@ -51,7 +54,7 @@ function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: st
   )
 }
 
-/** Title + text rows (lifecycles and tips share it) */
+/** Title + text rows (lifecycles and new tips share it) */
 const TitledText = (props: { title?: string; content?: string; titleLabel: string }) => (
   <>
     <TextField field="title" value={props.title} placeholder={props.titleLabel} required />
@@ -59,8 +62,49 @@ const TitledText = (props: { title?: string; content?: string; titleLabel: strin
   </>
 )
 
+/**
+ * A tip from the library: picked by typing its title, shown read-only (shared tips are edited on
+ * their own page, «Επεξεργασία»)
+ */
+const PickedTip = ({ tip }: { tip: Tip | null }) => (
+  <>
+    <SearchSelect field="tipId" source="tips" value={tip?.id} text={tip?.title} placeholder="Γράψε για αναζήτηση συμβουλής…" />
+    <p class="small muted picked-text" data-fill="content">
+      {tip?.content}
+    </p>
+    <a
+      class="small"
+      data-fill-href="/tips/{value}"
+      href={tip ? `/tips/${tip.id}` : undefined}
+      hidden={!tip}
+      target="_blank"
+      rel="noopener"
+    >
+      Επεξεργασία ↗
+    </a>
+  </>
+)
+
+/** One trait as a fact row: emoji, then free text with suggestions */
+const TraitFact = (props: { emoji: string; field: keyof typeof PLANT_TRAIT_SUGGESTIONS; label: string; value?: string | null }) => (
+  <div class="fact">
+    <span class="emoji" aria-hidden="true">
+      {props.emoji}
+    </span>
+    <SuggestField
+      field={props.field}
+      label={props.label}
+      value={props.value}
+      suggestions={PLANT_TRAIT_SUGGESTIONS[props.field]}
+      placeholder="Διάλεξε ή γράψε (κενό = δεν εμφανίζεται)"
+    />
+  </div>
+)
+
+type PlantOptions = { combinations: Option[]; tips: SearchOption[] }
+
 /** The plant form: laid out like the app's plant page (photos, name and price, facts, care, more) */
-function PlantForm({ item: p, options }: { item: Plant | null; options: { combinations: Option[] } }) {
+function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOptions }) {
   return (
     <>
       <ImagePicker field="imageIds" images={p?.images ?? []} uploadUrl="/api/admin/images" />
@@ -113,11 +157,9 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: { combin
             end={{ field: 'monthEnd', value: p?.monthEnd }}
           />
         </div>
-        <div class="toggles">
-          <Toggle field="food" label="Τρώγεται" emoji="🍅" checked={p?.food} />
-          <Toggle field="seeds" label="Από σπόρο" emoji="🌰" checked={p?.seeds} />
-          <Toggle field="native" label="Ιθαγενές" emoji="📍" checked={p?.native} />
-        </div>
+        <TraitFact emoji="🍅" field="food" label="Φαγώσιμο" value={p?.food} />
+        <TraitFact emoji="🌰" field="seeds" label="Πώς ξεκινά" value={p?.seeds} />
+        <TraitFact emoji="📍" field="native" label="Προέλευση" value={p?.native} />
       </div>
 
       <RepeatableList
@@ -137,8 +179,15 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: { combin
         itemLabel="Συμβουλή"
         items={p?.tips ?? []}
         sortable
-        renderItem={(t) => <TitledText title={t?.title} content={t?.content} titleLabel="Τίτλος συμβουλής" />}
+        rowIds={false}
+        emptyText="Διάλεξε μια συμβουλή από τη βιβλιοθήκη ή γράψε μια νέα."
+        renderItem={(t) => <PickedTip tip={t} />}
+        variants={[
+          { key: 'pick', label: 'Υπάρχουσα', render: () => <PickedTip tip={null} /> },
+          { key: 'new', label: 'Νέα', render: () => <TitledText titleLabel="Τίτλος συμβουλής" /> },
+        ]}
       />
+      <SearchOptions source="tips" options={options.tips} />
 
       <RepeatableList
         field="diseases"
@@ -182,12 +231,21 @@ export const plantsAdmin = adminResource({
     schema: plantSave,
     get: (ctx, id) => plantsRepo.get(ctx, id),
     save: savePlant,
-    options: async (ctx) => ({
-      combinations: (await combinationsRepo.list(ctx, null, undefined)).items.map((c) => ({
-        value: c.id,
-        label: c.title,
-      })),
-    }),
+    options: async (ctx): Promise<PlantOptions> => {
+      const [combinations, tips] = await Promise.all([
+        combinationsRepo.list(ctx, null, undefined),
+        tipsRepo.list(ctx, null, undefined),
+      ])
+      return {
+        combinations: combinations.items.map((c) => ({ value: c.id, label: c.title })),
+        tips: tips.items.map((t) => ({
+          value: t.id,
+          label: t.title,
+          hint: `${snippet(t.content, 80)} · σε ${t.plantCount} ${t.plantCount === 1 ? 'φυτό' : 'φυτά'}`,
+          data: { content: t.content },
+        })),
+      }
+    },
     itemTitle: (p) => p.name,
     Form: PlantForm,
   },

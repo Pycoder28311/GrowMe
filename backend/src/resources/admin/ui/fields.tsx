@@ -6,6 +6,7 @@ import type { Child } from 'hono/jsx'
 //   text   → string ('' becomes null when data-nullable)   number → number or null
 //   money  → euros typed, cents sent (3.5 → 350)           bool   → checkbox checked
 //   id     → number, left out when empty (new list rows)
+// Pickers (search-select.tsx) add: a searchable single choice (number) and a checklist (array of ids).
 
 type Base = {
   /** Key in the JSON body, e.g. "name" (relative to the row inside lists) */
@@ -119,6 +120,37 @@ export function MoneyField(props: Base & { cents?: number | null; placeholder?: 
         placeholder={props.placeholder ?? '€'}
         aria-label={props.label ?? props.placeholder}
       />
+    </Field>
+  )
+}
+
+/**
+ * Free text with suggestions (a native <datalist>: typing filters them, any other text is fine too).
+ * Empty sends null.
+ */
+export function SuggestField(
+  props: Base & { value?: string | null; suggestions: readonly string[]; placeholder?: string; maxLength?: number },
+) {
+  const listId = `suggest-${props.field}`
+  return (
+    <Field label={props.label} hint={props.hint}>
+      <input
+        type="text"
+        list={listId}
+        data-field={props.field}
+        data-type="text"
+        data-nullable=""
+        value={props.value ?? ''}
+        placeholder={props.placeholder ?? props.label}
+        aria-label={props.label ?? props.placeholder}
+        maxlength={props.maxLength ?? 60}
+        autocomplete="off"
+      />
+      <datalist id={listId}>
+        {props.suggestions.map((s) => (
+          <option value={s} />
+        ))}
+      </datalist>
     </Field>
   )
 }

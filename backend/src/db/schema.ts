@@ -132,9 +132,10 @@ export const plants = sqliteTable(
         description: text('description'),
         priceMin: integer('price_min'), // in cents
         priceMax: integer('price_max'),
-        seeds: integer('seeds', { mode: 'boolean' }).notNull().default(false),
-        native: integer('native', { mode: 'boolean' }).notNull().default(false),
-        food: integer('food', { mode: 'boolean' }).notNull().default(false),
+        // Short texts, null = not shown (e.g. «Από σπόρο», «Ιθαγενές της Ελλάδας», «Τρώγεται ο καρπός»)
+        seeds: text('seeds'),
+        native: text('native'),
+        food: text('food'),
         difficulty: integer('difficulty').notNull(), // 1 (easy) – 5 (hard)
         sunlightHoursMin: integer('sunlight_hours_min'),
         sunlightHoursMax: integer('sunlight_hours_max'),
@@ -161,16 +162,26 @@ export const lifecycles = sqliteTable(
     (t) => [index('lifecycles_plant_id_idx').on(t.plantId, t.position)],
 )
 
-export const tips = sqliteTable(
-    'tips',
+/** A library of tips: one tip can be on many plants (plant_tips) */
+export const tips = sqliteTable('tips', {
+    id: id(),
+    title: text('title').notNull(),
+    content: text('content').notNull(),
+})
+
+/** Which tips a plant shows, in order */
+export const plantTips = sqliteTable(
+    'plant_tips',
     {
-        id: id(),
         plantId: integer('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
+        tipId: integer('tip_id').notNull().references(() => tips.id, { onDelete: 'cascade' }),
         position: integer('position').notNull(),
-        title: text('title').notNull(),
-        content: text('content').notNull(),
     },
-    (t) => [index('tips_plant_id_idx').on(t.plantId, t.position)],
+    (t) => [
+        primaryKey({ columns: [t.plantId, t.tipId] }),
+        index('plant_tips_plant_idx').on(t.plantId, t.position),
+        index('plant_tips_tip_idx').on(t.tipId),
+    ],
 )
 
 export const diseases = sqliteTable(
@@ -284,7 +295,7 @@ export const combinationsRelations = relations(combinations, ({ many }) => ({
 export const plantsRelations = relations(plants, ({ one, many }) => ({
     combination: one(combinations, { fields: [plants.combinationId], references: [combinations.id] }),
     lifecycles: many(lifecycles),
-    tips: many(tips),
+    tipLinks: many(plantTips),
     diseases: many(diseases),
     images: many(plantImages),
 }))
@@ -293,8 +304,13 @@ export const lifecyclesRelations = relations(lifecycles, ({ one }) => ({
     plant: one(plants, { fields: [lifecycles.plantId], references: [plants.id] }),
 }))
 
-export const tipsRelations = relations(tips, ({ one }) => ({
-    plant: one(plants, { fields: [tips.plantId], references: [plants.id] }),
+export const tipsRelations = relations(tips, ({ many }) => ({
+    plantLinks: many(plantTips),
+}))
+
+export const plantTipsRelations = relations(plantTips, ({ one }) => ({
+    plant: one(plants, { fields: [plantTips.plantId], references: [plants.id] }),
+    tip: one(tips, { fields: [plantTips.tipId], references: [tips.id] }),
 }))
 
 export const diseasesRelations = relations(diseases, ({ one }) => ({

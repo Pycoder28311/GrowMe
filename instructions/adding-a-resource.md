@@ -218,7 +218,7 @@ Add an API file in the app following `app/src/api/notes.ts`, then build the scre
 
 Add a column that points to the parent, list children through a `filter` (`?projectId=`) and check
 the parent on create with `assertExists(ctx.db, projects, projects.id, input.projectId, 'projectId')`
-(`400 UNKNOWN_REFERENCE` when it doesn't exist). Examples: `post-replies`, `tips`.
+(`400 UNKNOWN_REFERENCE` when it doesn't exist). Examples: `post-replies`, `lifecycles`.
 
 ```ts
 projectId: integer('project_id').notNull().references(() => projects.id, { onDelete: 'cascade' }),
@@ -318,8 +318,17 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
    `deleteLike`, `deleteNote`, `deleteUser`), never a bare `DELETE`.
    Build forms from `ui/`:
    - `ui/fields.tsx`: `TextField`, `TextArea` (`large` for articles), `NumberField`, `MoneyField`
-     (euros on screen, cents sent), `Toggle`, `Select`, `Choices`, `RangeField`, `MonthRange`
-   - `ui/repeatable-list.tsx`: `RepeatableList` (add/remove, `sortable` for drag and ↑/↓)
+     (euros on screen, cents sent), `SuggestField` (free text with suggestions), `Toggle`, `Select`,
+     `Choices`, `RangeField`, `MonthRange`
+   - `ui/repeatable-list.tsx`: `RepeatableList` (add/remove, `sortable` for drag and ↑/↓; `variants`
+     for several kinds of new rows, e.g. an existing tip or a new one)
+   - `ui/search-select.tsx`: `SearchSelect` + `SearchOptions` (pick one of a long list by typing;
+     the options are rendered once per page) and `CheckPicker` (a checklist with search, sent as an
+     array of ids). Search is in the browser: fine up to a few thousand rows
+   - **A shared library** (e.g. tips on many plants): a link table with `position`
+     (`plant_tips`), form rows that are either `{ tipId }` or a new item, new items inserted
+     before the batch (and removed if it fails), and items left on no parent deleted in the same
+     batch. See `savePlant`
    - `ui/image-picker.tsx`: `ImagePicker` (uploads to `/api/admin/images`, no owner)
    - `ui/pages.tsx`: `FormSection`, `ItemCard`; `ui/format.ts`: `formatDate`, `snippet`, `fileSize`
    - `ui/rich-text-editor.tsx`: `RichTextEditor` (Tiptap, Word-like). Its schema is `richDoc` from

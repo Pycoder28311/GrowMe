@@ -14,6 +14,8 @@ import { FormPage, ListPage } from './ui/pages'
 export type AdminEdit<TItem, TSave, TOptions> = {
   /** One item, for the form's title (e.g. "φυτό") */
   singular: string
+  /** The empty form's title when «Νέο …» doesn't fit (e.g. «Νέα συμβουλή»); default «Νέο {singular}» */
+  newTitle?: string
   schema: z.ZodType<TSave>
   get: (ctx: Ctx, id: number) => Promise<TItem | null>
   /** id null = create; returns null when the item to update doesn't exist */
@@ -98,7 +100,7 @@ export function adminResource<
 
   const formPage = (email: string, id: number | null, item: TItem | null, options: TOptions) => (
     <FormPage
-      title={item ? edit.itemTitle(item) : `Νέο ${edit.singular}`}
+      title={item ? edit.itemTitle(item) : (edit.newTitle ?? `Νέο ${edit.singular}`)}
       email={email}
       basePath={base}
       listTitle={r.title}

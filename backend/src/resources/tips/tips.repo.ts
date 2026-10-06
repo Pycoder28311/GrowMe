@@ -1,33 +1,40 @@
-import type { PlantChildFilter, Tip, TipCreate, TipUpdate } from '@growme/shared'
-import { asc, eq } from 'drizzle-orm'
-import { plants, tips } from '../../db/schema'
+import type { Tip, TipCreate, TipSummary, TipUpdate } from '@growme/shared'
+import { desc, eq, sql } from 'drizzle-orm'
+import { tips } from '../../db/schema'
 import { hasChanges, type Repo } from '../../lib/crud'
-import { assertExists } from '../../lib/relations'
+import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 
 export const toTip = (t: typeof tips.$inferSelect): Tip => ({
   id: t.id,
-  plantId: t.plantId,
-  position: t.position,
   title: t.title,
   content: t.content,
 })
 
-/** The tips of one plant (?plantId=), by position; admins write */
-export const tipsRepo: Repo<TipCreate, TipUpdate, Tip, PlantChildFilter> = {
-  async list(ctx, _page, { plantId }) {
+/**
+ * How many plants show the tip (counted, never stored). Table names are written out: in a one-table
+ * select drizzle prints a bare "id", which inside the subquery would mean another table's id.
+ */
+const plantCount = sql<number>`(SELECT count(*) FROM plant_tips pt WHERE pt.tip_id = "tips"."id")`
+
+/** The tips library, newest first; admins write. Deleting a tip takes it off every plant (links cascade). */
+export const tipsRepo: Repo<TipCreate, TipUpdate, Tip, unknown, TipSummary> = {
+  async list(ctx, page) {
     const rows = await ctx.db
-      .select()
+      .select({ tip: tips, plantCount })
       .from(tips)
-      .where(eq(tips.plantId, plantId))
-      .orderBy(asc(tips.position), asc(tips.id))
-    return { items: rows.map(toTip), nextCursor: null }
+      .where(beforeCursor(tips.id, page))
+      .orderBy(desc(tips.id))
+      .limit(fetchLimit(page) ?? -1)
+    return mapPage(
+      toPage(rows, page, (r) => r.tip.id),
+      (r): TipSummary => ({ ...toTip(r.tip), plantCount: r.plantCount }),
+    )
   },
   async get(ctx, id) {
     const row = await ctx.db.select().from(tips).where(eq(tips.id, id)).get()
     return row ? toTip(row) : null
   },
   async create(ctx, input) {
-    await assertExists(ctx.db, plants, plants.id, input.plantId, 'plantId')
     return toTip(await ctx.db.insert(tips).values(input).returning().get())
   },
   async update(ctx, id, input) {

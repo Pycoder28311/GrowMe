@@ -18,6 +18,16 @@ const rangesInOrder = (p: {
 
 const rangeMessage = { message: 'Minimum must not be larger than maximum' }
 
+/** food / native / seeds: a short text, empty = not shown */
+const trait = z.string().trim().max(60).nullable()
+
+/** What the dashboard suggests for each trait (any other text is fine too) */
+export const PLANT_TRAIT_SUGGESTIONS = {
+  food: ['Φαγώσιμο', 'Τρώγονται τα φύλλα', 'Τρώγεται ο καρπός', 'Αρωματικό για μαγείρεμα', 'Μη φαγώσιμο', 'Τοξικό'],
+  seeds: ['Από σπόρο', 'Από φυτό', 'Σπόρος ή φυτό', 'Από μόσχευμα', 'Από βολβό'],
+  native: ['Ιθαγενές της Ελλάδας', 'Ιθαγενές της Μεσογείου', 'Εισαγόμενο'],
+} as const
+
 /* ─────────────── Plants (written by admins) ─────────────── */
 
 const plantFields = z.object({
@@ -27,9 +37,9 @@ const plantFields = z.object({
   description: text.nullable(),
   priceMin: nonNegative.nullable(), // in cents
   priceMax: nonNegative.nullable(),
-  seeds: z.boolean(),
-  native: z.boolean(),
-  food: z.boolean(),
+  seeds: trait,
+  native: trait,
+  food: trait,
   difficulty: z.number().int().min(1).max(5),
   sunlightHoursMin: z.number().int().min(0).max(24).nullable(),
   sunlightHoursMax: z.number().int().min(0).max(24).nullable(),
@@ -44,9 +54,9 @@ export const plantCreate = plantFields
     description: plantFields.shape.description.default(null),
     priceMin: plantFields.shape.priceMin.default(null),
     priceMax: plantFields.shape.priceMax.default(null),
-    seeds: plantFields.shape.seeds.default(false),
-    native: plantFields.shape.native.default(false),
-    food: plantFields.shape.food.default(false),
+    seeds: plantFields.shape.seeds.default(null),
+    native: plantFields.shape.native.default(null),
+    food: plantFields.shape.food.default(null),
     sunlightHoursMin: plantFields.shape.sunlightHoursMin.default(null),
     sunlightHoursMax: plantFields.shape.sunlightHoursMax.default(null),
     monthStart: plantFields.shape.monthStart.default(null),
@@ -76,9 +86,10 @@ export type PlantSummary = {
   description: string | null
   priceMin: number | null
   priceMax: number | null
-  seeds: boolean
-  native: boolean
-  food: boolean
+  /** e.g. «Από σπόρο»; null = not shown (same for native and food) */
+  seeds: string | null
+  native: string | null
+  food: string | null
   difficulty: number
   sunlightHoursMin: number | null
   sunlightHoursMax: number | null
@@ -98,7 +109,7 @@ export type Plant = PlantSummary & {
 
 /* ─────────────── Plant details: lifecycles, tips, diseases ─────────────── */
 
-/** GET /api/lifecycles?plantId=1 (same for tips and diseases) */
+/** GET /api/lifecycles?plantId=1 (same for diseases) */
 export const plantChildFilter = z.object({
   plantId: queryId,
 })
@@ -115,11 +126,17 @@ export type LifecycleCreate = z.infer<typeof lifecycleCreate>
 export type LifecycleUpdate = z.infer<typeof lifecycleUpdate>
 export type Lifecycle = { id: number; plantId: number; position: number; title: string; content: string }
 
-export const tipCreate = z.object({ plantId: entityId, position: nonNegative, title, content: text })
-export const tipUpdate = z.object({ position: nonNegative.optional(), title: title.optional(), content: text.optional() })
+/* Tips are a library: one tip can be on many plants (in each plant's own order) */
+export const tipCreate = z.object({ title, content: text })
+export const tipUpdate = tipCreate.partial()
+/** The dashboard's tip form (title and text) */
+export const tipSave = tipCreate
 export type TipCreate = z.infer<typeof tipCreate>
 export type TipUpdate = z.infer<typeof tipUpdate>
-export type Tip = { id: number; plantId: number; position: number; title: string; content: string }
+export type TipSave = z.infer<typeof tipSave>
+export type Tip = { id: number; title: string; content: string }
+/** A tip in the library's list: how many plants show it */
+export type TipSummary = Tip & { plantCount: number }
 
 const label = z.string().trim().min(1).max(100)
 export const diseaseCreate = z.object({ plantId: entityId, title, label: label.nullable().default(null), content: text })
@@ -137,6 +154,22 @@ const childId = entityId.optional()
 const monthsTogether = (p: { monthStart: number | null; monthEnd: number | null }) =>
   (p.monthStart == null) === (p.monthEnd == null)
 
+/** A tip row of the plant form: one from the library ({ tipId }) or a new one ({ title, content }) */
+const plantTipRow = z.union([z.object({ tipId: entityId }).strict(), z.object({ title, content: text }).strict()])
+
+/** The same id at most once in a list (`key` reads it from a row); the error points at the repeat (and `field` in it) */
+const uniqueBy =
+  <T>(key: (row: T) => number | undefined, message: string, field?: string) =>
+  (rows: T[], ctx: z.RefinementCtx) => {
+    const seen = new Set<number>()
+    rows.forEach((row, i) => {
+      const id = key(row)
+      if (id === undefined) return
+      if (seen.has(id)) ctx.addIssue({ code: 'custom', message, path: field ? [i, field] : [i] })
+      seen.add(id)
+    })
+  }
+
 /**
  * The plant form's body (PUT/POST /api/admin/plants). Every field is sent (nothing is optional);
  * the order of lifecycles, tips and imageIds is their position.
@@ -144,7 +177,10 @@ const monthsTogether = (p: { monthStart: number | null; monthEnd: number | null 
 export const plantSave = plantFields
   .extend({
     lifecycles: z.array(z.object({ id: childId, title, content: text })).max(50),
-    tips: z.array(z.object({ id: childId, title, content: text })).max(50),
+    tips: z
+      .array(plantTipRow)
+      .max(50)
+      .superRefine(uniqueBy((row) => ('tipId' in row ? row.tipId : undefined), 'Tip picked twice', 'tipId')),
     diseases: z.array(z.object({ id: childId, title, label: label.nullable(), content: text })).max(50),
   })
   .refine(rangesInOrder, rangeMessage)
@@ -156,6 +192,16 @@ export type PlantSave = z.infer<typeof plantSave>
 
 export const combinationCreate = z.object({ title, description: text.nullable().default(null) })
 export const combinationUpdate = z.object({ title: title.optional(), description: text.nullable().optional() })
+/** The dashboard's combination form: the plants in it (a plant is in one combination at most) */
+export const combinationSave = z.object({
+  title,
+  description: text.nullable(),
+  plantIds: z
+    .array(entityId)
+    .max(500)
+    .superRefine(uniqueBy((id) => id, 'Plant picked twice')),
+})
 export type CombinationCreate = z.infer<typeof combinationCreate>
+export type CombinationSave = z.infer<typeof combinationSave>
 export type CombinationUpdate = z.infer<typeof combinationUpdate>
 export type Combination = { id: number; title: string; description: string | null }

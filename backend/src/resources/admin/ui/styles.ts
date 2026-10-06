@@ -155,6 +155,37 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .list-empty { font-size: var(--text-small); color: var(--ink-muted); padding: var(--space-sm); }
 .list:not(:empty) + .list-empty { display: none; }
 .add { align-self: flex-start; }
+.add-buttons { display: flex; flex-wrap: wrap; gap: var(--space-xs); justify-content: flex-end; }
+
+/* Search select: a text box with a results list under it */
+.search-select { position: relative; }
+.search-results { position: absolute; z-index: 4; top: 100%; left: 0; right: 0; margin: var(--space-xs) 0 0; padding: var(--space-xs);
+                  list-style: none; max-height: 320px; overflow-y: auto; background: var(--surface);
+                  border-radius: var(--radius-sm); box-shadow: var(--shadow-raised); }
+.search-results li { padding: var(--space-xs) var(--space-sm); border-radius: var(--radius-sm); cursor: pointer; }
+.search-results li .name { font-weight: 700; }
+.search-results li .small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-results li.active, .search-results li[data-value]:hover { background: var(--primary-soft); }
+.search-results li.none { color: var(--ink-muted); cursor: default; }
+.field.search-select.invalid input[data-search] { border-color: var(--danger); }
+.picked-text { margin: 0; white-space: pre-wrap; }
+.picked-text:empty { display: none; }
+
+/* Checklist with search (e.g. a combination's plants) */
+.check-picker .row { align-items: center; flex-wrap: nowrap; }
+.check-picker [data-filter] { flex: 1; }
+.picked-count { white-space: nowrap; }
+.checks { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; display: flex; flex-direction: column;
+          gap: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-xs); }
+.check { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-xs); border-radius: var(--radius-sm);
+         cursor: pointer; }
+.check:hover { background: var(--surface-muted); }
+.check input { accent-color: var(--primary); width: 18px; height: 18px; margin: 0; flex: none; }
+.check:has(input:checked) { background: var(--primary-soft); }
+.check-thumb { width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover; flex: none;
+               background: var(--primary-soft); display: grid; place-items: center; }
+.check-text { display: flex; flex-direction: column; min-width: 0; }
+.check-text .name { font-weight: 700; overflow-wrap: anywhere; }
 
 /* Images (a wide strip like the app's gallery) */
 .gallery { border-radius: var(--radius-md); background: var(--primary-soft); padding: var(--space-sm); }

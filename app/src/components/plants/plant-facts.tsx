@@ -5,6 +5,7 @@ import { AppText } from '@/components/ui/app-text';
 import { card } from '@/components/ui/styles';
 import {
   effortTrait,
+  originTrait,
   propagationTrait,
   seasonTrait,
   sunlightHoursLabel,
@@ -46,7 +47,8 @@ export function PlantFacts({ plant }: { plant: PlantSummary }) {
     useTrait(plant),
     season && { emoji: season.emoji, label: `Φύτεμα: ${season.label}` },
   ].filter((trait): trait is Trait => !!trait);
-  const propagation = propagationTrait(plant);
+  // How it grows and where it comes from, as sentences under the card
+  const pills = [propagationTrait(plant), originTrait(plant)].filter((trait): trait is Trait => !!trait);
 
   return (
     <View style={styles.root}>
@@ -56,8 +58,9 @@ export function PlantFacts({ plant }: { plant: PlantSummary }) {
         ))}
       </View>
 
-      <InfoPill emoji={propagation.emoji} text={propagation.label} />
-      {plant.native && <InfoPill emoji="📍" text="Ιθαγενές φυτό" />}
+      {pills.map((trait) => (
+        <InfoPill key={trait.label} emoji={trait.emoji} text={trait.label} />
+      ))}
     </View>
   );
 }

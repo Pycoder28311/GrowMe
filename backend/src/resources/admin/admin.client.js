@@ -1,6 +1,7 @@
 // The dashboard's browser script, served as /admin.js (plain JS, no build step). It works on the
 // markup of resources/admin/ui: list pages' delete buttons (data-delete-item), forms (data-admin-form),
-// lists (data-list, data-sortable), photos (data-images) and fields (data-field + data-type).
+// lists (data-list, data-sortable), photos (data-images), fields (data-field + data-type) and pickers
+// (data-search-select, data-checks).
 // The server validates everything again.
 ;(() => {
   'use strict'
@@ -65,15 +66,20 @@
     return raw === '' && input.hasAttribute('data-nullable') ? null : raw
   }
 
-  /** The JSON of a form or a list row: its own fields, lists and photo lists */
+  const KEYED = '[data-field], [data-list], [data-images], [data-checks]'
+  const keyOf = (el) => el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks
+
+  /** The JSON of a form or a list row: its own fields, lists, photo lists and checklists */
   function collect(scope) {
     const data = {}
-    for (const el of scope.querySelectorAll('[data-field], [data-list], [data-images]')) {
+    for (const el of scope.querySelectorAll(KEYED)) {
       if (scopeOf(el) !== scope) continue
       if (el.dataset.list !== undefined) {
         data[el.dataset.list] = rowsOf(el).map(collect)
       } else if (el.dataset.images !== undefined) {
         data[el.dataset.images] = rowsOf(el).map((row) => Number(row.dataset.imageId))
+      } else if (el.dataset.checks !== undefined) {
+        data[el.dataset.checks] = [...el.querySelectorAll('input[type=checkbox]:checked')].map((c) => Number(c.value))
       } else if (el.type === 'radio') {
         if (el.checked) data[el.dataset.field] = readValue(el)
         else if (!(el.dataset.field in data)) data[el.dataset.field] = null
@@ -103,10 +109,8 @@
     const parts = path.split('.')
     for (let i = 0; i < parts.length; i++) {
       const key = parts[i]
-      const own = [...scope.querySelectorAll('[data-field], [data-list], [data-images]')].filter(
-        (el) => scopeOf(el) === scope,
-      )
-      const el = own.find((e) => e.dataset.field === key || e.dataset.list === key || e.dataset.images === key)
+      const own = [...scope.querySelectorAll(KEYED)].filter((el) => scopeOf(el) === scope)
+      const el = own.find((e) => keyOf(e) === key)
       if (!el) return null
       if (el.dataset.list !== undefined && i + 1 < parts.length) {
         const row = rowsOf(el)[Number(parts[++i])]
@@ -115,7 +119,7 @@
         scope = row
         continue
       }
-      return el // a field, or a photo list (its error covers every photo)
+      return el // a field, or a photo list / checklist (its error covers every item)
     }
     return null
   }
@@ -139,6 +143,10 @@
     [/^The text is too long$/, 'Το κείμενο είναι πολύ μεγάλο'],
     [/^Lists are nested too deeply$/, 'Πάρα πολλές λίστες η μία μέσα στην άλλη'],
     [/^Too many images$/, 'Έως 50 εικόνες σε ένα άρθρο'],
+    [/^Tip picked twice$/, 'Αυτή η συμβουλή υπάρχει ήδη στη λίστα'],
+    [/^Plant picked twice$/, 'Αυτό το φυτό είναι ήδη επιλεγμένο'],
+    [/^Unknown tipId$/, 'Μια συμβουλή δεν βρέθηκε (ίσως διαγράφηκε). Διάλεξε άλλη.'],
+    [/^Unknown plantIds$/, 'Ένα φυτό δεν βρέθηκε (ίσως διαγράφηκε). Ανανέωσε τη σελίδα.'],
   ]
   const greek = (message) => {
     for (const [pattern, text] of GREEK) {
@@ -193,9 +201,29 @@
     for (const button of form.querySelectorAll('.save-bar button')) button.disabled = on
   }
 
+  /** Search boxes left without a pick: marked, and the save stops (the server would only say "invalid") */
+  function unpickedSearches() {
+    const empty = [...form.querySelectorAll('[data-search-select]')].filter(
+      (box) => !box.closest('template') && box.querySelector('input[type=hidden]').value === '',
+    )
+    for (const box of empty) {
+      box.classList.add('invalid')
+      box.querySelector('.error').textContent = 'Διάλεξε από τη λίστα (γράψε και πάτησε ένα αποτέλεσμα)'
+    }
+    return empty
+  }
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
     clearErrors()
+    const unpicked = unpickedSearches()
+    if (unpicked.length > 0) {
+      banner.textContent = 'Διόρθωσε τα σημειωμένα πεδία.'
+      banner.classList.remove('hidden')
+      unpicked[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
+      unpicked[0].querySelector('[data-search]').focus({ preventScroll: true })
+      return
+    }
     busy(true)
     try {
       const { ok, data } = await send(form.dataset.action, form.dataset.method, collect(form))
@@ -242,9 +270,13 @@
     })
   }
 
-  function addRow(wrap) {
+  /** Adds a row from the list's template (`variant`: the template of that kind of row) */
+  function addRow(wrap, variant) {
     const list = wrap.querySelector('[data-list], [data-images]')
-    const row = wrap.querySelector('template[data-template]').content.firstElementChild.cloneNode(true)
+    const template = variant
+      ? wrap.querySelector(`template[data-variant="${CSS.escape(variant)}"]`)
+      : wrap.querySelector('template[data-template]')
+    const row = template.content.firstElementChild.cloneNode(true)
     list.append(row)
     refresh(list)
     return row
@@ -255,7 +287,7 @@
     if (!button) return
 
     if (button.hasAttribute('data-add')) {
-      const row = addRow(button.closest('[data-list-wrap]'))
+      const row = addRow(button.closest('[data-list-wrap]'), button.dataset.variant)
       row.querySelector('input, textarea')?.focus()
       dirty = true
       return
@@ -384,6 +416,173 @@
         input.disabled = false
         input.value = ''
       }
+    })
+  }
+
+  /* ─────────────── Search select: pick one option by typing ─────────────── */
+
+  const MAX_RESULTS = 20
+  /** Lowercase without accents: «Πότισμα» matches «ποτισμα» */
+  const plain = (text) =>
+    (text || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+
+  const boxOf = (el) => el.closest('[data-search-select]')
+  const optionsOf = (box) => [...document.querySelectorAll(`[data-options="${CSS.escape(box.dataset.searchSelect)}"] > li`)]
+
+  /** Ids picked by the other boxes of the same list (not offered again) */
+  function takenBy(box) {
+    const list = box.closest('[data-list]')
+    if (!list) return new Set()
+    return new Set(
+      [...list.querySelectorAll(`[data-search-select="${CSS.escape(box.dataset.searchSelect)}"]`)]
+        .filter((other) => other !== box)
+        .map((other) => other.querySelector('input[type=hidden]').value)
+        .filter(Boolean),
+    )
+  }
+
+  function closeResults(box) {
+    const results = box.querySelector('.search-results')
+    results.hidden = true
+    results.replaceChildren()
+    box.querySelector('[data-search]').setAttribute('aria-expanded', 'false')
+  }
+
+  function showResults(box) {
+    const input = box.querySelector('[data-search]')
+    const results = box.querySelector('.search-results')
+    const words = plain(input.value).split(/\s+/).filter(Boolean)
+    const taken = takenBy(box)
+    const matches = optionsOf(box)
+      .filter((o) => !taken.has(o.dataset.value))
+      .filter((o) => {
+        const text = plain(`${o.dataset.label} ${o.dataset.hint || ''}`)
+        return words.every((w) => text.includes(w))
+      })
+      .slice(0, MAX_RESULTS)
+    results.replaceChildren(
+      ...(matches.length
+        ? matches.map((o, i) => {
+            const li = document.createElement('li')
+            li.setAttribute('role', 'option')
+            li.dataset.value = o.dataset.value
+            li.className = i === 0 ? 'active' : ''
+            const name = document.createElement('div')
+            name.className = 'name'
+            name.textContent = o.dataset.label
+            li.append(name)
+            if (o.dataset.hint) {
+              const hint = document.createElement('div')
+              hint.className = 'small muted'
+              hint.textContent = o.dataset.hint
+              li.append(hint)
+            }
+            return li
+          })
+        : [Object.assign(document.createElement('li'), { className: 'none', textContent: 'Κανένα αποτέλεσμα' })]),
+    )
+    results.hidden = false
+    input.setAttribute('aria-expanded', 'true')
+  }
+
+  /** Fills the row from the picked option: data-fill="key" gets its data-key, data-fill-href its id */
+  function pick(box, value) {
+    const option = optionsOf(box).find((o) => o.dataset.value === value)
+    if (!option) return
+    box.querySelector('input[type=hidden]').value = value
+    box.querySelector('[data-search]').value = option.dataset.label
+    box.classList.remove('invalid')
+    box.querySelector('.error').textContent = ''
+    fill(box, option)
+    closeResults(box)
+    dirty = true
+  }
+
+  function fill(box, option) {
+    const scope = box.closest('[data-row]') ?? box.parentElement
+    for (const el of scope.querySelectorAll('[data-fill]')) el.textContent = option ? option.dataset[el.dataset.fill] || '' : ''
+    for (const link of scope.querySelectorAll('[data-fill-href]')) {
+      link.hidden = !option
+      if (option) link.href = link.dataset.fillHref.replace('{value}', option.dataset.value)
+    }
+  }
+
+  form.addEventListener('input', (event) => {
+    if (!event.target.matches('[data-search]')) return
+    const box = boxOf(event.target)
+    // Typing again drops the pick until a result is chosen
+    box.querySelector('input[type=hidden]').value = ''
+    fill(box, null)
+    showResults(box)
+  })
+
+  form.addEventListener('focusin', (event) => {
+    if (event.target.matches('[data-search]')) showResults(boxOf(event.target))
+  })
+
+  form.addEventListener('focusout', (event) => {
+    const box = event.target.matches?.('[data-search]') && boxOf(event.target)
+    if (box) setTimeout(() => closeResults(box), 150) // after a click on a result
+  })
+
+  // mousedown, so the pick happens before the box loses focus
+  form.addEventListener('mousedown', (event) => {
+    const li = event.target.closest('.search-results li[data-value]')
+    if (!li) return
+    event.preventDefault()
+    pick(boxOf(li), li.dataset.value)
+  })
+
+  form.addEventListener('keydown', (event) => {
+    if (!event.target.matches('[data-search]')) return
+    const box = boxOf(event.target)
+    const results = box.querySelector('.search-results')
+    const items = [...results.querySelectorAll('li[data-value]')]
+    const active = results.querySelector('li.active')
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (results.hidden) return showResults(box)
+      if (items.length === 0) return
+      const index = items.indexOf(active) + (event.key === 'ArrowDown' ? 1 : -1)
+      active?.classList.remove('active')
+      const next = items[(index + items.length) % items.length]
+      next.classList.add('active')
+      next.scrollIntoView({ block: 'nearest' })
+    } else if (event.key === 'Enter') {
+      event.preventDefault() // never submits the form
+      if (active && !results.hidden) pick(box, active.dataset.value)
+    } else if (event.key === 'Escape') {
+      closeResults(box)
+    }
+  })
+
+  /* ─────────────── Checklist: search and count ─────────────── */
+
+  function countChecks(picker) {
+    const n = picker.querySelectorAll('input[type=checkbox]:checked').length
+    picker.querySelector('[data-checked-count]').textContent = n === 1 ? '1 επιλεγμένο' : `${n} επιλεγμένα`
+  }
+
+  for (const picker of form.querySelectorAll('[data-checks]')) {
+    countChecks(picker)
+    const rows = [...picker.querySelectorAll('li[data-search-text]')]
+    picker.querySelector('[data-filter]').addEventListener('input', (event) => {
+      const words = plain(event.target.value).split(/\s+/).filter(Boolean)
+      let shown = 0
+      for (const row of rows) {
+        const match = words.every((w) => plain(row.dataset.searchText).includes(w))
+        row.hidden = !match
+        if (match) shown++
+      }
+      picker.querySelector('[data-no-match]').classList.toggle('hidden', shown > 0 || rows.length === 0)
+    })
+    picker.addEventListener('change', () => countChecks(picker))
+    // Enter in the search box doesn't submit the form
+    picker.querySelector('[data-filter]').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') event.preventDefault()
     })
   }
 

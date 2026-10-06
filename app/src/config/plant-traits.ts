@@ -15,18 +15,6 @@ export const EFFORT: Record<string, Trait> = {
   expert: { emoji: '🧑‍🌾', label: 'Δύσκολο' },
 };
 
-export const USE: Record<string, Trait> = {
-  edible: { emoji: '🍅', label: 'Φαγώσιμο' },
-  decorative: { emoji: '✨', label: 'Διακοσμητικό' },
-  flowering: { emoji: '🌸', label: 'Με άνθη' },
-};
-
-// How it is started: from seed, from a young plant, or either
-export const PROPAGATION: Record<string, Trait> = {
-  seed: { emoji: '🌰', label: 'Από σπόρο' },
-  plant: { emoji: '🪴', label: 'Από φυτό' },
-  both: { emoji: '🌰', label: 'Σπόρος/φυτό' },
-};
 
 // Planting period, stored as months [from, to] (1 = January). Ranges may wrap past December, e.g. [9, 3].
 const MONTH_ABBREVIATIONS = ['ΙΑΝ', 'ΦΕΒ', 'ΜΑΡ', 'ΑΠΡ', 'ΜΑΪ', 'ΙΟΥΝ', 'ΙΟΥΛ', 'ΑΥΓ', 'ΣΕΠ', 'ΟΚΤ', 'ΝΟΕ', 'ΔΕΚ'];
@@ -71,8 +59,9 @@ type PlantFields = {
   sunlightHoursMax: number | null;
   monthStart: number | null;
   monthEnd: number | null;
-  food: boolean;
-  seeds: boolean;
+  food: string | null;
+  seeds: string | null;
+  native: string | null;
 };
 
 const euros = (cents: number) => (cents / 100).toLocaleString('el-GR', { maximumFractionDigits: 2 });
@@ -104,10 +93,17 @@ export function sunlightHoursLabel({ sunlightHoursMin: min, sunlightHoursMax: ma
 export const effortTrait = ({ difficulty }: PlantFields): Trait =>
   difficulty <= 2 ? EFFORT.easy : difficulty === 3 ? EFFORT.moderate : EFFORT.expert;
 
-/** Only food plants get a label (the database doesn't store decorative/flowering yet) */
-export const useTrait = ({ food }: PlantFields): Trait | null => (food ? USE.edible : null);
+// food / seeds / native are short texts written in the dashboard (e.g. «Τρώγεται ο καρπός»); empty = not shown
 
-export const propagationTrait = ({ seeds }: PlantFields): Trait => (seeds ? PROPAGATION.seed : PROPAGATION.plant);
+/** e.g. 🍅 Τρώγεται ο καρπός */
+export const useTrait = ({ food }: PlantFields): Trait | null => (food ? { emoji: '🍅', label: food } : null);
+
+/** e.g. 🌰 Από σπόρο (🪴 for «Από φυτό») */
+export const propagationTrait = ({ seeds }: PlantFields): Trait | null =>
+  seeds ? { emoji: seeds === 'Από φυτό' ? '🪴' : '🌰', label: seeds } : null;
+
+/** e.g. 📍 Ιθαγενές της Μεσογείου */
+export const originTrait = ({ native }: PlantFields): Trait | null => (native ? { emoji: '📍', label: native } : null);
 
 /** The planting season label and icon; null when the months aren't set */
 export const seasonTrait = ({ monthStart, monthEnd }: PlantFields): Trait | null =>

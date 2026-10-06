@@ -9,9 +9,9 @@ import { storeImages } from '../images/images.repo'
 import { tableCounts } from './admin.repo'
 import { DashboardPage } from './admin.page'
 import { blogsAdmin } from './blogs/blogs.admin'
+import { combinationsAdmin } from './combinations/combinations.admin'
 import {
   blogCommentsAdmin,
-  combinationsAdmin,
   imagesAdmin,
   likesAdmin,
   notesAdmin,
@@ -20,6 +20,7 @@ import {
   usersAdmin,
 } from './lists'
 import { plantsAdmin } from './plants/plants.admin'
+import { tipsAdmin } from './tips/tips.admin'
 import { ASSETS } from './ui/layout'
 
 /**
@@ -73,9 +74,10 @@ const adminApp = new Hono<AdminEnv>()
   // Objects with forms (list, create, edit, delete)
   .route('/', plantsAdmin)
   .route('/', blogsAdmin)
+  .route('/', tipsAdmin)
+  .route('/', combinationsAdmin)
   // Lists with delete only
   .route('/', usersAdmin)
-  .route('/', combinationsAdmin)
   .route('/', postsAdmin)
   .route('/', postRepliesAdmin)
   .route('/', blogCommentsAdmin)

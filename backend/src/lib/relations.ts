@@ -65,7 +65,7 @@ export type ChildTable<T extends SQLiteTable, TRow> = {
 }
 
 /**
- * Throws 400 UNKNOWN_REFERENCE (path e.g. "tips.2.id") when a row's id is not one of the parent's
+ * Throws 400 UNKNOWN_REFERENCE (path e.g. "lifecycles.2.id") when a row's id is not one of the parent's
  * existing children: stops a form from editing another parent's rows.
  */
 export function assertOwnChildren(field: string, rows: { id?: number }[], existingIds: number[]) {

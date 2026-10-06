@@ -2,7 +2,6 @@ import { asc, desc, eq, sql } from 'drizzle-orm'
 import { blogComments, images, likes, notes, postImages, postReplies, posts, user } from '../../db/schema'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { deleteBlogComment } from '../blog-comments/blog-comments.repo'
-import { combinationsRepo } from '../combinations/combinations.repo'
 import { deleteImages, imageUrl } from '../images/images.repo'
 import { deleteLike } from '../likes/likes.repo'
 import { deleteNote } from '../notes/notes.repo'
@@ -85,18 +84,6 @@ export const usersAdmin = adminResource({
     '👤',
     (u) => `Να διαγραφεί οριστικά ο χρήστης «${u.title}»; Θα διαγραφούν και όλα όσα έχει γράψει (αναρτήσεις, απαντήσεις, σχόλια, likes, σημειώσεις, φωτογραφίες).`,
   ),
-})
-
-export const combinationsAdmin = adminResource({
-  path: 'combinations',
-  title: 'Συνδυασμοί',
-  list: async (ctx, page) =>
-    mapPage(
-      await combinationsRepo.list(ctx, page, undefined),
-      (c): Item => ({ id: c.id, title: c.title, lines: [c.description && snippet(c.description)] }),
-    ),
-  remove: (ctx, raw) => withId(raw, (id) => combinationsRepo.remove(ctx, id)),
-  ListItem: card('🧺', (c) => `Να διαγραφεί ο συνδυασμός «${c.title}»; Τα φυτά του μένουν χωρίς συνδυασμό.`),
 })
 
 export const postsAdmin = adminResource({

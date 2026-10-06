@@ -38,10 +38,14 @@ function Row(props: { id?: number; sortable: boolean; label: string; children: C
   )
 }
 
+/** A kind of new row with its own add button (e.g. an existing tip or a new one) */
+export type RowVariant = { key: string; label: string; render: () => Child }
+
 /**
- * A list of rows the form sends as an array under `field` (e.g. "tips": [{ id?, title, content }]).
- * Rows are added from a <template> rendered with `renderItem(null)`, removed with ✕ and, when
- * `sortable`, ordered by dragging or ↑/↓: the array order is the position.
+ * A list of rows the form sends as an array under `field` (e.g. "lifecycles": [{ id?, title, content }]).
+ * Rows are added from a <template> rendered with `renderItem(null)` (or, with `variants`, one add
+ * button and template per kind of row), removed with ✕ and, when `sortable`, ordered by dragging or
+ * ↑/↓: the array order is the position.
  */
 export function RepeatableList<T extends { id: number }>(props: {
   field: string
@@ -54,29 +58,53 @@ export function RepeatableList<T extends { id: number }>(props: {
   emptyText?: string
   /** Light-green background, like the app's life cycle card */
   soft?: boolean
+  /** Kinds of new rows; without it, one "+ itemLabel" button adds `renderItem(null)` */
+  variants?: RowVariant[]
+  /** Existing rows keep their ids (sent as `id`); false when rows are links that carry their own */
+  rowIds?: boolean
 }) {
   const sortable = props.sortable ?? false
   return (
     <section class="section" data-list-wrap>
       <div class="head">
         <h2>{props.title}</h2>
-        <button type="button" class="button secondary add" data-add>
-          + {props.itemLabel}
-        </button>
+        <div class="add-buttons">
+          {props.variants ? (
+            props.variants.map((v) => (
+              <button type="button" class="button secondary add" data-add data-variant={v.key}>
+                + {v.label}
+              </button>
+            ))
+          ) : (
+            <button type="button" class="button secondary add" data-add>
+              + {props.itemLabel}
+            </button>
+          )}
+        </div>
       </div>
       <ol class={props.soft ? 'list soft' : 'list'} data-list={props.field} data-sortable={sortable ? '' : undefined}>
         {props.items.map((item) => (
-          <Row id={item.id} sortable={sortable} label={props.itemLabel}>
+          <Row id={props.rowIds === false ? undefined : item.id} sortable={sortable} label={props.itemLabel}>
             {props.renderItem(item)}
           </Row>
         ))}
       </ol>
       <div class="list-empty">{props.emptyText ?? 'Δεν υπάρχει τίποτα ακόμα.'}</div>
-      <template data-template>
-        <Row sortable={sortable} label={props.itemLabel}>
-          {props.renderItem(null)}
-        </Row>
-      </template>
+      {props.variants ? (
+        props.variants.map((v) => (
+          <template data-variant={v.key}>
+            <Row sortable={sortable} label={props.itemLabel}>
+              {v.render()}
+            </Row>
+          </template>
+        ))
+      ) : (
+        <template data-template>
+          <Row sortable={sortable} label={props.itemLabel}>
+            {props.renderItem(null)}
+          </Row>
+        </template>
+      )}
     </section>
   )
 }

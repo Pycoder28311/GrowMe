@@ -10,6 +10,7 @@ import {
   plants,
   postReplies,
   posts,
+  tips,
   user,
 } from '../../db/schema'
 
@@ -17,6 +18,7 @@ import {
 const TABLES = [
   { key: 'users', label: 'Χρήστες', table: user, path: '/users' },
   { key: 'plants', label: 'Φυτά', table: plants, path: '/plants' },
+  { key: 'tips', label: 'Συμβουλές', table: tips, path: '/tips' },
   { key: 'combinations', label: 'Συνδυασμοί', table: combinations, path: '/combinations' },
   { key: 'blogs', label: 'Άρθρα', table: blogs, path: '/blogs' },
   { key: 'blogComments', label: 'Σχόλια άρθρων', table: blogComments, path: '/blog-comments' },

@@ -1,6 +1,6 @@
 import type { Plant, PlantCreate, PlantFilter, PlantSummary, PlantUpdate } from '@growme/shared'
 import { and, asc, desc, eq } from 'drizzle-orm'
-import { combinations, diseases, lifecycles, plantImages, plants, tips } from '../../db/schema'
+import { combinations, diseases, lifecycles, plantImages, plants, plantTips } from '../../db/schema'
 import { hasChanges, type Ctx, type Repo } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { assertExists, removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/relations'
@@ -23,7 +23,7 @@ const withDetails = {
   ...withImages,
   combination: true,
   lifecycles: { orderBy: (l: typeof lifecycles._.columns) => [asc(l.position), asc(l.id)] },
-  tips: { orderBy: (t: typeof tips._.columns) => [asc(t.position), asc(t.id)] },
+  tipLinks: { orderBy: asc(plantTips.position), with: { tip: true } },
   diseases: { orderBy: asc(diseases.id) },
 } as const
 
@@ -57,7 +57,7 @@ const toJson = (env: CloudflareBindings, p: DetailRow): Plant => ({
   ...toSummary(env, p),
   combination: p.combination ? toCombination(p.combination) : null,
   lifecycles: p.lifecycles.map(toLifecycle),
-  tips: p.tips.map(toTip),
+  tips: p.tipLinks.map((l) => toTip(l.tip)),
   diseases: p.diseases.map(toDisease),
 })
 
@@ -110,7 +110,7 @@ export const plantsRepo: Repo<PlantCreate, PlantUpdate, Plant, PlantFilter, Plan
   async remove(ctx, id) {
     const existing = await ctx.db.query.plants.findFirst({ where: eq(plants.id, id), with: withImages })
     if (!existing) return false
-    await ctx.db.delete(plants).where(eq(plants.id, id)) // lifecycles, tips, diseases, image links cascade
+    await ctx.db.delete(plants).where(eq(plants.id, id)) // lifecycles, diseases, tip and image links cascade
     await deleteImages(
       ctx,
       existing.images.map((l) => l.imageId),
