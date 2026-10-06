@@ -11,6 +11,15 @@ export type AppConfig = {
   trustedOrigins: string[]
   /** True when the backend itself runs on localhost */
   isDev: boolean
+  /**
+   * The admin dashboard: served only on `host`, behind Cloudflare Access. `access` is null until
+   * ACCESS_TEAM_DOMAIN and ACCESS_AUD are set, and then the admin part refuses every request.
+   */
+  admin: {
+    host: string | undefined
+    emails: string[]
+    access: { teamDomain: string; aud: string } | null
+  }
 }
 
 const cache = new WeakMap<object, AppConfig>()
@@ -36,6 +45,16 @@ export function getConfig(env: CloudflareBindings): AppConfig {
       ...(isDev ? ['exp://'] : []), // Expo Go only while developing locally
     ],
     isDev,
+    admin: {
+      host: e.ADMIN_HOST,
+      emails: e.ADMIN_EMAILS.split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+      access:
+        e.ACCESS_TEAM_DOMAIN && e.ACCESS_AUD
+          ? { teamDomain: e.ACCESS_TEAM_DOMAIN.replace(/\/$/, ''), aud: e.ACCESS_AUD }
+          : null,
+    },
   }
   cache.set(env, config)
   return config

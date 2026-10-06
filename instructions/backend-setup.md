@@ -80,6 +80,7 @@ Every variable is checked by `backend/src/lib/env.ts` on the first request. A mi
 | `BETTER_AUTH_SECRET` | secret | `npx wrangler secret put BETTER_AUTH_SECRET` (value: `openssl rand -base64 32`) |
 | `RESEND_API_KEY` | secret | `npx wrangler secret put RESEND_API_KEY` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | secrets, optional | `npx wrangler secret put …`; Google sign-in is off without both |
+| `ADMIN_HOST`, `ADMIN_EMAILS`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | plain vars, optional | `wrangler.jsonc` `vars`; see 6b |
 
 **Local development:** create `backend/.dev.vars` (ignored by Git). Values there override `vars`:
 
@@ -127,6 +128,33 @@ signing in again.
 - **Google sign-in:** create a **Web application** OAuth client; redirect URIs
   `https://<BETTER_AUTH_URL host>/api/auth/callback/google` and
   `http://localhost:8787/api/auth/callback/google`.
+
+## 6b. Admin dashboard (optional, Cloudflare Access)
+
+A private dashboard on its own domain (e.g. `admin.<domain>`), with no sign-in page of ours:
+Cloudflare Access asks for the email (one-time code) before any request reaches the Worker.
+
+1. Cloudflare One (Zero Trust, free plan): note the **team domain** (`https://<team>.cloudflareaccess.com`).
+2. `wrangler.jsonc`: `"routes": [{ "pattern": "admin.<domain>", "custom_domain": true }]` and
+   `"workers_dev": true` (keeps the API's workers.dev address). Deploy: Cloudflare creates the DNS
+   record and certificate. Remove any wildcard `*` DNS record that would catch the subdomain.
+3. Cloudflare One → Access controls → Applications → Add → Self-hosted: hostname `admin.<domain>`
+   (empty path), a policy **Allow → Emails → <your email>**, session duration as wanted. Save.
+4. Copy the application's **AUD tag** and set the vars: `ADMIN_HOST`, `ADMIN_EMAILS`,
+   `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`.
+
+How it is enforced (`middleware/access.ts`, `lib/access.ts`):
+
+- Requests for `ADMIN_HOST` go to a separate app (`resources/admin/admin.app.tsx`); its routes
+  exist on no other address.
+- Every one must carry a valid `Cf-Access-Jwt-Assertion` token: signed by the team's keys, issuer =
+  team domain, audience = AUD, not expired, email in `ADMIN_EMAILS`. Anything else is refused
+  (403), and the admin part refuses everything while `ACCESS_AUD` is empty.
+- Changes (POST/PATCH/DELETE) are accepted only from the admin domain itself (CSRF).
+- Logout: `/cdn-cgi/access/logout` on the admin domain.
+
+Locally there is no Access: run `wrangler dev --local-upstream localhost:8787` with `ADMIN_HOST=localhost`
+and a test key server only for testing.
 
 ## 7. Run and deploy
 

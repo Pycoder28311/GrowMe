@@ -24,6 +24,11 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1),
   // storage
   IMAGES_URL: z.url(),
+  // admin dashboard behind Cloudflare Access (optional: without them the admin part refuses every request)
+  ADMIN_HOST: optionalText,
+  ADMIN_EMAILS: z.string().default(''),
+  ACCESS_TEAM_DOMAIN: z.preprocess(emptyAsUndefined, z.url().optional()),
+  ACCESS_AUD: optionalText,
   // bindings
   DB: binding,
   BUCKET: binding,

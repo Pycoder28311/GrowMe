@@ -8,6 +8,7 @@ import type { AppEnv } from './middleware/auth'
 import { csrfProtection } from './middleware/csrf'
 import { checkEnv } from './middleware/env'
 import { rateLimit } from './middleware/rate-limit'
+import adminApp from './resources/admin/admin.app'
 import blogCommentsRoutes from './resources/blog-comments/blog-comments.routes'
 import blogsRoutes from './resources/blogs/blogs.routes'
 import combinationsRoutes from './resources/combinations/combinations.routes'
@@ -25,6 +26,15 @@ const app = new Hono<AppEnv>()
 
 // Fails loudly (500 SERVER_MISCONFIGURED) when variables or bindings are missing
 app.use('*', checkEnv)
+
+// The admin domain is a separate app behind Cloudflare Access (resources/admin/admin.app.tsx):
+// it serves only the dashboard, and the admin routes exist nowhere else
+app.use('*', async (c, next) => {
+  if (new URL(c.req.url).hostname === getConfig(c.env).admin.host) {
+    return adminApp.fetch(c.req.raw, c.env, c.executionCtx)
+  }
+  await next()
+})
 
 app.use(
   '/api/*',

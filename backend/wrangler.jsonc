@@ -48,7 +48,13 @@
 		"WEB_ORIGINS": "http://localhost:8081",
 		"IMAGES_URL": "https://images.testingggg.lol",
 		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
-		"EMAIL_FROM": "GrowMe <no-reply@testingggg.lol>"
+		"EMAIL_FROM": "GrowMe <no-reply@testingggg.lol>",
+		// Admin dashboard (Cloudflare Access). ACCESS_AUD: the "Application Audience (AUD) Tag" of the
+		// GrowMe Admin application in Cloudflare One; until it is set the admin part refuses everything.
+		"ADMIN_HOST": "admin.testingggg.lol",
+		"ADMIN_EMAILS": "kopotitore@gmail.com",
+		"ACCESS_TEAM_DOMAIN": "https://odd-frost-5cc5.cloudflareaccess.com",
+		"ACCESS_AUD": ""
 	}
 	// "compatibility_flags": [
 	//   "nodejs_compat"
