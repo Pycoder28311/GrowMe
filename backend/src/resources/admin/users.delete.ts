@@ -9,6 +9,15 @@ const USER_THREADS = `(
     SELECT c.id FROM blog_comments c JOIN thread ON c.parent_comment_id = thread.id
   ) SELECT id FROM thread)`
 
+// Reply ids in the threads the user started or joined: their replies and every answer under them
+// (answers are deleted with them: post_replies.parent_reply_id cascades)
+const USER_REPLY_THREADS = `(
+  WITH RECURSIVE thread(id) AS (
+    SELECT id FROM post_replies WHERE user_id = ?1
+    UNION
+    SELECT r.id FROM post_replies r JOIN thread ON r.parent_reply_id = thread.id
+  ) SELECT id FROM thread)`
+
 const OWN_POSTS = '(SELECT id FROM posts WHERE user_id = ?1)'
 
 /** like_count fix for one liked type: minus the user's likes (dislikes aren't counted) */
@@ -25,9 +34,9 @@ const STEPS = [
   undoLikes('blogs', 'blog'),
   undoLikes('blog_comments', 'blog_comment'),
   'DELETE FROM likes WHERE user_id = ?1',
-  // 2. Their replies on other people's posts leave those posts' reply counts
+  // 2. Their reply threads on other people's posts leave those posts' reply counts
   `UPDATE posts SET reply_count = reply_count - (
-     SELECT count(*) FROM post_replies r WHERE r.post_id = posts.id AND r.user_id = ?1)
+     SELECT count(*) FROM post_replies r WHERE r.post_id = posts.id AND r.id IN ${USER_REPLY_THREADS})
    WHERE user_id != ?1 AND id IN (SELECT post_id FROM post_replies WHERE user_id = ?1)`,
   // 3. Their comment threads leave the blogs' comment counts
   `UPDATE blogs SET comment_count = comment_count - (
@@ -35,8 +44,8 @@ const STEPS = [
    WHERE id IN (SELECT blog_id FROM blog_comments WHERE user_id = ?1)`,
   // 4. Likes on everything that is about to be deleted (likes have no foreign key)
   `DELETE FROM likes WHERE liked_type = 'post' AND liked_id IN ${OWN_POSTS}`,
-  `DELETE FROM likes WHERE liked_type = 'post_reply' AND liked_id IN (
-     SELECT id FROM post_replies WHERE user_id = ?1 OR post_id IN ${OWN_POSTS})`,
+  `DELETE FROM likes WHERE liked_type = 'post_reply' AND (
+     liked_id IN ${USER_REPLY_THREADS} OR liked_id IN (SELECT id FROM post_replies WHERE post_id IN ${OWN_POSTS}))`,
   `DELETE FROM likes WHERE liked_type = 'blog_comment' AND liked_id IN ${USER_THREADS}`,
   // 5. Notes (their user_id has no cascade), then the user: sessions, accounts, posts, replies,
   //    comments and image rows cascade

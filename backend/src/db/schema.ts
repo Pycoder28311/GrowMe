@@ -54,11 +54,15 @@ export const postReplies = sqliteTable(
         id: id(),
         postId: integer('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
         userId: owner(),
+        // null = answers the post itself; otherwise the reply it answers (Reddit-like nesting)
+        parentReplyId: integer('parent_reply_id').references((): AnySQLiteColumn => postReplies.id, {
+            onDelete: 'cascade',
+        }),
         content: text('content').notNull(),
         likeCount: integer('like_count').notNull().default(0),
         createdAt: createdAt(),
     },
-    (t) => [index('post_replies_post_id_idx').on(t.postId)],
+    (t) => [index('post_replies_post_id_idx').on(t.postId), index('post_replies_parent_idx').on(t.parentReplyId)],
 )
 
 /* ─────────────── Blogs ─────────────── */
@@ -245,9 +249,15 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
     images: many(postImages),
 }))
 
-export const postRepliesRelations = relations(postReplies, ({ one }) => ({
+export const postRepliesRelations = relations(postReplies, ({ one, many }) => ({
     post: one(posts, { fields: [postReplies.postId], references: [posts.id] }),
     user: one(user, { fields: [postReplies.userId], references: [user.id] }),
+    parent: one(postReplies, {
+        fields: [postReplies.parentReplyId],
+        references: [postReplies.id],
+        relationName: 'reply_replies',
+    }),
+    replies: many(postReplies, { relationName: 'reply_replies' }),
 }))
 
 export const blogsRelations = relations(blogs, ({ many }) => ({

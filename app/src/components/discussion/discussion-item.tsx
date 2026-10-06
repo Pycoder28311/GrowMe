@@ -4,20 +4,34 @@ import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
+import type { Reaction } from '@/lib/reactions';
 import { colors, iconSize, radius, size, space } from '@/theme';
 
 const AVATAR = size.touch / 1.5;
-
-type Reaction = 'like' | 'dislike' | null;
 
 type DiscussionItemProps = {
   author: string;
   /** e.g. "2 ημέρες πριν" */
   date: string;
+  /** Bold line above the text (posts) */
+  title?: string;
   text: string;
+  /** Shows only the first lines of the text (lists) */
+  textLines?: number;
+  /** Shown under the text (e.g. the post's photos) */
+  children?: ReactNode;
   likeCount: number;
+  /**
+   * My reaction, when the screen keeps it (saved through the API). Without `onReact` the item keeps a
+   * local reaction (example content).
+   */
+  reaction?: Reaction;
+  onReact?: (pressed: Exclude<Reaction, null>) => void;
   /** Shows "Απαντήσεις (n)" */
   replyCount?: number;
+  /** "Απαντήσεις (n)" opens/closes the answers in place instead of `onPress` */
+  onToggleReplies?: () => void;
+  repliesOpen?: boolean;
   /** Shows an "Απάντηση" button */
   onReply?: () => void;
   /** Makes the whole item tappable (e.g. open the post) */
@@ -53,13 +67,33 @@ function ReactionButton({ icon, label, active, count, onPress }: { icon: IconNam
 }
 
 /**
- * One message in a discussion (a post, comment or reply): avatar, author, date, text, and
- * replies / reply / like / dislike. Reactions are local for now.
+ * One message in a discussion (a post, comment or reply): avatar, author, date, title, text, and
+ * replies / reply / like / dislike.
  */
-export function DiscussionItem({ author, date, text, likeCount, replyCount, onReply, onPress, style }: DiscussionItemProps) {
-  const [reaction, setReaction] = useState<Reaction>(null);
-  const toggle = (next: Exclude<Reaction, null>) => setReaction((current) => (current === next ? null : next));
-  const likes = likeCount + (reaction === 'like' ? 1 : 0);
+export function DiscussionItem({
+  author,
+  date,
+  title,
+  text,
+  textLines,
+  children,
+  likeCount,
+  reaction: savedReaction,
+  onReact,
+  replyCount,
+  onToggleReplies,
+  repliesOpen,
+  onReply,
+  onPress,
+  style,
+}: DiscussionItemProps) {
+  const [localReaction, setLocalReaction] = useState<Reaction>(null);
+  const controlled = onReact !== undefined;
+  const reaction = controlled ? (savedReaction ?? null) : localReaction;
+  const toggle = (next: Exclude<Reaction, null>) =>
+    controlled ? onReact(next) : setLocalReaction((current) => (current === next ? null : next));
+  // Saved reactions come with their count from the server; local ones add theirs
+  const likes = controlled ? likeCount : likeCount + (reaction === 'like' ? 1 : 0);
 
   const content = (
     <>
@@ -75,13 +109,19 @@ export function DiscussionItem({ author, date, text, likeCount, replyCount, onRe
         </AppText>
       </View>
 
-      <AppText>{text}</AppText>
+      {title !== undefined && <AppText bold>{title}</AppText>}
+      <AppText numberOfLines={textLines}>{text}</AppText>
+      {children}
 
       <View style={styles.actions}>
-        {replyCount !== undefined && (
-          <ItemAction onPress={onPress}>
+        {replyCount !== undefined && (onToggleReplies === undefined || replyCount > 0) && (
+          <ItemAction
+            label={onToggleReplies && (repliesOpen ? 'Απόκρυψη απαντήσεων' : 'Εμφάνιση απαντήσεων')}
+            selected={onToggleReplies ? !!repliesOpen : undefined}
+            onPress={onToggleReplies ?? onPress}>
             <AppText size="small" bold color={colors.primary}>
-              Απαντήσεις{replyCount > 0 ? ` (${replyCount})` : ''}
+              {onToggleReplies && repliesOpen ? 'Απόκρυψη' : 'Απαντήσεις'}
+              {replyCount > 0 ? ` (${replyCount})` : ''}
             </AppText>
           </ItemAction>
         )}

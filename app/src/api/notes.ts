@@ -1,7 +1,7 @@
 import type { Page } from '@growme/shared';
-import { File as ExpoFile } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { request } from './client';
+import { uploadImages } from './images';
 
 export type NoteImage = {
   id: number;
@@ -20,16 +20,6 @@ export type DraftImage = {
   id?: number;
   asset?: ImagePickerAsset;
 };
-
-/** Uploads all picked images in a single request */
-function uploadImages(assets: ImagePickerAsset[]) {
-  const form = new FormData();
-  for (const asset of assets) {
-    // Web gives a browser File; native wraps the local file (expo/fetch needs a Blob, not a uri)
-    form.append('files', asset.file ?? new ExpoFile(asset.uri));
-  }
-  return request<NoteImage[]>('/images', { method: 'POST', body: form });
-}
 
 /** Creates or updates a note: at most one upload request + one note request */
 async function save(noteId: number | null, text: string, drafts: DraftImage[]) {

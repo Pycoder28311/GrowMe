@@ -23,6 +23,8 @@ const ICONS = {
   dislike: { ios: 'hand.thumbsdown', android: 'thumb_down', web: 'thumb_down' },
   send: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' },
   share: { ios: 'square.and.arrow.up', android: 'share', web: 'share' },
+  photo: { ios: 'photo', android: 'image', web: 'image' },
+  close: { ios: 'xmark', android: 'close', web: 'close' },
 } satisfies Record<string, SymbolViewProps['name']>;
 
 export type IconName = keyof typeof ICONS;

@@ -281,6 +281,12 @@ everything a repo needs:
 - A polymorphic table (e.g. one `likes` table with `liked_type` + `liked_id`) has no foreign key:
   delete its rows in the same batch when the target is deleted, with
   `deleteLikesOf(ctx.db, 'post', id)` (one id or a subquery of ids).
+- **Nested (Reddit-like) replies:** a self-reference with `ON DELETE cascade` (`parent_reply_id`,
+  `parent_comment_id`), a list filter for one level (`?parentReplyId=`, absent = top level), and the
+  number of direct answers counted in the list query (a subquery, never stored). Deleting one deletes
+  its whole thread: subtract the thread's size from the parent's counter and delete its likes with a
+  recursive CTE (see `deletePostReply` / `deleteBlogComment`). drizzle-kit leaves `ON DELETE cascade`
+  out of an *added* column: check the generated SQL (see `drizzle/0008_*`).
 
 ## Routes that are not plain CRUD
 

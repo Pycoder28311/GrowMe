@@ -2,7 +2,6 @@ import { DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-ro
 
 import { AppShell } from '@/components/layout/app-shell';
 import type { NavId } from '@/config/app';
-import { CommunityProvider } from '@/lib/community';
 import { ExploreFiltersProvider } from '@/lib/explore-filters';
 
 // The pages paint no background of their own, so the shell's photos and washes show through
@@ -31,16 +30,14 @@ export default function AppLayout() {
 
   return (
     <ExploreFiltersProvider>
-      <CommunityProvider>
-        <AppShell
-          activeNavId={navIdFor(pathname)}
-          onNavigate={(id) => router.navigate(TAB_ROUTES[id])}
-          background={pathname === '/' ? 'scene' : 'plain'}>
-          <ThemeProvider value={SHELL_THEME}>
-            <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
-          </ThemeProvider>
-        </AppShell>
-      </CommunityProvider>
+      <AppShell
+        activeNavId={navIdFor(pathname)}
+        onNavigate={(id) => router.navigate(TAB_ROUTES[id])}
+        background={pathname === '/' ? 'scene' : 'plain'}>
+        <ThemeProvider value={SHELL_THEME}>
+          <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+        </ThemeProvider>
+      </AppShell>
     </ExploreFiltersProvider>
   );
 }

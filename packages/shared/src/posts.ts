@@ -38,6 +38,8 @@ export type Post = {
 
 export const replyCreate = z.object({
   postId: entityId,
+  /** The reply this one answers; omit (or null) to answer the post itself */
+  parentReplyId: entityId.nullable().default(null),
   content: replyContent,
 })
 
@@ -45,9 +47,13 @@ export const replyUpdate = z.object({
   content: replyContent,
 })
 
-/** GET /api/post-replies?postId=1 */
+/**
+ * GET /api/post-replies?postId=1                    replies to the post itself
+ * GET /api/post-replies?postId=1&parentReplyId=5    answers to reply 5
+ */
 export const replyFilter = z.object({
   postId: queryId,
+  parentReplyId: queryId.optional(),
 })
 
 export type ReplyCreate = z.infer<typeof replyCreate>
@@ -57,8 +63,12 @@ export type ReplyFilter = z.infer<typeof replyFilter>
 export type PostReply = {
   id: number
   postId: number
+  /** null = answers the post itself */
+  parentReplyId: number | null
   content: string
   author: Author
   likeCount: number
+  /** Direct answers to this reply (load them with ?parentReplyId=) */
+  replyCount: number
   createdAt: string
 }

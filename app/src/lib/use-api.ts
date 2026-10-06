@@ -71,6 +71,8 @@ export function usePagedList<T>(fetchPage: (cursor: string | null) => Promise<Pa
       if (nextCursor) load(nextCursor);
     },
     refresh: () => load(null),
+    /** Changes the loaded items in place (e.g. add a new reply, bump a count) */
+    update: (change: (items: T[]) => T[]) => setItems(change),
   };
 }
 
@@ -92,5 +94,12 @@ export function useApiItem<T>(fetchItem: (id: number) => Promise<T>, id: number)
   }, [fetchItem, id, key]);
 
   const state = result?.key !== key ? 'loading' : result.item ? 'ready' : 'error';
-  return { item: result?.key === key ? result.item : null, state, retry: () => setAttempt((n) => n + 1) } as const;
+  return {
+    item: result?.key === key ? result.item : null,
+    state,
+    retry: () => setAttempt((n) => n + 1),
+    /** Changes the loaded item in place (e.g. bump its reply count) */
+    update: (change: (item: T) => T) =>
+      setResult((current) => (current?.item ? { ...current, item: change(current.item) } : current)),
+  } as const;
 }
