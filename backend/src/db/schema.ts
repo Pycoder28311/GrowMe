@@ -67,8 +67,12 @@ export const postReplies = sqliteTable(
 
 /* ─────────────── Blogs ─────────────── */
 
+/** What a blog is: an article, a glossary entry, a wiki page or a balcony idea (shown differently in the app) */
+export const BLOG_KINDS = ['article', 'glossary', 'wiki', 'balcony'] as const
+
 export const blogs = sqliteTable('blogs', {
     id: id(),
+    kind: text('kind', { enum: BLOG_KINDS }).notNull().default('article'),
     name: text('name').notNull(),
     content: text('content').notNull(),
     likeCount: integer('like_count').notNull().default(0),

@@ -215,6 +215,33 @@ export function Choices(props: Base & { value?: number | null; options: Option[]
   )
 }
 
+/** One choice out of a few texts, as pills (e.g. a blog's kind); sends the chosen value */
+export function TextChoices(props: Base & { value?: string | null; options: { value: string; label: string }[] }) {
+  return (
+    <div class="field" role="radiogroup" aria-label={props.label}>
+      {props.label && <span class="caption">{props.label}</span>}
+      <div class="choices">
+        {props.options.map((o) => (
+          <label class="choice">
+            <input
+              type="radio"
+              name={props.field}
+              value={o.value}
+              data-field={props.field}
+              data-type="text"
+              checked={o.value === props.value}
+              aria-label={o.label}
+            />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+      {props.hint && <span class="small muted">{props.hint}</span>}
+      <p class="error" aria-live="polite" />
+    </div>
+  )
+}
+
 /** Two numbers side by side (from – to), each its own field */
 export function RangeField(props: {
   label: string

@@ -13,7 +13,6 @@ import { combinationsAdmin } from './combinations/combinations.admin'
 import {
   blogCommentsAdmin,
   imagesAdmin,
-  likesAdmin,
   notesAdmin,
   postRepliesAdmin,
   postsAdmin,
@@ -81,7 +80,6 @@ const adminApp = new Hono<AdminEnv>()
   .route('/', postsAdmin)
   .route('/', postRepliesAdmin)
   .route('/', blogCommentsAdmin)
-  .route('/', likesAdmin)
   .route('/', imagesAdmin)
   .route('/', notesAdmin)
 

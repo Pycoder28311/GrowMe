@@ -5,7 +5,6 @@ import {
   blogs,
   combinations,
   images,
-  likes,
   notes,
   plants,
   postReplies,
@@ -24,7 +23,6 @@ const TABLES = [
   { key: 'blogComments', label: 'Σχόλια άρθρων', table: blogComments, path: '/blog-comments' },
   { key: 'posts', label: 'Αναρτήσεις', table: posts, path: '/posts' },
   { key: 'postReplies', label: 'Απαντήσεις', table: postReplies, path: '/post-replies' },
-  { key: 'likes', label: 'Likes', table: likes, path: '/likes' },
   { key: 'images', label: 'Εικόνες', table: images, path: '/images' },
   { key: 'notes', label: 'Σημειώσεις', table: notes, path: '/notes' },
 ] as const

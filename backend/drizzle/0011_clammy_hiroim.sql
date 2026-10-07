@@ -1,0 +1,1 @@
+ALTER TABLE `blogs` ADD `kind` text DEFAULT 'article' NOT NULL;

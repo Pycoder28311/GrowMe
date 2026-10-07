@@ -315,11 +315,11 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
    **List and delete only** (no forms): leave out `edit`; each card then gets a delete button
    (`ItemCard` with `href={null}`). See `admin/lists.tsx`. The delete must keep counters right:
    reuse the resource's own delete function (`deletePost`, `deletePostReply`, `deleteBlogComment`,
-   `deleteLike`, `deleteNote`, `deleteUser`), never a bare `DELETE`.
+   `deleteNote`, `deleteUser`), never a bare `DELETE`.
    Build forms from `ui/`:
    - `ui/fields.tsx`: `TextField`, `TextArea` (`large` for articles), `NumberField`, `MoneyField`
      (euros on screen, cents sent), `SuggestField` (free text with suggestions), `Toggle`, `Select`,
-     `Choices`, `RangeField`, `MonthRange`
+     `Choices` (numbers), `TextChoices` (texts, e.g. a blog's kind), `RangeField`, `MonthRange`
    - `ui/repeatable-list.tsx`: `RepeatableList` (add/remove, `sortable` for drag and ↑/↓; `variants`
      for several kinds of new rows, e.g. an existing tip or a new one)
    - `ui/search-select.tsx`: `SearchSelect` + `SearchOptions` (pick one of a long list by typing;

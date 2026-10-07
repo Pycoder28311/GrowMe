@@ -8,7 +8,22 @@ const commentContent = z.string().trim().min(1).max(2000)
 
 /* ─────────────── Blogs (written by admins) ─────────────── */
 
+/** What a blog is; «balcony» ideas get their own look in the app (title under a smaller photo) */
+export const BLOG_KINDS = ['article', 'glossary', 'wiki', 'balcony'] as const
+export type BlogKind = (typeof BLOG_KINDS)[number]
+
+/** The kinds' names in Greek (dashboard) */
+export const BLOG_KIND_LABELS: Record<BlogKind, string> = {
+  article: 'Άρθρο',
+  glossary: 'Γλωσσάρι',
+  wiki: 'Wiki',
+  balcony: 'Μπαλκόνι',
+}
+
+const kind = z.enum(BLOG_KINDS)
+
 export const blogCreate = z.object({
+  kind: kind.default('article'),
   name,
   content,
   imageIds: imageIds.default([]),
@@ -16,6 +31,7 @@ export const blogCreate = z.object({
 
 /** Send only what changes; imageIds replaces the whole list */
 export const blogUpdate = z.object({
+  kind: kind.optional(),
   name: name.optional(),
   content: content.optional(),
   imageIds: imageIds.optional(),
@@ -25,7 +41,7 @@ export const blogUpdate = z.object({
  * The admin dashboard's blog form (POST/PUT /api/admin/blogs): every field, photos in order.
  * `content` is the editor's document (see rich-text.ts); it is stored as JSON text in blogs.content.
  */
-export const blogSave = z.object({ name, content: richDoc, imageIds })
+export const blogSave = z.object({ kind, name, content: richDoc, imageIds })
 
 export type BlogCreate = z.infer<typeof blogCreate>
 export type BlogSave = z.infer<typeof blogSave>
@@ -33,6 +49,7 @@ export type BlogUpdate = z.infer<typeof blogUpdate>
 
 export type Blog = {
   id: number
+  kind: BlogKind
   name: string
   /** The editor's document as JSON text, or older plain text: read it with parseRichContent() */
   content: string

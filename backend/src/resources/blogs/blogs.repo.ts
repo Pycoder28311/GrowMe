@@ -31,6 +31,7 @@ type Row = NonNullable<Awaited<ReturnType<typeof find>>>
 
 const toJson = (env: CloudflareBindings, b: Row): Blog => ({
   id: b.id,
+  kind: b.kind,
   name: b.name,
   content: b.content,
   images: toImageRefs(env, b.images),

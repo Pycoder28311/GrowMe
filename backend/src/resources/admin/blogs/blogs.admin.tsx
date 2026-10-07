@@ -1,7 +1,7 @@
-import { blogSave, parseRichContent, readingMinutes, type Blog } from '@growme/shared'
+import { BLOG_KIND_LABELS, BLOG_KINDS, blogSave, parseRichContent, readingMinutes, type Blog } from '@growme/shared'
 import { blogsRepo } from '../../blogs/blogs.repo'
 import { adminResource, numericId } from '../resource'
-import { TextField } from '../ui/fields'
+import { TextChoices, TextField } from '../ui/fields'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { formatDate } from '../ui/format'
@@ -13,7 +13,10 @@ function BlogListItem({ item, href, deleteUrl }: { item: Blog; href: string | nu
   return (
     <ItemCard
       title={item.name}
-      lines={[formatDate(item.createdAt), `❤️ ${item.likeCount} · 💬 ${item.commentCount}`]}
+      lines={[
+        `${BLOG_KIND_LABELS[item.kind]} · ${formatDate(item.createdAt)}`,
+        `❤️ ${item.likeCount} · 💬 ${item.commentCount}`,
+      ]}
       image={item.images[0]?.url}
       emoji="📖"
       href={href}
@@ -26,6 +29,14 @@ function BlogListItem({ item, href, deleteUrl }: { item: Blog; href: string | nu
 function BlogForm({ item: b }: { item: Blog | null }) {
   return (
     <>
+      <TextChoices
+        field="kind"
+        label="Είδος"
+        value={b?.kind ?? 'article'}
+        options={BLOG_KINDS.map((kind) => ({ value: kind, label: BLOG_KIND_LABELS[kind] }))}
+        hint="Το «Μπαλκόνι» φαίνεται στην εφαρμογή με τον τίτλο κάτω από μια μικρότερη φωτογραφία."
+      />
+
       <ImagePicker field="imageIds" images={b?.images ?? []} uploadUrl="/api/admin/images" />
 
       <div>

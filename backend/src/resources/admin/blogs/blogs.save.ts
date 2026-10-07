@@ -17,8 +17,8 @@ const linkStatements = (db: Store['db'], blogId: number, coverIds: number[], tex
  * The text arrives as the editor's document, already cleaned by the schema, and is stored as JSON;
  * the photos placed in it are linked in blog_content_images, and photos no longer used are deleted.
  */
-export async function saveBlog({ db, env }: Store, id: number | null, { imageIds, name, content }: BlogSave) {
-  const fields = { name, content: JSON.stringify(content) }
+export async function saveBlog({ db, env }: Store, id: number | null, { imageIds, kind, name, content }: BlogSave) {
+  const fields = { kind, name, content: JSON.stringify(content) }
   const textIds = richImageIds(content)
   if (id === null) {
     await assertAdminImages(db, [...imageIds, ...textIds])

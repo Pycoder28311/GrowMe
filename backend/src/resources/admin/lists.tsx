@@ -1,9 +1,8 @@
 import { asc, desc, eq, sql } from 'drizzle-orm'
-import { blogComments, images, likes, notes, postImages, postReplies, posts, user } from '../../db/schema'
+import { blogComments, images, notes, postImages, postReplies, posts, user } from '../../db/schema'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { deleteBlogComment } from '../blog-comments/blog-comments.repo'
 import { deleteImages, imageUrl } from '../images/images.repo'
-import { deleteLike } from '../likes/likes.repo'
 import { deleteNote } from '../notes/notes.repo'
 import { deletePostReply } from '../post-replies/post-replies.repo'
 import { deletePost } from '../posts/posts.repo'
@@ -37,13 +36,6 @@ const card =
 const withId = async (raw: string, fn: (id: number) => Promise<boolean>) => {
   const id = numericId(raw)
   return id !== null && fn(id)
-}
-
-const LIKED_TYPE_LABEL: Record<string, string> = {
-  post: 'ανάρτηση',
-  post_reply: 'απάντηση',
-  blog: 'άρθρο',
-  blog_comment: 'σχόλιο άρθρου',
 }
 
 export const usersAdmin = adminResource({
@@ -163,37 +155,6 @@ export const blogCommentsAdmin = adminResource({
   },
   remove: (ctx, raw) => withId(raw, (id) => deleteBlogComment(ctx.db, id)),
   ListItem: card('🗨️', () => 'Να διαγραφεί αυτό το σχόλιο μαζί με όλες τις απαντήσεις του;'),
-})
-
-export const likesAdmin = adminResource({
-  path: 'likes',
-  title: 'Likes',
-  async list(ctx, page) {
-    const rows = await ctx.db
-      .select({
-        id: likes.id,
-        likedType: likes.likedType,
-        likedId: likes.likedId,
-        isLike: likes.isLike,
-        createdAt: likes.createdAt,
-        userName: user.name,
-      })
-      .from(likes)
-      .innerJoin(user, eq(user.id, likes.userId))
-      .where(beforeCursor(likes.id, page))
-      .orderBy(desc(likes.id))
-      .limit(fetchLimit(page) ?? -1)
-    return mapPage(
-      toPage(rows, page, (l) => l.id),
-      (l): Item => ({
-        id: l.id,
-        title: `${l.isLike ? '👍 Like' : '👎 Dislike'} από ${l.userName}`,
-        lines: [`Σε ${LIKED_TYPE_LABEL[l.likedType]} #${l.likedId}`, formatDate(l.createdAt)],
-      }),
-    )
-  },
-  remove: (ctx, raw) => withId(raw, (id) => deleteLike(ctx.db, id)),
-  ListItem: card('👍', () => 'Να διαγραφεί αυτό το like;'),
 })
 
 export const imagesAdmin = adminResource({
