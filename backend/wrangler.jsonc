@@ -57,7 +57,7 @@
 		// Admin dashboard (Cloudflare Access). ACCESS_AUD: the "Application Audience (AUD) Tag" of the
 		// GrowMe Admin application in Cloudflare One; until it is set the admin part refuses everything.
 		"ADMIN_HOST": "admin.testingggg.lol",
-		"ADMIN_EMAILS": "kopotitore@gmail.com",
+		"ADMIN_EMAILS": "kopotitore@gmail.com,evaggeliaboukou@yahoo.com",
 		"ACCESS_TEAM_DOMAIN": "https://odd-frost-5cc5.cloudflareaccess.com",
 		"ACCESS_AUD": "a450eb1cd0ad6676fdd468acd9e085ce3c5c78765510214a3ea13e655da5c368"
 	}
