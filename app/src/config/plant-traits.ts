@@ -1,3 +1,5 @@
+import { stripBlogLinks } from '@growme/shared';
+
 // How each plant characteristic is shown on a card: an emoji and a short Greek label
 
 export type Trait = { emoji: string; label: string };
@@ -93,14 +95,15 @@ export function sunlightHoursLabel({ sunlightHoursMin: min, sunlightHoursMax: ma
 export const effortTrait = ({ difficulty }: PlantFields): Trait =>
   difficulty <= 2 ? EFFORT.easy : difficulty === 3 ? EFFORT.moderate : EFFORT.expert;
 
-// food / seeds / native are short texts written in the dashboard (e.g. «Τρώγεται ο καρπός»); empty = not shown
+// food / seeds / native are short texts written in the dashboard (e.g. «Τρώγεται ο καρπός»); empty = not shown.
+// Labels may hold blog links (`[words](blog:12)`): pages render them with LinkedText, cards strip them.
 
 /** e.g. 🍅 Τρώγεται ο καρπός */
 export const useTrait = ({ food }: PlantFields): Trait | null => (food ? { emoji: '🍅', label: food } : null);
 
 /** e.g. 🌰 Από σπόρο (🪴 for «Από φυτό») */
 export const propagationTrait = ({ seeds }: PlantFields): Trait | null =>
-  seeds ? { emoji: seeds === 'Από φυτό' ? '🪴' : '🌰', label: seeds } : null;
+  seeds ? { emoji: stripBlogLinks(seeds) === 'Από φυτό' ? '🪴' : '🌰', label: seeds } : null;
 
 /** e.g. 📍 Ιθαγενές της Μεσογείου */
 export const originTrait = ({ native }: PlantFields): Trait | null => (native ? { emoji: '📍', label: native } : null);

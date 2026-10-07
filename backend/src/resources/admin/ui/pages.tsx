@@ -52,6 +52,8 @@ export function FormPage(props: {
   listTitle: string
   api: string
   id: number | null
+  /** The Delete button's question (default: «Να διαγραφεί οριστικά;…») */
+  deleteConfirm?: string
   children: Child
 }) {
   const action = props.id === null ? props.api : `${props.api}/${props.id}`
@@ -70,7 +72,7 @@ export function FormPage(props: {
         <div class="save-bar">
           <div>
             {props.id !== null && (
-              <button type="button" class="button danger" data-delete={action}>
+              <button type="button" class="button danger" data-delete={action} data-confirm={props.deleteConfirm}>
                 Διαγραφή
               </button>
             )}

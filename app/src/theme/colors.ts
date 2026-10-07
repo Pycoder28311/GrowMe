@@ -6,6 +6,8 @@ export const colors = {
   primarySoft: '#dcefe0',
   /** Orange: the main call-to-action button */
   accent: '#f28c28',
+  /** Links to blogs inside texts (light blue, 4.7:1 on white) */
+  link: '#1e73d8',
   /** Main text */
   ink: '#1f3d24',
   /** Secondary text (ink at 70%) */

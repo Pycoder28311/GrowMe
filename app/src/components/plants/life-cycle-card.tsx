@@ -3,6 +3,7 @@ import { Fragment } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { LinkedText } from '@/components/ui/linked-text';
 import { card } from '@/components/ui/styles';
 import { colors, radius, space } from '@/theme';
 
@@ -21,9 +22,9 @@ export function LifeCycleCard({ stages }: { stages: Lifecycle[] }) {
               <AppText size="small" color={colors.inkMuted}>
                 {stage.title}
               </AppText>
-              <AppText size="small" bold color={colors.primary} style={styles.value}>
+              <LinkedText size="small" bold color={colors.primary} style={styles.value}>
                 {stage.content}
-              </AppText>
+              </LinkedText>
             </View>
           </Fragment>
         ))}

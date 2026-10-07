@@ -31,9 +31,28 @@ function toHref(typed: string): string | null {
   }
 }
 
+/** A link to another blog: `blog:12` */
+const BLOG_HREF = /^blog:(\d{1,9})$/
+
+/** Lowercase without accents: «Πότισμα» matches «ποτισμα» */
+const plain = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+/** The blogs a link can point to: rendered once in the page by the form (SearchOptions source="blogs") */
+const blogOptions = () =>
+  [...document.querySelectorAll<HTMLElement>('[data-options="blogs"] > li')].map((li) => ({
+    id: li.dataset.value ?? '',
+    label: li.dataset.label ?? '',
+    hint: li.dataset.hint ?? '',
+  }))
+
 /**
  * The link dialog of one editor: opens with the selected text (or the link under the cursor) and
- * applies text + address. Same text as before keeps its other formatting (bold…); new text replaces it.
+ * applies text + target: a web address, or a blog picked from the list («Άρθρο»). Same text as
+ * before keeps its other formatting (bold…); new text replaces it.
  */
 function linkDialog(root: HTMLElement, editor: Editor) {
   const dialog = root.querySelector<HTMLDialogElement>('[data-link-dialog]')
@@ -41,10 +60,67 @@ function linkDialog(root: HTMLElement, editor: Editor) {
   const hrefInput = root.querySelector<HTMLInputElement>('[data-link-href]')
   const error = root.querySelector<HTMLElement>('[data-link-error]')
   const removeButton = root.querySelector<HTMLButtonElement>('[data-link-remove]')
-  if (!dialog || !textInput || !hrefInput || !error || !removeButton) return () => {}
+  const saveButton = root.querySelector<HTMLButtonElement>('[data-link-save]')
+  const blogSearch = root.querySelector<HTMLInputElement>('[data-link-blog-search]')
+  const blogResults = root.querySelector<HTMLElement>('[data-link-blog-results]')
+  const blogCurrent = root.querySelector<HTMLElement>('[data-link-blog-current]')
+  if (!dialog || !textInput || !hrefInput || !error || !removeButton || !saveButton) return () => {}
+  if (!blogSearch || !blogResults || !blogCurrent) return () => {}
 
   let range = { from: 0, to: 0 }
   let originalText = ''
+
+  /** «Ιστοσελίδα» or «Άρθρο»: shows its panel; a blog is applied by clicking it, so no Apply button */
+  function showTab(tab: 'web' | 'blog') {
+    for (const button of root.querySelectorAll<HTMLElement>('[data-link-tab]')) {
+      button.setAttribute('aria-selected', String(button.dataset.linkTab === tab))
+    }
+    for (const panel of root.querySelectorAll<HTMLElement>('[data-link-panel]')) panel.hidden = panel.dataset.linkPanel !== tab
+    saveButton!.hidden = tab === 'blog'
+    if (tab === 'blog') {
+      listBlogs()
+      blogSearch!.focus()
+    } else {
+      hrefInput!.focus()
+    }
+  }
+
+  function listBlogs() {
+    const words = plain(blogSearch!.value).split(/\s+/).filter(Boolean)
+    const matches = blogOptions()
+      .filter((b) => words.every((w) => plain(`${b.label} ${b.hint}`).includes(w)))
+      .slice(0, 30)
+    blogResults!.replaceChildren(
+      ...(matches.length
+        ? matches.map((b) => {
+            const li = document.createElement('li')
+            li.setAttribute('role', 'option')
+            li.dataset.value = b.id
+            const name = document.createElement('div')
+            name.className = 'name'
+            name.textContent = b.label
+            const hint = document.createElement('div')
+            hint.className = 'small muted'
+            hint.textContent = b.hint
+            li.append(name, hint)
+            return li
+          })
+        : [Object.assign(document.createElement('li'), { className: 'none', textContent: 'Κανένα άρθρο' })]),
+    )
+  }
+
+  /** Puts the link on the range: same text keeps its formatting, new text replaces it */
+  function setLink(href: string, text: string) {
+    const chain = editor.chain().focus()
+    if (range.from !== range.to && text === originalText) {
+      chain.setTextSelection(range).setLink({ href }).setTextSelection(range.to)
+    } else {
+      chain.insertContentAt(range, { type: 'text', text, marks: [{ type: 'link', attrs: { href } }] })
+    }
+    // The cursor is now right after the link: typing there continues as normal text
+    chain.unsetMark('link').run()
+    dialog!.close()
+  }
 
   const close = () => {
     dialog.close()
@@ -58,16 +134,11 @@ function linkDialog(root: HTMLElement, editor: Editor) {
       hrefInput!.focus()
       return
     }
-    const text = textInput!.value.trim() || hrefInput!.value.trim()
-    const chain = editor.chain().focus()
-    if (range.from !== range.to && text === originalText) {
-      chain.setTextSelection(range).setLink({ href }).setTextSelection(range.to)
-    } else {
-      chain.insertContentAt(range, { type: 'text', text, marks: [{ type: 'link', attrs: { href } }] })
-    }
-    // The cursor is now right after the link: typing there continues as normal text
-    chain.unsetMark('link').run()
-    dialog!.close()
+    setLink(href, textInput!.value.trim() || hrefInput!.value.trim())
+  }
+
+  function pickBlog(id: string, label: string) {
+    setLink(`blog:${id}`, textInput!.value.trim() || label)
   }
 
   function remove() {
@@ -85,6 +156,20 @@ function linkDialog(root: HTMLElement, editor: Editor) {
     })
   }
   hrefInput.addEventListener('input', () => (error.textContent = ''))
+  for (const button of root.querySelectorAll<HTMLElement>('[data-link-tab]')) {
+    button.addEventListener('click', () => showTab(button.dataset.linkTab === 'blog' ? 'blog' : 'web'))
+  }
+  blogSearch.addEventListener('input', listBlogs)
+  blogSearch.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault() // never sends the form; Enter picks the first result
+    const first = blogResults.querySelector<HTMLElement>('li[data-value]')
+    if (first) pickBlog(first.dataset.value ?? '', first.querySelector('.name')?.textContent ?? '')
+  })
+  blogResults.addEventListener('click', (event) => {
+    const li = (event.target as HTMLElement).closest<HTMLElement>('li[data-value]')
+    if (li) pickBlog(li.dataset.value ?? '', li.querySelector('.name')?.textContent ?? '')
+  })
   root.querySelector('[data-link-save]')?.addEventListener('click', apply)
   root.querySelector('[data-link-cancel]')?.addEventListener('click', close)
   removeButton.addEventListener('click', remove)
@@ -100,11 +185,17 @@ function linkDialog(root: HTMLElement, editor: Editor) {
     range = { from, to }
     originalText = editor.state.doc.textBetween(from, to, ' ')
     textInput.value = originalText
-    hrefInput.value = editing ? ((editor.getAttributes('link').href as string | undefined) ?? '') : ''
+    const href = editing ? ((editor.getAttributes('link').href as string | undefined) ?? '') : ''
+    const blogId = href.match(BLOG_HREF)?.[1]
+    hrefInput.value = blogId ? '' : href
+    blogSearch.value = ''
+    const current = blogId && blogOptions().find((b) => b.id === blogId)
+    blogCurrent.textContent = blogId ? `Τώρα: ${current ? current.label : 'άρθρο που δεν υπάρχει πια'}` : ''
     error.textContent = ''
     removeButton.hidden = !editing
     dialog.showModal()
-    ;(originalText ? hrefInput : textInput).focus()
+    showTab(blogId ? 'blog' : 'web')
+    if (!originalText) textInput.focus()
   }
 }
 
@@ -173,6 +264,8 @@ function mount(root: HTMLElement) {
           openOnClick: false, // handleClick below opens links (in a new tab)
           autolink: true,
           defaultProtocol: 'https',
+          // Links to other blogs (`blog:12`) besides web and email links
+          isAllowedUri: (url, ctx) => BLOG_HREF.test(url) || ctx.defaultValidate(url),
           HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: null },
         },
       }),
@@ -209,7 +302,10 @@ function mount(root: HTMLElement) {
       handleClick: (_view, _pos, event) => {
         const anchor = (event.target as HTMLElement | null)?.closest?.('a[href]')
         const href = anchor?.getAttribute('href')
-        if (href && /^(https?:\/\/|mailto:)/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer')
+        const blogId = href?.match(BLOG_HREF)?.[1]
+        // A blog link opens that blog's form
+        if (blogId) window.open(`/blogs/${blogId}`, '_blank', 'noopener')
+        else if (href && /^(https?:\/\/|mailto:)/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer')
         return false
       },
     },

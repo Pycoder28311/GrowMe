@@ -1,11 +1,14 @@
-import { tipSave, type Tip, type TipSummary } from '@growme/shared'
+import { blogLinkIds, tipSave, type Tip, type TipSummary } from '@growme/shared'
 import { asc, eq } from 'drizzle-orm'
 import { plants, plantTips, tips } from '../../../db/schema'
+import { assertBlogLinks, blogLinkOptions } from '../../blogs/blog-links'
 import { tipsRepo } from '../../tips/tips.repo'
 import { adminResource, numericId } from '../resource'
 import { TextArea, TextField } from '../ui/fields'
 import { snippet } from '../ui/format'
+import { BlogLinkPicker } from '../ui/blog-link-picker'
 import { FormSection, ItemCard } from '../ui/pages'
+import type { SearchOption } from '../ui/search-select'
 
 /** A tip with the plants that show it (for «Χρησιμοποιείται σε») */
 type TipWithPlants = Tip & { plants: { id: number; name: string }[] }
@@ -25,11 +28,12 @@ function TipListItem({ item, href, deleteUrl }: { item: TipSummary; href: string
 }
 
 /** The tip form: title and text; an existing tip lists the plants it is on */
-function TipForm({ item: t }: { item: TipWithPlants | null }) {
+function TipForm({ item: t, options }: { item: TipWithPlants | null; options: SearchOption[] }) {
   return (
     <>
       <TextField field="title" value={t?.title} size="big" placeholder="Τίτλος συμβουλής" required />
-      <TextArea field="content" value={t?.content} placeholder="Η συμβουλή" rows={6} required />
+      <TextArea field="content" value={t?.content} placeholder="Η συμβουλή" rows={6} required blogLinks />
+      <BlogLinkPicker options={options} />
       {t && (
         <FormSection title="Χρησιμοποιείται σε">
           {t.plants.length === 0 ? (
@@ -76,11 +80,12 @@ export const tipsAdmin = adminResource({
       return { ...tip, plants: used }
     },
     async save(ctx, id, input) {
+      await assertBlogLinks(ctx.db, [{ path: 'content', ids: blogLinkIds(input.content) }])
       if (id === null) return { id: (await ctx.db.insert(tips).values(input).returning({ id: tips.id }).get()).id }
       const row = await ctx.db.update(tips).set(input).where(eq(tips.id, id)).returning({ id: tips.id }).get()
       return row ?? null
     },
-    options: async () => undefined,
+    options: (ctx) => blogLinkOptions(ctx.db),
     itemTitle: (t) => t.title,
     Form: TipForm,
   },

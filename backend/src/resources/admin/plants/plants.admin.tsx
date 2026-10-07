@@ -1,6 +1,7 @@
 import { PLANT_TRAIT_SUGGESTIONS, plantSave, type Plant, type PlantSummary, type Tip } from '@growme/shared'
 import { combinationsRepo } from '../../combinations/combinations.repo'
 import { plantsRepo } from '../../plants/plants.repo'
+import { blogLinkOptions } from '../../blogs/blog-links'
 import { tipsRepo } from '../../tips/tips.repo'
 import { adminResource, numericId } from '../resource'
 import {
@@ -15,6 +16,7 @@ import {
   type Option,
 } from '../ui/fields'
 import { snippet } from '../ui/format'
+import { BlogLinkPicker } from '../ui/blog-link-picker'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { RepeatableList } from '../ui/repeatable-list'
@@ -54,11 +56,11 @@ function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: st
   )
 }
 
-/** Title + text rows (lifecycles and new tips share it) */
+/** Title + text rows (lifecycles and new tips share it); the text may link to blogs */
 const TitledText = (props: { title?: string; content?: string; titleLabel: string }) => (
   <>
     <TextField field="title" value={props.title} placeholder={props.titleLabel} required />
-    <TextArea field="content" value={props.content} placeholder="Κείμενο" rows={2} required />
+    <TextArea field="content" value={props.content} placeholder="Κείμενο" rows={2} required blogLinks />
   </>
 )
 
@@ -97,11 +99,12 @@ const TraitFact = (props: { emoji: string; field: keyof typeof PLANT_TRAIT_SUGGE
       value={props.value}
       suggestions={PLANT_TRAIT_SUGGESTIONS[props.field]}
       placeholder="Διάλεξε ή γράψε (κενό = δεν εμφανίζεται)"
+      blogLinks
     />
   </div>
 )
 
-type PlantOptions = { combinations: Option[]; tips: SearchOption[] }
+type PlantOptions = { combinations: Option[]; tips: SearchOption[]; blogs: SearchOption[] }
 
 /** The plant form: laid out like the app's plant page (photos, name and price, facts, care, more) */
 function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOptions }) {
@@ -200,18 +203,27 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
               <TextField field="title" value={d?.title} placeholder="Ασθένεια" required />
               <TextField field="label" value={d?.label} placeholder="Ετικέτα (προαιρετική)" nullable maxLength={100} />
             </div>
-            <TextArea field="content" value={d?.content} placeholder="Τι κάνει και πώς αντιμετωπίζεται" rows={2} required />
+            <TextArea
+              field="content"
+              value={d?.content}
+              placeholder="Τι κάνει και πώς αντιμετωπίζεται"
+              rows={2}
+              required
+              blogLinks
+            />
           </>
         )}
       />
 
       <FormSection title="Περιγραφή">
-        <TextArea field="description" value={p?.description} placeholder="Λίγα λόγια για το φυτό" rows={4} nullable />
+        <TextArea field="description" value={p?.description} placeholder="Λίγα λόγια για το φυτό" rows={4} nullable blogLinks />
       </FormSection>
 
       <FormSection title="Συνδυασμοί">
         <Select field="combinationId" value={p?.combinationId} options={options.combinations} none="Κανένας" />
       </FormSection>
+
+      <BlogLinkPicker options={options.blogs} />
     </>
   )
 }
@@ -232,9 +244,10 @@ export const plantsAdmin = adminResource({
     get: (ctx, id) => plantsRepo.get(ctx, id),
     save: savePlant,
     options: async (ctx): Promise<PlantOptions> => {
-      const [combinations, tips] = await Promise.all([
+      const [combinations, tips, blogs] = await Promise.all([
         combinationsRepo.list(ctx, null, undefined),
         tipsRepo.list(ctx, null, undefined),
+        blogLinkOptions(ctx.db),
       ])
       return {
         combinations: combinations.items.map((c) => ({ value: c.id, label: c.title })),
@@ -244,6 +257,7 @@ export const plantsAdmin = adminResource({
           hint: `${snippet(t.content, 80)} · σε ${t.plantCount} ${t.plantCount === 1 ? 'φυτό' : 'φυτά'}`,
           data: { content: t.content },
         })),
+        blogs,
       }
     },
     itemTitle: (p) => p.name,

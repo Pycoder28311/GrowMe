@@ -1,4 +1,4 @@
-import type { PlantSave } from '@growme/shared'
+import { blogLinkIds, type PlantSave } from '@growme/shared'
 import { and, asc, eq, inArray, notExists } from 'drizzle-orm'
 import type { Db } from '../../../db'
 import { combinations, diseases, lifecycles, plantImages, plants, plantTips, tips } from '../../../db/schema'
@@ -13,6 +13,7 @@ import {
   type ChildTable,
   type LinkTable,
 } from '../../../lib/relations'
+import { assertBlogLinks } from '../../blogs/blog-links'
 import { assertAdminImages, deleteImages } from '../../images/images.repo'
 import { plantImageLinks } from '../../plants/plants.repo'
 
@@ -90,6 +91,14 @@ const childStatements = (db: Db, plantId: number, input: PlantSave, tipIds: numb
   ...replaceLinks(db, plantImageLinks, plantId, input.imageIds),
 ]
 
+/** Every text of the form that may link to blogs, with its path for errors */
+const linkFields = (input: PlantSave) => [
+  ...(['description', 'food', 'seeds', 'native'] as const).map((key) => ({ path: key, ids: blogLinkIds(input[key]) })),
+  ...input.lifecycles.map((row, i) => ({ path: `lifecycles.${i}.content`, ids: blogLinkIds(row.content) })),
+  ...input.tips.map((row, i) => ({ path: `tips.${i}.content`, ids: 'tipId' in row ? [] : blogLinkIds(row.content) })),
+  ...input.diseases.map((row, i) => ({ path: `diseases.${i}.content`, ids: blogLinkIds(row.content) })),
+]
+
 /** Removes the tips created for a save that then failed (no stray library entries) */
 const forgetTips = (db: Db, created: number[]) =>
   created.length > 0 ? db.delete(tips).where(inArray(tips.id, created)) : Promise.resolve()
@@ -109,6 +118,7 @@ export async function savePlant(
     await assertExists(db, combinations, combinations.id, fields.combinationId, 'combinationId')
   }
   await assertTipsExist(db, input.tips)
+  await assertBlogLinks(db, linkFields(input))
 
   if (id === null) {
     await assertAdminImages(db, imageIds)

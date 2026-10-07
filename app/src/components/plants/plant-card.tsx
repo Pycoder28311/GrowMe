@@ -6,7 +6,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
-import type { PlantSummary } from '@growme/shared';
+import { stripBlogLinks, type PlantSummary } from '@growme/shared';
 import {
   effortTrait,
   originTrait,
@@ -25,7 +25,7 @@ const PHOTO_SIZE = 98;
 function TraitLabel({ trait }: { trait: Trait }) {
   return (
     <AppText size="small" numberOfLines={1}>
-      {trait.emoji} {trait.label}
+      {trait.emoji} {stripBlogLinks(trait.label)}
     </AppText>
   );
 }
@@ -97,7 +97,7 @@ export function PlantCard({ plant }: { plant: PlantSummary }) {
           {propagation ? (
             <View style={styles.propagation}>
               <AppText size="small" bold color={colors.primary} numberOfLines={1}>
-                {propagation.emoji} {propagation.label}
+                {propagation.emoji} {stripBlogLinks(propagation.label)}
               </AppText>
             </View>
           ) : (

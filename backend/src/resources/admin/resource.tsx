@@ -24,6 +24,8 @@ export type AdminEdit<TItem, TSave, TOptions> = {
   options: (ctx: Ctx) => Promise<TOptions>
   /** Title shown on an existing item's form */
   itemTitle: (item: TItem) => string
+  /** The question the form's Delete button asks (e.g. how many texts link to a blog) */
+  deleteConfirm?: (item: TItem) => string
   Form: FC<{ item: TItem | null; options: TOptions }>
 }
 
@@ -106,6 +108,7 @@ export function adminResource<
       listTitle={r.title}
       api={api}
       id={id}
+      deleteConfirm={item && edit.deleteConfirm ? edit.deleteConfirm(item) : undefined}
     >
       <edit.Form item={item} options={options} />
     </FormPage>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { visibleLength } from './blog-links'
 import { entityId, imageIds, queryId, type ImageRef } from './common'
 
 const title = z.string().trim().min(1).max(200)
@@ -18,8 +19,16 @@ const rangesInOrder = (p: {
 
 const rangeMessage = { message: 'Minimum must not be larger than maximum' }
 
-/** food / native / seeds: a short text, empty = not shown */
-const trait = z.string().trim().max(60).nullable()
+/**
+ * food / native / seeds: a short text, empty = not shown. It may hold blog links: 60 characters
+ * of what a reader sees, the markers aside (the message matches the usual one)
+ */
+const trait = z
+  .string()
+  .trim()
+  .max(400)
+  .refine((t) => visibleLength(t) <= 60, { message: 'Too big: expected string to have <=60 characters' })
+  .nullable()
 
 /** What the dashboard suggests for each trait (any other text is fine too) */
 export const PLANT_TRAIT_SUGGESTIONS = {

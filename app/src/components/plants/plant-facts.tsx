@@ -2,6 +2,7 @@ import type { PlantSummary } from '@growme/shared';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { LinkedText } from '@/components/ui/linked-text';
 import { card } from '@/components/ui/styles';
 import {
   effortTrait,
@@ -19,7 +20,7 @@ function FactRow({ trait }: { trait: Trait }) {
   return (
     <View style={styles.factRow}>
       <AppText style={styles.emoji}>{trait.emoji}</AppText>
-      <AppText>{trait.label}</AppText>
+      <LinkedText>{trait.label}</LinkedText>
     </View>
   );
 }
@@ -29,9 +30,9 @@ function InfoPill({ emoji, text }: { emoji: string; text: string }) {
   return (
     <View style={styles.pill}>
       <AppText style={styles.emoji}>{emoji}</AppText>
-      <AppText color={colors.primary} style={styles.pillText}>
+      <LinkedText color={colors.primary} style={styles.pillText}>
         {text}
-      </AppText>
+      </LinkedText>
     </View>
   );
 }

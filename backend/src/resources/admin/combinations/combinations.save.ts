@@ -1,10 +1,11 @@
-import type { CombinationSave } from '@growme/shared'
+import { blogLinkIds, type CombinationSave } from '@growme/shared'
 import { and, eq, inArray, notInArray } from 'drizzle-orm'
 import type { Db } from '../../../db'
 import { combinations, plants } from '../../../db/schema'
 import type { Store } from '../../../lib/crud'
 import { HttpError } from '../../../lib/errors'
 import { runBatch } from '../../../lib/relations'
+import { assertBlogLinks } from '../../blogs/blog-links'
 
 /** Throws 400 UNKNOWN_REFERENCE at "plantIds.<i>" for plants that don't exist */
 async function assertPlantsExist(db: Db, plantIds: number[]) {
@@ -38,6 +39,7 @@ const plantStatements = (db: Db, combinationId: number, plantIds: number[]) => [
  */
 export async function saveCombination({ db }: Store, id: number | null, { plantIds, ...fields }: CombinationSave) {
   await assertPlantsExist(db, plantIds)
+  await assertBlogLinks(db, [{ path: 'description', ids: blogLinkIds(fields.description) }])
 
   if (id === null) {
     const { id: newId } = await db.insert(combinations).values(fields).returning({ id: combinations.id }).get()

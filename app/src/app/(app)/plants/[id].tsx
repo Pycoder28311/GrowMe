@@ -6,6 +6,7 @@ import { LifeCycleCard } from '@/components/plants/life-cycle-card';
 import { PlantFacts } from '@/components/plants/plant-facts';
 import { PlantGallery } from '@/components/plants/plant-gallery';
 import { AppText } from '@/components/ui/app-text';
+import { LinkedText } from '@/components/ui/linked-text';
 import { BulletList } from '@/components/ui/bullet-list';
 import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
@@ -67,7 +68,7 @@ export default function PlantScreen() {
             <BulletList
               items={plant.tips.map((tip) => (
                 <>
-                  <AppText bold>{tip.title}:</AppText> {tip.content}
+                  <AppText bold>{tip.title}:</AppText> <LinkedText>{tip.content}</LinkedText>
                 </>
               ))}
             />
@@ -82,7 +83,7 @@ export default function PlantScreen() {
                     {disease.title}
                     {disease.label ? ` (${disease.label})` : ''}:
                   </AppText>{' '}
-                  {disease.content}
+                  <LinkedText>{disease.content}</LinkedText>
                 </>
               ))}
             />
@@ -90,7 +91,7 @@ export default function PlantScreen() {
         )}
         {plant.description && (
           <Section title="Περιγραφή">
-            <AppText>{plant.description}</AppText>
+            <LinkedText>{plant.description}</LinkedText>
           </Section>
         )}
 

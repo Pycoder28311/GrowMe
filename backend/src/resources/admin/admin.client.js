@@ -1,7 +1,7 @@
 // The dashboard's browser script, served as /admin.js (plain JS, no build step). It works on the
 // markup of resources/admin/ui: list pages' delete buttons (data-delete-item), forms (data-admin-form),
 // lists (data-list, data-sortable), photos (data-images), fields (data-field + data-type) and pickers
-// (data-search-select, data-checks).
+// (data-search-select, data-checks), and blog links in texts (data-blog-links, BlogLinkPicker).
 // The server validates everything again.
 ;(() => {
   'use strict'
@@ -147,6 +147,7 @@
     [/^Plant picked twice$/, 'Αυτό το φυτό είναι ήδη επιλεγμένο'],
     [/^Unknown tipId$/, 'Μια συμβουλή δεν βρέθηκε (ίσως διαγράφηκε). Διάλεξε άλλη.'],
     [/^Unknown plantIds$/, 'Ένα φυτό δεν βρέθηκε (ίσως διαγράφηκε). Ανανέωσε τη σελίδα.'],
+    [/^Unknown blog link$/, 'Ο σύνδεσμος δείχνει σε άρθρο που δεν υπάρχει (ή στο ίδιο το άρθρο)'],
   ]
   const greek = (message) => {
     for (const [pattern, text] of GREEK) {
@@ -239,7 +240,7 @@
   })
 
   form.querySelector('[data-delete]')?.addEventListener('click', async (event) => {
-    if (!confirm('Να διαγραφεί οριστικά; Δεν αναιρείται.')) return
+    if (!confirm(event.currentTarget.dataset.confirm || 'Να διαγραφεί οριστικά; Δεν αναιρείται.')) return
     clearErrors()
     busy(true)
     try {
@@ -530,7 +531,7 @@
 
   // mousedown, so the pick happens before the box loses focus
   form.addEventListener('mousedown', (event) => {
-    const li = event.target.closest('.search-results li[data-value]')
+    const li = event.target.closest('[data-search-select] .search-results li[data-value]')
     if (!li) return
     event.preventDefault()
     pick(boxOf(li), li.dataset.value)
@@ -586,10 +587,172 @@
     })
   }
 
+  /* ─────────────── Blog links in texts: select words, pick a blog → [words](blog:12) ─────────────── */
+
+  const BLOG_LINK = /\[([^[\]\n]{1,200})\]\(blog:(\d{1,9})\)/g
+  const pill = form.querySelector('[data-blog-link-pill]')
+  const linkDialog = form.querySelector('[data-blog-link-dialog]')
+  /** What the dialog works on: the field, the range to replace, the words, and the link being edited */
+  let linking = null
+
+  const blogTitle = (id) =>
+    document.querySelector(`[data-options="blogs"] > li[data-value="${CSS.escape(String(id))}"]`)?.dataset.label
+
+  /** The links of a text: their place, words and blog */
+  const linksOf = (text) =>
+    [...text.matchAll(BLOG_LINK)].map((m) => ({ start: m.index, end: m.index + m[0].length, words: m[1], id: m[2] }))
+
+  /**
+   * What the selection of a field can become: a new link (some words selected), the link the
+   * cursor is in (to change or remove), or null (nothing selected, or brackets / a line break /
+   * part of another link in the selection)
+   */
+  function linkTarget(field) {
+    let start = field.selectionStart
+    let end = field.selectionEnd
+    if (start == null) return null
+    const value = field.value
+    const links = linksOf(value)
+    // In a link: the cursor after its first character, or a selection within it (all of it too)
+    const inside = links.find((l) => start >= l.start && end <= l.end && (start > l.start || end > start))
+    if (inside) return { field, start: inside.start, end: inside.end, words: inside.words, id: inside.id }
+    while (start < end && /\s/.test(value[start])) start++
+    while (end > start && /\s/.test(value[end - 1])) end--
+    if (start === end) return null
+    const words = value.slice(start, end)
+    if (/[[\]\n]/.test(words) || words.length > 200) return null
+    if (links.some((l) => start < l.end && end > l.start)) return null
+    return { field, start, end, words, id: null }
+  }
+
+  /** The «🔗» button over the field while words are selected (or the cursor is in a link) */
+  function updatePill(field) {
+    if (!pill) return
+    const target = field && document.activeElement === field ? linkTarget(field) : null
+    if (!target) {
+      pill.hidden = true
+      return
+    }
+    pill.textContent = target.id ? '🔗 Αλλαγή συνδέσμου' : '🔗 Σύνδεσμος σε άρθρο'
+    const box = field.getBoundingClientRect()
+    pill.style.top = `${box.top + window.scrollY - 36}px`
+    pill.style.left = `${box.right + window.scrollX - 220}px`
+    pill.hidden = false
+    pill.linkField = field
+  }
+
+  /** Under each linked field: «λέξη → Τίτλος», so the markers stay readable */
+  function updateLinksLine(field) {
+    const line = field.closest('.field')?.querySelector('[data-links-line]')
+    if (!line) return
+    line.textContent = linksOf(field.value)
+      .map((l) => `🔗 ${l.words} → ${blogTitle(l.id) ?? `άρθρο #${l.id} (δεν βρέθηκε)`}`)
+      .join(' · ')
+  }
+
+  for (const type of ['select', 'keyup', 'mouseup', 'focusin']) {
+    form.addEventListener(type, (event) => {
+      if (event.target.matches?.('[data-blog-links]')) updatePill(event.target)
+    })
+  }
+  form.addEventListener('focusout', (event) => {
+    if (event.target.matches?.('[data-blog-links]')) setTimeout(() => updatePill(document.activeElement), 150)
+  })
+  // Keeps the field's selection while the button is pressed
+  pill?.addEventListener('mousedown', (event) => event.preventDefault())
+  pill?.addEventListener('click', () => {
+    const target = pill.linkField && linkTarget(pill.linkField)
+    if (target) openLinkDialog(target)
+  })
+
+  function listBlogs() {
+    const results = linkDialog.querySelector('[data-blog-link-results]')
+    const words = plain(linkDialog.querySelector('[data-blog-link-search]').value).split(/\s+/).filter(Boolean)
+    const matches = [...document.querySelectorAll('[data-options="blogs"] > li')]
+      .filter((o) => words.every((w) => plain(`${o.dataset.label} ${o.dataset.hint || ''}`).includes(w)))
+      .slice(0, 30)
+    results.replaceChildren(
+      ...(matches.length
+        ? matches.map((o) => {
+            const li = document.createElement('li')
+            li.setAttribute('role', 'option')
+            li.dataset.value = o.dataset.value
+            if (o.dataset.value === linking?.id) li.className = 'active'
+            const name = document.createElement('div')
+            name.className = 'name'
+            name.textContent = o.dataset.label
+            const hint = document.createElement('div')
+            hint.className = 'small muted'
+            hint.textContent = o.dataset.hint || ''
+            li.append(name, hint)
+            return li
+          })
+        : [Object.assign(document.createElement('li'), { className: 'none', textContent: 'Κανένα άρθρο' })]),
+    )
+  }
+
+  function openLinkDialog(target) {
+    linking = target
+    linkDialog.querySelector('[data-blog-link-words]').textContent = `«${target.words}»`
+    linkDialog.querySelector('[data-blog-link-remove]').hidden = !target.id
+    const search = linkDialog.querySelector('[data-blog-link-search]')
+    search.value = ''
+    listBlogs()
+    pill.hidden = true
+    linkDialog.showModal()
+    search.focus()
+  }
+
+  /** Replaces the linked range with `text`, puts the cursor after it and tells the form */
+  function replaceRange(text) {
+    const { field, start, end } = linking
+    field.value = field.value.slice(0, start) + text + field.value.slice(end)
+    linkDialog.close()
+    field.focus()
+    field.setSelectionRange(start + text.length, start + text.length)
+    field.dispatchEvent(new Event('input', { bubbles: true }))
+    linking = null
+  }
+
+  if (linkDialog) {
+    linkDialog.querySelector('[data-blog-link-search]').addEventListener('input', listBlogs)
+    linkDialog.querySelector('[data-blog-link-search]').addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return
+      event.preventDefault() // never sends the form; Enter picks the first result
+      const first = linkDialog.querySelector('[data-blog-link-results] li[data-value]')
+      if (first) replaceRange(`[${linking.words}](blog:${first.dataset.value})`)
+    })
+    linkDialog.querySelector('[data-blog-link-results]').addEventListener('click', (event) => {
+      const li = event.target.closest('li[data-value]')
+      if (li) replaceRange(`[${linking.words}](blog:${li.dataset.value})`)
+    })
+    linkDialog.querySelector('[data-blog-link-remove]').addEventListener('click', () => replaceRange(linking.words))
+    const cancel = () => {
+      const field = linking?.field
+      linkDialog.close()
+      linking = null
+      field?.focus()
+    }
+    linkDialog.querySelector('[data-blog-link-cancel]').addEventListener('click', cancel)
+    linkDialog.addEventListener('cancel', (event) => {
+      event.preventDefault() // Esc
+      cancel()
+    })
+  }
+
+  form.addEventListener('input', (event) => {
+    if (event.target.matches?.('[data-blog-links]')) {
+      updateLinksLine(event.target)
+      updatePill(event.target)
+    }
+  })
+  for (const field of form.querySelectorAll('[data-blog-links]')) updateLinksLine(field)
+
   /* ─────────────── Start ─────────────── */
 
   for (const list of form.querySelectorAll('[data-sortable]')) refresh(list)
   form.addEventListener('input', (event) => {
+    if (event.target.closest?.('dialog')) return // typing in a dialog's search changes nothing yet
     dirty = true
     // Editing a field clears its error
     const field = event.target.closest?.('.field.invalid')

@@ -1,9 +1,19 @@
-import type { ImageRef, RichBlock, RichDoc, RichImage, RichInline, RichListItem, RichMark } from '@growme/shared';
+import {
+  blogIdOfHref,
+  type ImageRef,
+  type RichBlock,
+  type RichDoc,
+  type RichImage,
+  type RichInline,
+  type RichListItem,
+  type RichMark,
+} from '@growme/shared';
 import { Image } from 'expo-image';
 import { createContext, Fragment, useContext } from 'react';
 import { Linking, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { useBlogPreview } from '@/lib/blog-preview';
 import { colors, fontFamily, radius, space } from '@/theme';
 
 // Shows an article written with the dashboard's editor: headings, paragraphs, lists, quotes, lines,
@@ -12,8 +22,8 @@ import { colors, fontFamily, radius, space } from '@/theme';
 /** Image URLs by id (the document stores only ids) */
 const ImageUrls = createContext<Map<number, string>>(new Map());
 
-/** Opens web and email links only (the server allows nothing else either) */
-const openLink = (href: string) => {
+/** Opens web and email links (the server allows nothing else, besides blog links) */
+const openWebLink = (href: string) => {
   if (/^(https?:\/\/|mailto:)/i.test(href)) Linking.openURL(href).catch(() => {});
 };
 
@@ -23,9 +33,11 @@ function markStyle(marks: RichMark[] = []): TextStyle {
   for (const mark of marks) {
     if (mark.type === 'bold') style.fontFamily = fontFamily.bold;
     if (mark.type === 'italic') style.fontStyle = 'italic';
-    if (mark.type === 'underline' || mark.type === 'link') lines.push('underline');
+    // Web links: green and underlined; links to blogs: blue (like blog links in other texts)
+    const blogLink = mark.type === 'link' && blogIdOfHref(mark.attrs.href) !== null;
+    if (mark.type === 'underline' || (mark.type === 'link' && !blogLink)) lines.push('underline');
     if (mark.type === 'strike') lines.push('line-through');
-    if (mark.type === 'link') style.color = colors.primary;
+    if (mark.type === 'link') style.color = blogLink ? colors.link : colors.primary;
   }
   if (lines.length) style.textDecorationLine = lines.join(' ') as TextStyle['textDecorationLine'];
   return style;
@@ -33,6 +45,12 @@ function markStyle(marks: RichMark[] = []): TextStyle {
 
 /** The text pieces of a paragraph or heading, nested inside its AppText */
 function Inlines({ content }: { content?: RichInline[] }) {
+  const openBlog = useBlogPreview();
+  const openLink = (href: string) => {
+    const blogId = blogIdOfHref(href);
+    if (blogId !== null) openBlog(blogId);
+    else openWebLink(href);
+  };
   return (
     <>
       {(content ?? []).map((node, i) => {

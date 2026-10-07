@@ -2,6 +2,7 @@ import { DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-ro
 
 import { AppShell } from '@/components/layout/app-shell';
 import type { NavId } from '@/config/app';
+import { BlogPreviewProvider } from '@/lib/blog-preview';
 import { ExploreFiltersProvider } from '@/lib/explore-filters';
 
 // The pages paint no background of their own, so the shell's photos and washes show through
@@ -35,7 +36,10 @@ export default function AppLayout() {
         onNavigate={(id) => router.navigate(TAB_ROUTES[id])}
         background={pathname === '/' ? 'scene' : 'plain'}>
         <ThemeProvider value={SHELL_THEME}>
-          <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+          {/* Blue blog links in texts open their panel over any page */}
+          <BlogPreviewProvider>
+            <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+          </BlogPreviewProvider>
         </ThemeProvider>
       </AppShell>
     </ExploreFiltersProvider>

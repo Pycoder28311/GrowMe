@@ -322,6 +322,12 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
      `Choices` (numbers), `TextChoices` (texts, e.g. a blog's kind), `RangeField`, `MonthRange`
    - `ui/repeatable-list.tsx`: `RepeatableList` (add/remove, `sortable` for drag and ↑/↓; `variants`
      for several kinds of new rows, e.g. an existing tip or a new one)
+   - **Blog links in texts:** `blogLinks` on `TextArea` / `TextField` / `SuggestField` plus one
+     `<BlogLinkPicker options={await blogLinkOptions(ctx.db)} />` in the form (`ui/blog-link-picker.tsx`).
+     Selected words become `[words](blog:12)` (in the article editor: a link with href `blog:12`).
+     The save calls `assertBlogLinks()` (`resources/blogs/blog-links.ts`) with each field's
+     `blogLinkIds()`; the app shows the text with `LinkedText` (blue words, a tap opens the blog's
+     panel) and cards use `stripBlogLinks()`
    - `ui/search-select.tsx`: `SearchSelect` + `SearchOptions` (pick one of a long list by typing;
      the options are rendered once per page) and `CheckPicker` (a checklist with search, sent as an
      array of ids). Search is in the browser: fine up to a few thousand rows

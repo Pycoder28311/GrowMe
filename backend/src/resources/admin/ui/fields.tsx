@@ -7,6 +7,8 @@ import type { Child } from 'hono/jsx'
 //   money  → euros typed, cents sent (3.5 → 350)           bool   → checkbox checked
 //   id     → number, left out when empty (new list rows)
 // Pickers (search-select.tsx) add: a searchable single choice (number) and a checklist (array of ids).
+// `blogLinks` on a text field lets the admin turn selected words into a blog link (`[words](blog:12)`,
+// see blog-link-picker.tsx); the form must render a BlogLinkPicker.
 
 type Base = {
   /** Key in the JSON body, e.g. "name" (relative to the row inside lists) */
@@ -16,13 +18,14 @@ type Base = {
   hint?: string
 }
 
-/** The wrapper every field shares: caption, the input, then hint and error lines */
-function Field(props: { label?: string; hint?: string; class?: string; children: Child }) {
+/** The wrapper every field shares: caption, the input, then hint, blog links and error lines */
+function Field(props: { label?: string; hint?: string; class?: string; blogLinks?: boolean; children: Child }) {
   return (
     <label class={props.class ? `field ${props.class}` : 'field'}>
       {props.label && <span class="caption">{props.label}</span>}
       {props.children}
       {props.hint && <span class="small muted">{props.hint}</span>}
+      {props.blogLinks && <span class="small muted links-line" data-links-line />}
       <p class="error" aria-live="polite" />
     </label>
   )
@@ -36,13 +39,15 @@ export function TextField(
     placeholder?: string
     maxLength?: number
     required?: boolean
+    blogLinks?: boolean
   },
 ) {
   return (
-    <Field label={props.label} hint={props.hint}>
+    <Field label={props.label} hint={props.hint} blogLinks={props.blogLinks}>
       <input
         type="text"
         class={props.size && props.size !== 'normal' ? props.size : undefined}
+        data-blog-links={props.blogLinks ? '' : undefined}
         data-field={props.field}
         data-type="text"
         data-nullable={props.nullable ? '' : undefined}
@@ -64,12 +69,14 @@ export function TextArea(
     placeholder?: string
     required?: boolean
     maxLength?: number
+    blogLinks?: boolean
   },
 ) {
   return (
-    <Field label={props.label} hint={props.hint}>
+    <Field label={props.label} hint={props.hint} blogLinks={props.blogLinks}>
       <textarea
         data-field={props.field}
+        data-blog-links={props.blogLinks ? '' : undefined}
         data-type="text"
         data-nullable={props.nullable ? '' : undefined}
         rows={props.rows ?? 3}
@@ -129,21 +136,28 @@ export function MoneyField(props: Base & { cents?: number | null; placeholder?: 
  * Empty sends null.
  */
 export function SuggestField(
-  props: Base & { value?: string | null; suggestions: readonly string[]; placeholder?: string; maxLength?: number },
+  props: Base & {
+    value?: string | null
+    suggestions: readonly string[]
+    placeholder?: string
+    maxLength?: number
+    blogLinks?: boolean
+  },
 ) {
   const listId = `suggest-${props.field}`
   return (
-    <Field label={props.label} hint={props.hint}>
+    <Field label={props.label} hint={props.hint} blogLinks={props.blogLinks}>
       <input
         type="text"
         list={listId}
+        data-blog-links={props.blogLinks ? '' : undefined}
         data-field={props.field}
         data-type="text"
         data-nullable=""
         value={props.value ?? ''}
         placeholder={props.placeholder ?? props.label}
         aria-label={props.label ?? props.placeholder}
-        maxlength={props.maxLength ?? 60}
+        maxlength={props.maxLength ?? (props.blogLinks ? 400 : 60)}
         autocomplete="off"
       />
       <datalist id={listId}>

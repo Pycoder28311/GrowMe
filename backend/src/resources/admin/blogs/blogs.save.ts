@@ -1,9 +1,10 @@
-import { richImageIds, type BlogSave } from '@growme/shared'
+import { richBlogLinkIds, richImageIds, type BlogSave } from '@growme/shared'
 import { asc, eq } from 'drizzle-orm'
 import { blogImages, blogs } from '../../../db/schema'
 import type { Store } from '../../../lib/crud'
 import { removedIds, replaceLinks, runBatch } from '../../../lib/relations'
 import { assertAdminImages, deleteImages } from '../../images/images.repo'
+import { assertBlogLinks } from '../../blogs/blog-links'
 import { blogContentImageLinks, blogImageLinks } from '../../blogs/blogs.repo'
 
 /** The link rows of a blog: cover photos (in order) and photos inside the text */
@@ -20,6 +21,7 @@ const linkStatements = (db: Store['db'], blogId: number, coverIds: number[], tex
 export async function saveBlog({ db, env }: Store, id: number | null, { imageIds, kind, name, content }: BlogSave) {
   const fields = { kind, name, content: JSON.stringify(content) }
   const textIds = richImageIds(content)
+  await assertBlogLinks(db, [{ path: 'content', ids: richBlogLinkIds(content) }], id)
   if (id === null) {
     await assertAdminImages(db, [...imageIds, ...textIds])
     const { id: newId } = await db.insert(blogs).values(fields).returning({ id: blogs.id }).get()

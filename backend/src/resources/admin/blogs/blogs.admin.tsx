@@ -1,9 +1,11 @@
 import { BLOG_KIND_LABELS, BLOG_KINDS, blogSave, parseRichContent, readingMinutes, type Blog } from '@growme/shared'
+import { blogLinkOptions, linkedFromCount } from '../../blogs/blog-links'
 import { blogsRepo } from '../../blogs/blogs.repo'
 import { adminResource, numericId } from '../resource'
 import { TextChoices, TextField } from '../ui/fields'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
+import { SearchOptions, type SearchOption } from '../ui/search-select'
 import { formatDate } from '../ui/format'
 import { EMPTY_DOC, RichTextEditor, withImageSources } from '../ui/rich-text-editor'
 import { saveBlog } from './blogs.save'
@@ -25,8 +27,14 @@ function BlogListItem({ item, href, deleteUrl }: { item: Blog; href: string | nu
   )
 }
 
-/** The blog form: laid out like the app's article page (photo, title with date and badges, formatted text) */
-function BlogForm({ item: b }: { item: Blog | null }) {
+/** A blog with the number of texts that link to it (for the delete question) */
+type BlogWithLinks = Blog & { linkedFrom: number }
+
+/**
+ * The blog form: laid out like the app's article page (photo, title with date and badges, formatted
+ * text). The editor's links can point to the other blogs (its «Άρθρο» tab).
+ */
+function BlogForm({ item: b, options }: { item: BlogWithLinks | null; options: SearchOption[] }) {
   return (
     <>
       <TextChoices
@@ -61,6 +69,7 @@ function BlogForm({ item: b }: { item: Blog | null }) {
           uploadUrl="/api/admin/images"
         />
       </FormSection>
+      <SearchOptions source="blogs" options={options.filter((o) => o.value !== b?.id)} />
     </>
   )
 }
@@ -78,10 +87,17 @@ export const blogsAdmin = adminResource({
   edit: {
     singular: 'άρθρο',
     schema: blogSave,
-    get: (ctx, id) => blogsRepo.get(ctx, id),
+    async get(ctx, id): Promise<BlogWithLinks | null> {
+      const [blog, linkedFrom] = await Promise.all([blogsRepo.get(ctx, id), linkedFromCount(ctx.db, id)])
+      return blog && { ...blog, linkedFrom }
+    },
     save: saveBlog,
-    options: async () => undefined,
+    options: (ctx) => blogLinkOptions(ctx.db),
     itemTitle: (b) => b.name,
+    deleteConfirm: (b) =>
+      b.linkedFrom === 0
+        ? 'Να διαγραφεί οριστικά; Δεν αναιρείται.'
+        : `Το άρθρο έχει συνδέσμους από ${b.linkedFrom} ${b.linkedFrom === 1 ? 'κείμενο' : 'κείμενα'}· θα γίνουν απλό κείμενο. Να διαγραφεί οριστικά;`,
     Form: BlogForm,
   },
 })

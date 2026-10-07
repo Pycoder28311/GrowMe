@@ -1,14 +1,17 @@
 import { combinationSave, type Combination } from '@growme/shared'
 import { asc, desc, eq, sql } from 'drizzle-orm'
 import { combinations, plantImages, plants } from '../../../db/schema'
+import type { Ctx } from '../../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../../lib/pagination'
+import { blogLinkOptions } from '../../blogs/blog-links'
 import { combinationsRepo } from '../../combinations/combinations.repo'
 import { imageUrl } from '../../images/images.repo'
 import { adminResource, numericId } from '../resource'
 import { TextArea, TextField } from '../ui/fields'
 import { snippet } from '../ui/format'
+import { BlogLinkPicker } from '../ui/blog-link-picker'
 import { FormSection, ItemCard } from '../ui/pages'
-import { CheckPicker, type CheckOption } from '../ui/search-select'
+import { CheckPicker, type CheckOption, type SearchOption } from '../ui/search-select'
 import { saveCombination } from './combinations.save'
 
 type CombinationItem = Combination & { plantCount: number }
@@ -32,10 +35,12 @@ function CombinationListItem({ item, href, deleteUrl }: { item: CombinationItem;
 }
 
 /** The combination form: title, description and its plants (a plant moves here from another one) */
-function CombinationForm({ item: c, options }: { item: CombinationWithPlants | null; options: PlantChoice[] }) {
+type CombinationOptions = { plants: PlantChoice[]; blogs: SearchOption[] }
+
+function CombinationForm({ item: c, options }: { item: CombinationWithPlants | null; options: CombinationOptions }) {
   const picked = new Set(c?.plantIds ?? [])
   // This combination's plants first, then the rest by name
-  const choices: CheckOption[] = [...options]
+  const choices: CheckOption[] = [...options.plants]
     .sort((a, b) => Number(picked.has(b.id)) - Number(picked.has(a.id)) || a.name.localeCompare(b.name, 'el'))
     .map((p) => ({
       value: p.id,
@@ -47,7 +52,8 @@ function CombinationForm({ item: c, options }: { item: CombinationWithPlants | n
   return (
     <>
       <TextField field="title" value={c?.title} size="big" placeholder="Τίτλος συνδυασμού" required />
-      <TextArea field="description" value={c?.description} placeholder="Περιγραφή (προαιρετική)" rows={4} nullable />
+      <TextArea field="description" value={c?.description} placeholder="Περιγραφή (προαιρετική)" rows={4} nullable blogLinks />
+      <BlogLinkPicker options={options.blogs} />
       <FormSection title="Φυτά">
         <p class="small muted">Ένα φυτό ανήκει σε έναν συνδυασμό: αν το διαλέξεις εδώ, φεύγει από τον άλλο.</p>
         <CheckPicker
@@ -97,24 +103,30 @@ export const combinationsAdmin = adminResource({
       return { ...combination, plantIds: rows.map((r) => r.id) }
     },
     save: saveCombination,
-    async options(ctx): Promise<PlantChoice[]> {
-      const rows = await ctx.db.query.plants.findMany({
-        columns: { id: true, name: true, combinationId: true },
-        orderBy: asc(plants.name),
-        with: {
-          combination: { columns: { title: true } },
-          images: { orderBy: asc(plantImages.position), limit: 1, with: { image: { columns: { key: true } } } },
-        },
-      })
-      return rows.map((p) => ({
-        id: p.id,
-        name: p.name,
-        image: p.images[0] ? imageUrl(ctx.env, p.images[0].image.key) : null,
-        combinationId: p.combinationId,
-        combinationTitle: p.combination?.title ?? null,
-      }))
+    async options(ctx): Promise<CombinationOptions> {
+      const [rows, blogs] = await Promise.all([plantChoices(ctx), blogLinkOptions(ctx.db)])
+      return { plants: rows, blogs }
     },
     itemTitle: (c) => c.title,
     Form: CombinationForm,
   },
 })
+
+/** Every plant with its cover and its combination, for the picker */
+async function plantChoices(ctx: Ctx): Promise<PlantChoice[]> {
+  const rows = await ctx.db.query.plants.findMany({
+    columns: { id: true, name: true, combinationId: true },
+    orderBy: asc(plants.name),
+    with: {
+      combination: { columns: { title: true } },
+      images: { orderBy: asc(plantImages.position), limit: 1, with: { image: { columns: { key: true } } } },
+    },
+  })
+  return rows.map((p) => ({
+    id: p.id,
+    name: p.name,
+    image: p.images[0] ? imageUrl(ctx.env, p.images[0].image.key) : null,
+    combinationId: p.combinationId,
+    combinationTitle: p.combination?.title ?? null,
+  }))
+}

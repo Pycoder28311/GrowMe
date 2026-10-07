@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { blogIdOfHref } from './blog-links'
 
 // Formatted text written with the dashboard's editor (Tiptap) and shown natively by the app.
 // Stored as the editor's JSON document. Only what is listed here is allowed: parsing with `richDoc`
@@ -36,12 +37,12 @@ export type RichBlock =
 
 export type RichDoc = { type: 'doc'; content: RichBlock[] }
 
-/** Web links and email only (no javascript: or data: links) */
+/** Web links, email and links to other blogs (`blog:12`); no javascript: or data: links */
 const href = z
   .string()
   .trim()
   .max(2000)
-  .regex(/^(https?:\/\/|mailto:)/i, 'Links must start with https://, http:// or mailto:')
+  .regex(/^(https?:\/\/|mailto:|blog:\d{1,9}$)/i, 'Links must start with https://, http:// or mailto:')
 
 const mark: z.ZodType<RichMark> = z.union([
   z.object({ type: z.enum(['bold', 'italic', 'underline', 'strike']) }),
@@ -150,6 +151,23 @@ function allBlocks(blocks: RichBlock[]): RichBlock[] {
 /** Ids of the images placed in a document (each once) */
 export function richImageIds(doc: RichDoc): number[] {
   const ids = allBlocks(doc.content).flatMap((b) => (b.type === 'image' ? [b.attrs.imageId] : []))
+  return [...new Set(ids)]
+}
+
+/** Ids of the blogs a document links to (`blog:12` links, each once) */
+export function richBlogLinkIds(doc: RichDoc): number[] {
+  const ids = allBlocks(doc.content).flatMap((b) =>
+    b.type === 'paragraph' || b.type === 'heading'
+      ? (b.content ?? []).flatMap((node) =>
+          node.type === 'text'
+            ? (node.marks ?? []).flatMap((m) => {
+                const id = m.type === 'link' ? blogIdOfHref(m.attrs.href) : null
+                return id === null ? [] : [id]
+              })
+            : [],
+        )
+      : [],
+  )
   return [...new Set(ids)]
 }
 

@@ -83,9 +83,10 @@ const TOOLS: Tool[][] = [
 ]
 
 /**
- * Add or edit a link: the text people see and the address it opens. The editor script fills it from
- * the selection (or the link under the cursor) and applies it. Its inputs have no data-field, so the
- * form never sends them.
+ * Add or edit a link: the text people see, and either a web address («Ιστοσελίδα») or another blog
+ * («Άρθρο», stored as href `blog:12`; the blogs come from the page's SearchOptions source="blogs").
+ * The editor script fills it from the selection (or the link under the cursor) and applies it. Its
+ * inputs have no data-field, so the form never sends them.
  */
 function LinkDialog() {
   return (
@@ -95,11 +96,28 @@ function LinkDialog() {
         <span class="caption">Κείμενο που εμφανίζεται</span>
         <input type="text" maxlength={500} placeholder="π.χ. Δες το κατάστημα" data-link-text />
       </label>
-      <label class="field">
-        <span class="caption">Διεύθυνση (URL)</span>
-        <input type="url" maxlength={2000} placeholder="https://" inputmode="url" data-link-href />
-        <p class="error" aria-live="polite" data-link-error />
-      </label>
+      <div class="link-tabs" role="tablist">
+        <button type="button" role="tab" class="link-tab" data-link-tab="web" aria-selected="true">
+          Ιστοσελίδα
+        </button>
+        <button type="button" role="tab" class="link-tab" data-link-tab="blog" aria-selected="false">
+          Άρθρο
+        </button>
+      </div>
+      <div data-link-panel="web">
+        <label class="field">
+          <span class="caption">Διεύθυνση (URL)</span>
+          <input type="url" maxlength={2000} placeholder="https://" inputmode="url" data-link-href />
+          <p class="error" aria-live="polite" data-link-error />
+        </label>
+      </div>
+      <div data-link-panel="blog" hidden>
+        <p class="small muted" data-link-blog-current />
+        <div class="field">
+          <input type="text" placeholder="Αναζήτηση άρθρου…" aria-label="Αναζήτηση άρθρου" autocomplete="off" data-link-blog-search />
+        </div>
+        <ul class="search-results in-dialog" role="listbox" data-link-blog-results />
+      </div>
       <div class="dialog-actions">
         <button type="button" class="button danger" data-link-remove>
           Αφαίρεση

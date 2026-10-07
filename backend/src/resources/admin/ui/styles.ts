@@ -11,6 +11,7 @@ const TOKENS = `
   --border: #e5e7eb;
   --surface-muted: #f3f4f6;
   --danger: #b42318;
+  --link: #1e73d8;
   --outline: rgba(31, 61, 36, 0.05);
   --text-small: 12px;
   --text-normal: 16px;
@@ -169,6 +170,19 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .search-results li.none { color: var(--ink-muted); cursor: default; }
 .field.search-select.invalid input[data-search] { border-color: var(--danger); }
 .picked-text { margin: 0; white-space: pre-wrap; }
+
+/* Blog links in texts: the button over a selection, the picker's list, the links line under a field */
+.link-pill { position: absolute; z-index: 5; width: 220px; min-height: 32px; border: 0; border-radius: 999px;
+             background: var(--link); color: var(--surface); font: inherit; font-size: var(--text-small);
+             font-weight: 700; cursor: pointer; box-shadow: var(--shadow-raised); }
+.search-results.in-dialog { position: static; max-height: 300px; margin: var(--space-sm) 0 var(--space-md);
+                            box-shadow: none; border: 1px solid var(--border); }
+.links-line { color: var(--link); overflow-wrap: anywhere; }
+.links-line:empty { display: none; }
+.link-tabs { display: flex; gap: var(--space-xs); margin-bottom: var(--space-sm); }
+.link-tab { flex: 1; min-height: 36px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+            color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.link-tab[aria-selected="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
 .picked-text:empty { display: none; }
 
 /* Checklist with search (e.g. a combination's plants) */
@@ -280,6 +294,7 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .ProseMirror hr { border: 0; border-top: 2px solid var(--border); margin: var(--space-md) 0; }
 .ProseMirror hr.ProseMirror-selectednode { border-top-color: var(--primary); outline: none; }
 .ProseMirror a { color: var(--primary); text-decoration: underline; cursor: pointer; }
+.ProseMirror a[href^="blog:"] { color: var(--link); text-decoration: none; }
 .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; height: 0;
                                                       color: var(--ink-muted); pointer-events: none; }
 
