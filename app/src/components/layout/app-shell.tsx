@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackgroundSlideshow, PlainBackground } from '@/components/layout/background-slideshow';
 import { BottomNav } from '@/components/layout/bottom-nav';
-import { IconButton } from '@/components/ui/icon-button';
+import { TopCorners } from '@/components/search/search-bar';
 import type { NavId } from '@/config/app';
 import { BackgroundBlurProvider } from '@/lib/background-blur';
 import { colors, size, space } from '@/theme';
@@ -23,7 +23,7 @@ export function useTopClearance() {
   return useSafeAreaInsets().top + space.md + size.touch + space.sm;
 }
 
-/** The frame around every signed-in page: background, corner buttons and the bottom nav */
+/** The frame around every signed-in page: background, the leaf and search corners, and the bottom nav */
 export function AppShell({ children, activeNavId, onNavigate, background }: AppShellProps) {
   const insets = useSafeAreaInsets();
   const cornerTop = insets.top + space.md;
@@ -36,14 +36,9 @@ export function AppShell({ children, activeNavId, onNavigate, background }: AppS
         {background === 'scene' ? <BackgroundSlideshow /> : <PlainBackground />}
         {/* Pages scroll on their own, so the nav can sit at the bottom without overlapping them */}
         <View style={styles.main}>{children}</View>
-        <IconButton
-          icon="home"
-          label="Αρχική"
-          onPress={() => onNavigate('home')}
-          style={[styles.corner, { top: cornerTop, left: space.md }]}
-        />
-        <IconButton icon="search" label="Αναζήτηση" style={[styles.corner, { top: cornerTop, right: space.md }]} />
         <BottomNav activeId={activeNavId} onNavigate={onNavigate} />
+        {/* The leaf (home) and the search, over everything (the search dims the page) */}
+        <TopCorners top={cornerTop} onHome={() => onNavigate('home')} />
       </View>
     </BackgroundBlurProvider>
   );
@@ -56,9 +51,5 @@ const styles = StyleSheet.create({
   },
   main: {
     flex: 1,
-  },
-  corner: {
-    position: 'absolute',
-    zIndex: 10,
   },
 });

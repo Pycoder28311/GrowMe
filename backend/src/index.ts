@@ -21,6 +21,7 @@ import notesRoutes from './resources/notes/notes.routes'
 import plantsRoutes from './resources/plants/plants.routes'
 import postRepliesRoutes from './resources/post-replies/post-replies.routes'
 import postsRoutes from './resources/posts/posts.routes'
+import searchRoutes from './resources/search/search.routes'
 import tipsRoutes from './resources/tips/tips.routes'
 
 const app = new Hono<AppEnv>()
@@ -73,6 +74,7 @@ const routes = app
   .route('/api/tips', tipsRoutes)
   .route('/api/diseases', diseasesRoutes)
   .route('/api/combinations', combinationsRoutes)
+  .route('/api/search-index', searchRoutes)
 
 // Serves R2 files through the Worker: used locally (production uses the IMAGES_URL domain)
 app.get('/images/*', async (c) => {

@@ -15,6 +15,7 @@ const ICONS = {
   key: { ios: 'key', android: 'key', web: 'key' },
   edit: { ios: 'pencil', android: 'edit', web: 'edit' },
   heart: { ios: 'heart', android: 'favorite', web: 'favorite' },
+  leaf: { ios: 'leaf', android: 'eco', web: 'eco' },
   search: { ios: 'magnifyingglass', android: 'search', web: 'search' },
   chevronRight: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
   chevronLeft: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
