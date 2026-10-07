@@ -2,11 +2,13 @@
 // Each becomes a small Tiptap box: the linked words show as light-blue links (a click opens that
 // blog's form in a new tab) and the text travels as `[words](blog:12)` in a hidden input that keeps
 // the field's data-field, so admin.client.js sends it and shows its errors like any other field.
-// Selecting words shows «🔗 Σύνδεσμος σε άρθρο» (BlogLinkPicker's button and dialog).
+// Selecting words shows «🔗 Σύνδεσμος σε άρθρο» (BlogLinkPicker's button and dialog); a click on a
+// link shows a bar with the blog's title (opens it) and ✕ (link-popover.ts).
 import { Editor, type JSONContent } from '@tiptap/core'
 import { Placeholder } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 import { blogIdOfHref, parseBlogLinks } from '../../packages/shared/src/blog-links'
+import { blurLinkPopover, updateLinkPopover } from './link-popover'
 
 /** Lowercase without accents: «Πότισμα» matches «ποτισμα» */
 const plain = (text: string) =>
@@ -63,12 +65,15 @@ const blogOptions = () =>
     hint: li.dataset.hint ?? '',
   }))
 
-/** Shows «🔗» over the selection (words selected, or the cursor in a link); hides it otherwise */
+/**
+ * Shows «🔗» over selected words (to link them, or to change the link they are in); hides it
+ * otherwise. A cursor in a link gets the link bar instead (link-popover.ts).
+ */
 function updatePill(editor: Editor) {
   if (!pill) return
   const { from, to, empty } = editor.state.selection
   const inLink = editor.isActive('link')
-  if (!editor.isFocused || (empty && !inLink)) {
+  if (!editor.isFocused || empty) {
     if (pillEditor === editor) pill.hidden = true
     return
   }
@@ -272,27 +277,25 @@ function mount(field: HTMLInputElement | HTMLTextAreaElement) {
       },
       // One line only in single-line fields (Enter must not send the form either)
       handleKeyDown: (_view, event) => singleLine && event.key === 'Enter',
-      // A click on a link opens that blog's form in a new tab (the cursor lands there too)
-      handleClick: (_view, _pos, event) => {
-        const href = (event.target as HTMLElement | null)?.closest?.('a[href]')?.getAttribute('href')
-        const id = href ? blogIdOfHref(href) : null
-        if (id !== null) window.open(`/blogs/${id}`, '_blank', 'noopener')
-        return false
-      },
     },
     onUpdate: ({ editor }) => {
       hidden.value = toText(editor.getJSON(), singleLine)
       // The form keeps its unsaved-changes flag, clears this field's error and redraws its links line
       hidden.dispatchEvent(new Event('input', { bubbles: true }))
     },
-    onSelectionUpdate: ({ editor }) => updatePill(editor),
+    onSelectionUpdate: ({ editor }) => {
+      updatePill(editor)
+      updateLinkPopover(editor)
+    },
     onFocus: ({ editor }) => {
       box.classList.add('focused')
       updatePill(editor)
+      updateLinkPopover(editor)
     },
     onBlur: ({ editor }) => {
       box.classList.remove('focused')
       setTimeout(() => updatePill(editor), 150)
+      blurLinkPopover(editor)
     },
   })
 

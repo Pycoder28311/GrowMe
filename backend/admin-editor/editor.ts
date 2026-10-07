@@ -7,6 +7,7 @@ import TextAlign from '@tiptap/extension-text-align'
 import { Placeholder } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 import { ArticleImage, dropImage, insertImages } from './image'
+import { blurLinkPopover, updateLinkPopover } from './link-popover'
 // Text fields with blog links (they set themselves up)
 import './linked-text'
 
@@ -284,7 +285,7 @@ function mount(root: HTMLElement) {
         // No red spelling underlines
         spellcheck: 'false',
       },
-      // A click on a link opens it in a new tab; the cursor still lands there, so 🔗 can edit it
+      // A click on a web link opens it in a new tab (a blog link shows its bar); the cursor lands there, so 🔗 can edit it
       // Image files pasted or dropped into the text are uploaded and placed there
       handlePaste: (_view, event) => {
         const files = [...(event.clipboardData?.files ?? [])]
@@ -304,10 +305,8 @@ function mount(root: HTMLElement) {
       handleClick: (_view, _pos, event) => {
         const anchor = (event.target as HTMLElement | null)?.closest?.('a[href]')
         const href = anchor?.getAttribute('href')
-        const blogId = href?.match(BLOG_HREF)?.[1]
-        // A blog link opens that blog's form
-        if (blogId) window.open(`/blogs/${blogId}`, '_blank', 'noopener')
-        else if (href && /^(https?:\/\/|mailto:)/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer')
+        // A blog link only gets the cursor: its bar (link-popover.ts) opens or removes it
+        if (href && /^(https?:\/\/|mailto:)/i.test(href)) window.open(href, '_blank', 'noopener,noreferrer')
         return false
       },
     },
@@ -317,8 +316,15 @@ function mount(root: HTMLElement) {
       input.dispatchEvent(new Event('input', { bubbles: true }))
     },
     onTransaction: () => refreshToolbar(),
-    onFocus: () => root.classList.add('focused'),
-    onBlur: () => root.classList.remove('focused'),
+    onSelectionUpdate: ({ editor }) => updateLinkPopover(editor),
+    onFocus: ({ editor }) => {
+      root.classList.add('focused')
+      updateLinkPopover(editor)
+    },
+    onBlur: ({ editor }) => {
+      root.classList.remove('focused')
+      blurLinkPopover(editor)
+    },
   })
 
   function refreshToolbar() {

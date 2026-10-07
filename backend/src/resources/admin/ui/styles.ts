@@ -192,6 +192,13 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .linked-text .ProseMirror a:hover { text-decoration: underline; }
 .linked-text + .search-results { position: relative; top: 0; margin-top: 0; }
 .links-line:empty { display: none; }
+/* The bar over the blog link the cursor is in: the blog's title (opens it) and ✕ (unlinks) */
+.link-popover { position: absolute; z-index: 6; display: flex; align-items: center; gap: var(--space-xs);
+                max-width: min(420px, calc(100vw - 16px)); padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
+                background: var(--surface); border-radius: 999px; box-shadow: var(--shadow-raised); }
+.link-popover a { color: var(--link); font-size: var(--text-small); font-weight: 700; text-decoration: none;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.link-popover a:hover { text-decoration: underline; }
 .link-tabs { display: flex; gap: var(--space-xs); margin-bottom: var(--space-sm); }
 .link-tab { flex: 1; min-height: 36px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
             color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
