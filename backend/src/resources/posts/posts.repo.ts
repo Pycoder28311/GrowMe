@@ -1,5 +1,5 @@
 import type { Post, PostCreate, PostUpdate } from '@growme/shared'
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray } from 'drizzle-orm'
 import { postImages, postReplies, posts } from '../../db/schema'
 import { hasChanges, ownedOrAdmin, userId, type Ctx, type Repo, type Store } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
@@ -35,6 +35,17 @@ const toJson = (env: CloudflareBindings, p: Row): Post => ({
   replyCount: p.replyCount,
   createdAt: p.createdAt.toISOString(),
 })
+
+/** Posts by id, in the order of `ids` (ids of deleted posts are left out) */
+export async function postsByIds(ctx: Ctx, ids: number[]): Promise<Post[]> {
+  if (ids.length === 0) return []
+  const rows = await ctx.db.query.posts.findMany({ where: inArray(posts.id, ids), with: withAll })
+  const byId = new Map(rows.map((p) => [p.id, p]))
+  return ids.flatMap((id) => {
+    const post = byId.get(id)
+    return post ? [toJson(ctx.env, post)] : []
+  })
+}
 
 /** Public read, signed-in create, owners edit, owners or admins delete */
 export const postsRepo: Repo<PostCreate, PostUpdate, Post> = {

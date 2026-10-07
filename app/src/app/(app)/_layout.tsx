@@ -14,14 +14,14 @@ const TAB_ROUTES = {
   home: '/',
   messages: '/community',
   wiki: '/wiki',
-  settings: '/settings',
+  profile: '/profile',
 } as const satisfies Record<NavId, string>;
 
 // Which bottom tab a page belongs to
 const navIdFor = (pathname: string): NavId => {
   if (pathname.startsWith('/community')) return 'messages';
   if (pathname.startsWith('/wiki')) return 'wiki';
-  if (pathname.startsWith('/settings') || pathname.startsWith('/notes')) return 'settings';
+  if (pathname.startsWith('/profile') || pathname.startsWith('/notes')) return 'profile';
   return 'home';
 };
 

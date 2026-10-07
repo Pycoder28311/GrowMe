@@ -1,12 +1,12 @@
 import type { Page } from '@growme/shared';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // Loading state for API lists and items, shared by every screen that shows data from the backend.
 // The fetch functions must be stable (module-level, e.g. plantsApi.list), not created during render.
 
 /**
  * A list from the API, a page at a time: `loadMore` fetches the next page (when there is one),
- * `refresh` starts again from the first page.
+ * `refresh` starts again from the first page (it stays the same function, e.g. for useFocusEffect).
  */
 export function usePagedList<T>(fetchPage: (cursor: string | null) => Promise<Page<T>>) {
   const [items, setItems] = useState<T[]>([]);
@@ -14,17 +14,6 @@ export function usePagedList<T>(fetchPage: (cursor: string | null) => Promise<Pa
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const busy = useRef(true); // the first page starts loading right away
-
-  const apply = (cursor: string | null, page: Page<T>) => {
-    setItems((current) => (cursor ? [...current, ...page.items] : page.items));
-    setNextCursor(page.nextCursor);
-  };
-
-  const settle = (failed: boolean) => {
-    busy.current = false;
-    setError(failed);
-    setLoading(false);
-  };
 
   // First page when the screen opens
   useEffect(() => {
@@ -49,18 +38,27 @@ export function usePagedList<T>(fetchPage: (cursor: string | null) => Promise<Pa
   }, [fetchPage]);
 
   /** A later page (cursor) or the first again (null); ignored while another load runs */
-  const load = async (cursor: string | null) => {
-    if (busy.current) return;
-    busy.current = true;
-    setLoading(true);
-    setError(false);
-    try {
-      apply(cursor, await fetchPage(cursor));
-      settle(false);
-    } catch {
-      settle(true);
-    }
-  };
+  const load = useCallback(
+    async (cursor: string | null) => {
+      if (busy.current) return;
+      busy.current = true;
+      setLoading(true);
+      setError(false);
+      let failed = false;
+      try {
+        const page = await fetchPage(cursor);
+        setItems((current) => (cursor ? [...current, ...page.items] : page.items));
+        setNextCursor(page.nextCursor);
+      } catch {
+        failed = true;
+      }
+      busy.current = false;
+      setError(failed);
+      setLoading(false);
+    },
+    [fetchPage],
+  );
+  const refresh = useCallback(() => load(null), [load]);
 
   return {
     items,
@@ -70,7 +68,7 @@ export function usePagedList<T>(fetchPage: (cursor: string | null) => Promise<Pa
     loadMore: () => {
       if (nextCursor) load(nextCursor);
     },
-    refresh: () => load(null),
+    refresh,
     /** Changes the loaded items in place (e.g. add a new reply, bump a count) */
     update: (change: (items: T[]) => T[]) => setItems(change),
   };

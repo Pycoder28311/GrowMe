@@ -16,6 +16,7 @@ import diseasesRoutes from './resources/diseases/diseases.routes'
 import imagesRoutes from './resources/images/images.routes'
 import lifecyclesRoutes from './resources/lifecycles/lifecycles.routes'
 import likesRoutes from './resources/likes/likes.routes'
+import meRoutes from './resources/me/me.routes'
 import notesRoutes from './resources/notes/notes.routes'
 import plantsRoutes from './resources/plants/plants.routes'
 import postRepliesRoutes from './resources/post-replies/post-replies.routes'
@@ -66,6 +67,7 @@ const routes = app
   .route('/api/blogs', blogsRoutes)
   .route('/api/blog-comments', blogCommentsRoutes)
   .route('/api/likes', likesRoutes)
+  .route('/api/me', meRoutes)
   .route('/api/plants', plantsRoutes)
   .route('/api/lifecycles', lifecyclesRoutes)
   .route('/api/tips', tipsRoutes)

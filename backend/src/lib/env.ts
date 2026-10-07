@@ -19,6 +19,8 @@ const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
   GOOGLE_CLIENT_ID: optionalText,
   GOOGLE_CLIENT_SECRET: optionalText,
+  // places: the area name of a user's location (Google Geocoding API); without it the app's name is kept
+  GOOGLE_MAPS_API_KEY: optionalText,
   // email
   EMAIL_FROM: z.string().min(1),
   RESEND_API_KEY: z.string().min(1),

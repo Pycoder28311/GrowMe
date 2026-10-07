@@ -80,6 +80,7 @@ Every variable is checked by `backend/src/lib/env.ts` on the first request. A mi
 | `BETTER_AUTH_SECRET` | secret | `npx wrangler secret put BETTER_AUTH_SECRET` (value: `openssl rand -base64 32`) |
 | `RESEND_API_KEY` | secret | `npx wrangler secret put RESEND_API_KEY` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | secrets, optional | `npx wrangler secret put …`; Google sign-in is off without both |
+| `GOOGLE_MAPS_API_KEY` | secret, optional | `npx wrangler secret put GOOGLE_MAPS_API_KEY`; names a user's area on the profile (Geocoding API, server only). Without it the phone's own name for the area is kept |
 | `ADMIN_HOST`, `ADMIN_EMAILS`, `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD` | plain vars, optional | `wrangler.jsonc` `vars`; see 6b |
 
 **Local development:** create `backend/.dev.vars` (ignored by Git). Values there override `vars`:
@@ -92,6 +93,7 @@ WEB_ORIGINS=http://localhost:8081
 RESEND_API_KEY=<key>
 GOOGLE_CLIENT_ID=<optional>
 GOOGLE_CLIENT_SECRET=<optional>
+GOOGLE_MAPS_API_KEY=<optional>
 ```
 
 With `BETTER_AUTH_URL` on localhost the backend treats itself as **development** and also trusts

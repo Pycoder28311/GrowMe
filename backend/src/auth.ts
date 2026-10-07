@@ -1,5 +1,6 @@
 // PROJECT file: which sign-in methods this app offers. Settings come from lib/config + lib/env.
 import { betterAuth } from 'better-auth'
+import { APIError } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin, emailOTP } from 'better-auth/plugins'
 import { expo } from '@better-auth/expo'
@@ -9,6 +10,17 @@ import { resetPasswordEmail, signInCodeEmail, verifyEmail } from './emails'
 import { getConfig } from './lib/config'
 import { sendEmail } from './lib/email'
 import { getEnv } from './lib/env'
+
+const MAX_NAME = 60
+
+/** A user's name as stored: trimmed; 400 when empty or longer than 60 characters */
+function checkedName(name: string) {
+    const trimmed = name.trim()
+    if (trimmed.length === 0 || trimmed.length > MAX_NAME) {
+        throw new APIError('BAD_REQUEST', { message: `The name must have 1 to ${MAX_NAME} characters` })
+    }
+    return trimmed
+}
 
 export const createAuth = (env: CloudflareBindings) => {
     const e = getEnv(env)
@@ -20,6 +32,19 @@ export const createAuth = (env: CloudflareBindings) => {
         baseURL: e.BETTER_AUTH_URL,
         session: {
             cookieCache: { enabled: true, maxAge: 5 * 60 },
+        },
+        databaseHooks: {
+            user: {
+                // Names show on posts and comments: 1–60 characters. A new account's name is shortened
+                // (a long Google name must not block sign-in); a change from the profile is refused
+                create: {
+                    before: async (user) => ({ data: { ...user, name: user.name.trim().slice(0, MAX_NAME) || 'Χρήστης' } }),
+                },
+                update: {
+                    before: async (user) =>
+                        typeof user.name === 'string' ? { data: { ...user, name: checkedName(user.name) } } : { data: user },
+                },
+            },
         },
         emailAndPassword: {
             enabled: true,

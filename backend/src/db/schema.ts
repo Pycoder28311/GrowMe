@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
-import { sqliteTable, integer, text, primaryKey, index, uniqueIndex, check, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, integer, real, text, primaryKey, index, uniqueIndex, check, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { user } from './auth-schema'
 export * from './auth-schema'
 
@@ -20,6 +20,19 @@ export const notes = sqliteTable(
     },
     (t) => [index('notes_user_id_idx').on(t.userId)],
 )
+
+/* ─────────────── A user's area (profile): approximate only, for plant advice by climate ─────────────── */
+
+export const userLocations = sqliteTable('user_locations', {
+    userId: text('user_id')
+        .primaryKey()
+        .references(() => user.id, { onDelete: 'cascade' }),
+    area: text('area'), // e.g. «Χαλάνδρι, Αττική»; null when no name was found
+    // Rounded to 2 decimals (about 1 km): never the exact position
+    lat: real('lat').notNull(),
+    lng: real('lng').notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
 
 /* ─────────────── Images (existing): files in R2, one row per file ─────────────── */
 
