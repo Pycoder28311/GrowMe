@@ -172,12 +172,25 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .picked-text { margin: 0; white-space: pre-wrap; }
 
 /* Blog links in texts: the button over a selection, the picker's list, the links line under a field */
-.link-pill { position: absolute; z-index: 5; width: 220px; min-height: 32px; border: 0; border-radius: 999px;
+.link-pill { position: absolute; z-index: 5; min-height: 32px; padding: 0 var(--space-md); border: 0; border-radius: 999px;
              background: var(--link); color: var(--surface); font: inherit; font-size: var(--text-small);
              font-weight: 700; cursor: pointer; box-shadow: var(--shadow-raised); }
 .search-results.in-dialog { position: static; max-height: 300px; margin: var(--space-sm) 0 var(--space-md);
                             box-shadow: none; border: 1px solid var(--border); }
 .links-line { color: var(--link); overflow-wrap: anywhere; }
+/* A text field with blog links: a small editor box that looks like the inputs; links are blue */
+.linked-text { position: relative; }
+.linked-text .ProseMirror { min-height: calc(var(--rows, 3) * 1.4em + 2 * var(--space-sm)); padding: var(--space-sm);
+                            border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+                            line-height: 1.4; outline: none; white-space: pre-wrap; }
+.linked-text.single .ProseMirror { min-height: 0; white-space: nowrap; overflow-x: auto; }
+.linked-text.single .ProseMirror p { white-space: nowrap; }
+.linked-text .ProseMirror p { margin: 0; }
+.linked-text.focused .ProseMirror { border-color: var(--primary); outline: 2px solid var(--primary-soft); outline-offset: 1px; }
+.field.invalid .linked-text .ProseMirror { border-color: var(--danger); }
+.linked-text .ProseMirror a { color: var(--link); text-decoration: none; cursor: pointer; }
+.linked-text .ProseMirror a:hover { text-decoration: underline; }
+.linked-text + .search-results { position: relative; top: 0; margin-top: 0; }
 .links-line:empty { display: none; }
 .link-tabs { display: flex; gap: var(--space-xs); margin-bottom: var(--space-sm); }
 .link-tab { flex: 1; min-height: 36px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);

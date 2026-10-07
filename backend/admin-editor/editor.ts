@@ -7,6 +7,8 @@ import TextAlign from '@tiptap/extension-text-align'
 import { Placeholder } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 import { ArticleImage, dropImage, insertImages } from './image'
+// Text fields with blog links (they set themselves up)
+import './linked-text'
 
 type Command = {
   run: (editor: Editor) => void

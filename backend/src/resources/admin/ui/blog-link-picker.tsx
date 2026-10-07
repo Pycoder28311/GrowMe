@@ -1,11 +1,13 @@
+import { ASSETS } from './layout'
 import { SearchOptions, type SearchOption } from './search-select'
 
 /**
  * Lets the admin turn selected words of a `blogLinks` text field into a link to a blog, stored in
  * the text as `[words](blog:12)` (the app shows the words in blue and opens the blog). Render it once
  * per form that has such fields: the blogs to pick from (searched in the browser), the «🔗» button
- * that shows over a selection, and the dialog. admin.client.js does the rest. The article editor's
- * link dialog reads the same blog list.
+ * that shows over a selection, the dialog, and the editor script that turns those fields into boxes
+ * showing the links in blue (admin-editor/linked-text.ts). The article editor's link dialog reads
+ * the same blog list.
  */
 export function BlogLinkPicker(props: { options: SearchOption[] }) {
   return (
@@ -37,6 +39,7 @@ export function BlogLinkPicker(props: { options: SearchOption[] }) {
           </button>
         </div>
       </dialog>
+      <script src={`${ASSETS.editor.path}?v=${ASSETS.editor.version}`} defer />
     </>
   )
 }

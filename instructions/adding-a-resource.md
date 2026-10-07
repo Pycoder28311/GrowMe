@@ -324,7 +324,9 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
      for several kinds of new rows, e.g. an existing tip or a new one)
    - **Blog links in texts:** `blogLinks` on `TextArea` / `TextField` / `SuggestField` plus one
      `<BlogLinkPicker options={await blogLinkOptions(ctx.db)} />` in the form (`ui/blog-link-picker.tsx`).
-     Selected words become `[words](blog:12)` (in the article editor: a link with href `blog:12`).
+     Such fields become small editor boxes (`backend/admin-editor/linked-text.ts`, in the editor
+     bundle) that show the links in blue (a click opens the blog's form); selected words become
+     `[words](blog:12)` in a hidden input (in the article editor: a link with href `blog:12`).
      The save calls `assertBlogLinks()` (`resources/blogs/blog-links.ts`) with each field's
      `blogLinkIds()`; the app shows the text with `LinkedText` (blue words, a tap opens the blog's
      panel) and cards use `stripBlogLinks()`
