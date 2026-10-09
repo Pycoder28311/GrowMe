@@ -23,9 +23,9 @@ import { tipsRepo } from '../../tips/tips.repo'
 import { adminResource, numericId } from '../resource'
 import {
   Choices,
+  DurationField,
   MoneyField,
-  MonthRanges,
-  RangeField,
+  MonthPair,
   Select,
   SuggestField,
   TextArea,
@@ -39,6 +39,7 @@ import { BlogLinkPicker } from '../ui/blog-link-picker'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { RepeatableList } from '../ui/repeatable-list'
+import { SunWindow } from '../ui/sun-window'
 import { SearchOptions, SearchSelect, type SearchOption } from '../ui/search-select'
 import { savePlant } from './plants.save'
 
@@ -102,20 +103,47 @@ const PickedTip = ({ tip }: { tip: Tip | null }) => (
   </>
 )
 
-/** A lifecycle stage: whether it is before the plant is sold (seed), its time from sowing, title and text */
-const StageFields = ({ stage }: { stage?: Lifecycle | null }) => (
-  <>
-    <div class="row">
-      {/* In a .field so the "seed stages first" error shows under it */}
-      <div class="field">
-        <Toggle field="seed" label="Στάδιο σπόρου" emoji="🌰" checked={stage?.seed ?? false} />
+const STAGE_BADGE = { seed: '🌰 Στάδιο σπόρου', plant: '🪴 Στάδιο φυτού' }
+const STAGE_SWITCH = { seed: '→ Κάν\'το στάδιο σπόρου', plant: '→ Κάν\'το στάδιο φυτού' }
+
+/**
+ * A lifecycle stage: a seed stage (before the plant is sold ready to transplant) or a plant stage,
+ * its time from sowing, title and text. The switch moves it to the other group (admin.client.js
+ * switchGroup), which also updates the hidden `seed` and the badge.
+ */
+const StageFields = ({ stage, seed }: { stage?: Lifecycle | null; seed: boolean }) => {
+  const group = seed ? 'seed' : 'plant'
+  const other = seed ? 'plant' : 'seed'
+  return (
+    <>
+      <div class="field stage-head">
+        <div class="row">
+          <span class="stage-badge" data-group-text>
+            {STAGE_BADGE[group]}
+          </span>
+          <button
+            type="button"
+            class="chip-button"
+            data-switch-group
+            data-to={other}
+            data-value-seed="true"
+            data-value-plant="false"
+            data-text-seed={STAGE_BADGE.seed}
+            data-text-plant={STAGE_BADGE.plant}
+            data-switch-seed={STAGE_SWITCH.seed}
+            data-switch-plant={STAGE_SWITCH.plant}
+          >
+            {STAGE_SWITCH[other]}
+          </button>
+        </div>
+        <input type="hidden" data-field="seed" data-type="json" data-group-value value={String(seed)} />
         <p class="error" aria-live="polite" />
       </div>
-      <TextField field="duration" value={stage?.duration} placeholder="Από τη σπορά, π.χ. 2-3 weeks" nullable />
-    </div>
-    <TitledText title={stage?.title} content={stage?.content} titleLabel="Στάδιο (π.χ. Πρώτα άνθη)" />
-  </>
-)
+      <DurationField field="duration" label="Πόσο μετά τη σπορά" value={stage?.duration} unit="months" />
+      <TitledText title={stage?.title} content={stage?.content} titleLabel="Στάδιο (π.χ. Πρώτα άνθη)" />
+    </>
+  )
+}
 
 /** One trait as a fact row: emoji, then free text with suggestions */
 const TraitFact = (props: { emoji: string; field: keyof typeof PLANT_TRAIT_SUGGESTIONS; label: string; value?: string | null }) => (
@@ -173,13 +201,7 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
           <span class="emoji" aria-hidden="true">
             ☀️
           </span>
-          <RangeField
-            label="Ήλιος: από – έως (ώρα της μέρας, 0–24)"
-            min={{ field: 'sunStart', value: p?.sunStart }}
-            max={{ field: 'sunEnd', value: p?.sunEnd }}
-            lowest={0}
-            highest={24}
-          />
+          <SunWindow label="Ώρες ήλιου τη μέρα" start={p?.sunStart} end={p?.sunEnd} />
         </div>
         <div class="fact">
           <span class="emoji" aria-hidden="true">
@@ -187,32 +209,29 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
           </span>
           <Choices field="difficulty" label="Δυσκολία" value={p?.difficulty ?? 1} options={DIFFICULTY} labels />
         </div>
-        <div class="fact">
-          <span class="emoji" aria-hidden="true">
-            📅
-          </span>
-          <MonthRanges
-            field="monthRanges"
-            label="Εποχές (από – έως μήνα· η 2η και η 3η αν χρειάζονται)"
-            value={p?.monthRanges ?? []}
-            count={MAX_MONTH_RANGES}
-          />
-        </div>
         <TraitFact emoji="📍" field="native" label="Προέλευση" value={p?.native} />
         <div class="fact">
           <span class="emoji" aria-hidden="true">
             ⏳
           </span>
-          <TextField
-            field="lifespan"
-            label="Διάρκεια ζωής"
-            value={p?.lifespan}
-            placeholder="π.χ. 4-6 years ή 2 years"
-            hint="days, weeks, months ή years"
-            nullable
-          />
+          <DurationField field="lifespan" label="Διάρκεια ζωής" value={p?.lifespan} unit="years" />
         </div>
       </div>
+
+      <RepeatableList
+        field="monthRanges"
+        title="📅 Εποχές"
+        itemLabel="Εποχή"
+        items={(p?.monthRanges ?? []).map(([from, to], id) => ({ id, from, to }))}
+        sortable
+        rowIds={false}
+        max={MAX_MONTH_RANGES}
+        shape="tuple"
+        skipEmpty
+        addAt="foot"
+        emptyText="Καμία εποχή ακόμα. Πρόσθεσε έως τρεις (από – έως μήνα)."
+        renderItem={(r) => <MonthPair from={r?.from} to={r?.to} />}
+      />
 
       <RepeatableList
         field="lifecycles"
@@ -221,8 +240,17 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         items={p?.lifecycles ?? []}
         sortable
         soft
-        emptyText="Πρόσθεσε στάδια, π.χ. «Πρώτα άνθη». Τα στάδια σπόρου μπαίνουν πρώτα."
-        renderItem={(l) => <StageFields stage={l} />}
+        groups={[
+          { key: 'seed', label: 'Από σπόρο' },
+          { key: 'plant', label: 'Από φυτό (μεταμφύτευση)' },
+        ]}
+        groupOf={(l) => (l.seed ? 'seed' : 'plant')}
+        variants={[
+          { key: 'seed', group: 'seed', label: 'Στάδιο σπόρου', render: () => <StageFields seed /> },
+          { key: 'plant', group: 'plant', label: 'Στάδιο φυτού', render: () => <StageFields seed={false} /> },
+        ]}
+        emptyText="Πρόσθεσε στάδια: πρώτα του σπόρου (αν ξεκινά από σπόρο), μετά του φυτού."
+        renderItem={(l) => <StageFields stage={l} seed={l?.seed ?? false} />}
       />
 
       <RepeatableList

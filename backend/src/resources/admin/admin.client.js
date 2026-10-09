@@ -66,15 +66,25 @@
     return raw === '' && input.hasAttribute('data-nullable') ? null : raw
   }
 
-  const KEYED = '[data-field], [data-list], [data-images], [data-checks], [data-month-ranges]'
-  const keyOf = (el) =>
-    el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks ?? el.dataset.monthRanges
+  const KEYED = '[data-field], [data-list], [data-images], [data-checks]'
+  const keyOf = (el) => el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks
 
-  /** A MonthRanges group's rows that have a month set: [[from, to], …] (a half-filled row sends its null) */
-  const monthRangesOf = (group) =>
-    [...group.querySelectorAll('[data-month-range]')]
-      .map((row) => [...row.querySelectorAll('[data-range-month]')].map((s) => (s.value === '' ? null : Number(s.value))))
-      .filter(([from, to]) => from !== null || to !== null)
+  /** A row with nothing filled in (its id aside) */
+  const isEmptyRow = (values) => Object.entries(values).every(([key, value]) => key === 'id' || value === null || value === '')
+
+  /** The rows a list sends, in order: with data-skip-empty, the empty ones are left out */
+  const sentRowsOf = (list) =>
+    list.hasAttribute('data-skip-empty') ? rowsOf(list).filter((row) => !isEmptyRow(collect(row))) : rowsOf(list)
+
+  /** A row's JSON: an object, or with data-shape="tuple" the array of its fields "0", "1", … */
+  function rowValue(list, row) {
+    const values = collect(row)
+    if (list.dataset.shape !== 'tuple') return values
+    return Object.keys(values)
+      .filter((key) => /^\d+$/.test(key))
+      .sort((a, b) => a - b)
+      .map((key) => values[key])
+  }
 
   /** The JSON of a form or a list row: its own fields, lists, photo lists and checklists */
   function collect(scope) {
@@ -82,13 +92,11 @@
     for (const el of scope.querySelectorAll(KEYED)) {
       if (scopeOf(el) !== scope) continue
       if (el.dataset.list !== undefined) {
-        data[el.dataset.list] = rowsOf(el).map(collect)
+        data[el.dataset.list] = sentRowsOf(el).map((row) => rowValue(el, row))
       } else if (el.dataset.images !== undefined) {
         data[el.dataset.images] = rowsOf(el).map((row) => Number(row.dataset.imageId))
       } else if (el.dataset.checks !== undefined) {
         data[el.dataset.checks] = [...el.querySelectorAll('input[type=checkbox]:checked')].map((c) => Number(c.value))
-      } else if (el.dataset.monthRanges !== undefined) {
-        data[el.dataset.monthRanges] = monthRangesOf(el)
       } else if (el.type === 'radio') {
         if (el.checked) data[el.dataset.field] = readValue(el)
         else if (!(el.dataset.field in data)) data[el.dataset.field] = null
@@ -122,13 +130,13 @@
       const el = own.find((e) => keyOf(e) === key)
       if (!el) return null
       if (el.dataset.list !== undefined && i + 1 < parts.length) {
-        const row = rowsOf(el)[Number(parts[++i])]
+        const row = sentRowsOf(el)[Number(parts[++i])]
         if (!row) return el
         if (i + 1 === parts.length) return row
         scope = row
         continue
       }
-      return el // a field, or a photo list / checklist / month ranges (its error covers every item)
+      return el // a field, or a photo list / checklist (its error covers every item)
     }
     return null
   }
@@ -273,15 +281,43 @@
 
   const listOf = (row) => row.parentElement
 
-  /** Enables/disables ↑/↓ at the ends of a list */
+  /** Two rows of a grouped list (data-groups) that are in different groups */
+  const otherGroup = (a, b) => !!a && !!b && (a.dataset.group ?? '') !== (b.dataset.group ?? '')
+  const groupsOf = (list) => (list.dataset.groups ? list.dataset.groups.split(' ') : [])
+
+  /**
+   * After any change: ↑/↓ disabled at the ends of the list and of each group, the first row of each
+   * group labelled (data-group-label, shown by the CSS), and the add buttons hidden when the list is full
+   */
   function refresh(list) {
     const rows = rowsOf(list)
+    const groups = groupsOf(list)
+    const labels = (list.dataset.groupLabels ?? '').split('|')
     rows.forEach((row, i) => {
       const up = row.querySelector('[data-move="-1"]')
       const down = row.querySelector('[data-move="1"]')
-      if (up) up.disabled = i === 0
-      if (down) down.disabled = i === rows.length - 1
+      if (up) up.disabled = i === 0 || otherGroup(row, rows[i - 1])
+      if (down) down.disabled = i === rows.length - 1 || otherGroup(row, rows[i + 1])
+      const first = groups.length > 0 && (i === 0 || otherGroup(row, rows[i - 1]))
+      if (first) row.dataset.groupLabel = labels[groups.indexOf(row.dataset.group)] ?? ''
+      else delete row.dataset.groupLabel
     })
+    const max = Number(list.dataset.max)
+    const buttons = list.closest('[data-list-wrap]')?.querySelector('[data-add-buttons]')
+    if (max && buttons) buttons.toggleAttribute('data-full', rows.length >= max)
+  }
+
+  /** Puts a row at the end of its group (or, in a list without groups, at the end) */
+  function placeInGroup(list, row) {
+    const groups = groupsOf(list)
+    const order = groups.indexOf(row.dataset.group)
+    const rows = rowsOf(list).filter((r) => r !== row)
+    const lastOfGroup = rows.filter((r) => r.dataset.group === row.dataset.group).at(-1)
+    const firstLater = rows.find((r) => groups.indexOf(r.dataset.group) > order)
+    if (order < 0) list.append(row)
+    else if (lastOfGroup) lastOfGroup.after(row)
+    else if (firstLater) firstLater.before(row)
+    else list.append(row)
   }
 
   /** Adds a row from the list's template (`variant`: the template of that kind of row) */
@@ -291,7 +327,7 @@
       ? wrap.querySelector(`template[data-variant="${CSS.escape(variant)}"]`)
       : wrap.querySelector('template[data-template]')
     const row = template.content.firstElementChild.cloneNode(true)
-    list.append(row)
+    placeInGroup(list, row)
     refresh(list)
     // The editor script sets up the row's blog-link boxes
     row.dispatchEvent(new CustomEvent('admin:row-added', { bubbles: true }))
@@ -304,7 +340,7 @@
 
     if (button.hasAttribute('data-add')) {
       const row = addRow(button.closest('[data-list-wrap]'), button.dataset.variant)
-      row.querySelector('input, textarea')?.focus()
+      row.querySelector('input:not([type=hidden]), textarea')?.focus()
       dirty = true
       return
     }
@@ -312,6 +348,12 @@
     const row = button.closest('[data-row]')
     if (!row) return
     const list = listOf(row)
+
+    if (button.hasAttribute('data-switch-group')) {
+      switchGroup(list, row, button)
+      dirty = true
+      return
+    }
 
     if (button.hasAttribute('data-remove')) {
       const next = row.nextElementSibling ?? row.previousElementSibling
@@ -321,7 +363,7 @@
       dirty = true
     } else if (button.dataset.move) {
       const sibling = button.dataset.move === '-1' ? row.previousElementSibling : row.nextElementSibling
-      if (!sibling) return
+      if (!sibling || otherGroup(row, sibling)) return
       if (button.dataset.move === '-1') sibling.before(row)
       else sibling.after(row)
       refresh(list)
@@ -330,6 +372,36 @@
       dirty = true
     }
   })
+
+  /**
+   * A row's [data-switch-group] button: the row moves to the other group (data-to), at its edge next
+   * to the row's old group, and its parts follow: [data-group-value] inputs get the button's
+   * data-value-<group>, [data-group-text] texts its data-text-<group>, and the button its next target
+   */
+  function switchGroup(list, row, button) {
+    const from = row.dataset.group
+    const to = button.dataset.to
+    const groups = groupsOf(list)
+    row.dataset.group = to
+    const rows = rowsOf(list).filter((r) => r !== row)
+    if (groups.indexOf(to) > groups.indexOf(from)) {
+      // Going down: first of the new group (right after the old group)
+      const first = rows.find((r) => r.dataset.group === to)
+      if (first) first.before(row)
+      else placeInGroup(list, row)
+    } else {
+      placeInGroup(list, row) // going up: last of the new group
+    }
+    for (const input of row.querySelectorAll('[data-group-value]')) input.value = button.dataset[`value${cap(to)}`]
+    for (const text of row.querySelectorAll('[data-group-text]')) text.textContent = button.dataset[`text${cap(to)}`]
+    button.dataset.to = from
+    button.textContent = button.dataset[`switch${cap(from)}`]
+    refresh(list)
+    button.focus()
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
+  const cap = (word) => word.charAt(0).toUpperCase() + word.slice(1)
 
   /* ─────────────── Drag and drop (mouse; touch uses ↑/↓) ─────────────── */
 
@@ -358,6 +430,8 @@
     for (const el of form.querySelectorAll('.drop-before, .drop-after')) el.classList.remove('drop-before', 'drop-after')
   }
 
+  // A row of a grouped list (data-groups) is dropped only next to rows of its own group
+
   /** Before or after the row under the pointer (rows wrap in photo lists, so use the long axis) */
   function placeOf(row, event) {
     const box = row.getBoundingClientRect()
@@ -367,7 +441,7 @@
 
   form.addEventListener('dragover', (event) => {
     const row = event.target.closest?.('[data-row]')
-    if (!dragged || !row || row === dragged || listOf(row) !== listOf(dragged)) return
+    if (!dragged || !row || row === dragged || listOf(row) !== listOf(dragged) || otherGroup(row, dragged)) return
     event.preventDefault()
     clearMarks()
     row.classList.add(placeOf(row, event) ? 'drop-before' : 'drop-after')
@@ -375,7 +449,7 @@
 
   form.addEventListener('drop', (event) => {
     const row = event.target.closest?.('[data-row]')
-    if (!dragged || !row || row === dragged || listOf(row) !== listOf(dragged)) return
+    if (!dragged || !row || row === dragged || listOf(row) !== listOf(dragged) || otherGroup(row, dragged)) return
     event.preventDefault()
     if (placeOf(row, event)) row.before(dragged)
     else row.after(dragged)

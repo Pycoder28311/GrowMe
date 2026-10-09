@@ -1,4 +1,6 @@
+import { DURATION_UNIT_LABELS, DURATION_UNITS, parseDuration, type DurationUnit } from '@growme/shared'
 import type { Child } from 'hono/jsx'
+import { WidgetsScript } from './widgets-script'
 
 // Form fields for admin pages. Each input carries data-field (its key in the JSON the form sends) and
 // data-type (how admin.client.js reads it). Inside a RepeatableList row, keys are relative to the row
@@ -6,7 +8,8 @@ import type { Child } from 'hono/jsx'
 //   text   → string ('' becomes null when data-nullable)   number → number or null
 //   money  → euros typed, cents sent (3.5 → 350)           bool   → checkbox checked
 //   id     → number, left out when empty (new list rows)
-// MonthRanges (data-month-ranges) sends its filled rows as [[from, to], …].
+// DurationField and SunWindow (sun-window.tsx) keep their value in hidden inputs and are run by
+// /admin-widgets.js (admin-editor/widgets.ts).
 // Pickers (search-select.tsx) add: a searchable single choice (number) and a checklist (array of ids).
 // `blogLinks` on a text field lets the admin turn selected words into a blog link (`[words](blog:12)`,
 // see blog-link-picker.tsx); the form must render a BlogLinkPicker.
@@ -333,33 +336,69 @@ export function MonthRange(props: {
   )
 }
 
-/**
- * Up to `count` seasons (MonthRange rows) sent together as `field`: [[from, to], …], in order, empty
- * rows left out. The selects have no data-field of their own; admin.client.js reads the group.
- */
-export function MonthRanges(props: { field: string; label: string; value: readonly (readonly [number, number])[]; count: number }) {
-  const monthSelect = (value: number | undefined, label: string) => (
-    <select data-range-month aria-label={label}>
-      <option value="" selected={value === undefined}>
-        —
-      </option>
-      {MONTHS.map((o) => (
-        <option value={String(o.value)} selected={o.value === value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  )
+/** One season in a list row: start and end month, sent as the row's fields "0" and "1" ([from, to]) */
+export function MonthPair(props: { from?: number | null; to?: number | null }) {
   return (
-    <div class="field" data-month-ranges={props.field}>
-      <span class="caption">{props.label}</span>
-      {Array.from({ length: props.count }, (_, i) => (
-        <div class="row" data-month-range>
-          {monthSelect(props.value[i]?.[0], `Εποχή ${i + 1}: από`)}
-          <span class="dash">–</span>
-          {monthSelect(props.value[i]?.[1], `Εποχή ${i + 1}: έως`)}
+    <div class="row">
+      <Select field="0" label="Από" value={props.from} options={MONTHS} none="—" />
+      <span class="dash">–</span>
+      <Select field="1" label="Έως" value={props.to} options={MONTHS} none="—" />
+    </div>
+  )
+}
+
+/**
+ * A duration like «2 years» or «4-6 weeks» (see parseDuration): a number and a unit, and «Εύρος» for
+ * from–to. The value is kept in a hidden input (empty = null); /admin-widgets.js runs the box.
+ */
+export function DurationField(props: Base & { value?: string | null; unit: DurationUnit }) {
+  const parsed = props.value ? parseDuration(props.value) : null
+  const unit = parsed?.unit ?? props.unit
+  const range = parsed?.to != null
+  return (
+    <div class="field duration" data-duration data-range={range ? '' : undefined}>
+      <div class="duration-head">
+        {props.label && <span class="caption">{props.label}</span>}
+        <button type="button" class="chip-button" data-duration-range aria-pressed={range ? 'true' : 'false'}>
+          Εύρος
+        </button>
+      </div>
+      <input type="hidden" data-field={props.field} data-type="text" data-nullable value={props.value ?? ''} />
+      <div class="row duration-row">
+        <div class="duration-box">
+          <input
+            type="number"
+            inputmode="numeric"
+            min="1"
+            max="9999"
+            data-duration-from
+            value={parsed ? String(parsed.from) : ''}
+            aria-label={`${props.label ?? 'Διάρκεια'}: ${range ? 'από' : 'αριθμός'}`}
+          />
+          <span class="duration-dash" aria-hidden="true">
+            –
+          </span>
+          <input
+            type="number"
+            inputmode="numeric"
+            min="1"
+            max="9999"
+            data-duration-to
+            value={parsed?.to != null ? String(parsed.to) : ''}
+            aria-label={`${props.label ?? 'Διάρκεια'}: έως`}
+          />
         </div>
-      ))}
+        <select data-duration-unit aria-label={`${props.label ?? 'Διάρκεια'}: μονάδα`}>
+          {DURATION_UNITS.map((u) => (
+            <option value={u} selected={u === unit}>
+              {DURATION_UNIT_LABELS[u].many}
+            </option>
+          ))}
+        </select>
+      </div>
+      {props.value && !parsed && <span class="small muted">Παλιά τιμή: «{props.value}» (γράψ' την ξανά)</span>}
+      {props.hint && <span class="small muted">{props.hint}</span>}
+      <WidgetsScript />
       <p class="error" aria-live="polite" />
     </div>
   )

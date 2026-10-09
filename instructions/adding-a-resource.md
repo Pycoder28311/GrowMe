@@ -329,9 +329,19 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
    Build forms from `ui/`:
    - `ui/fields.tsx`: `TextField`, `TextArea` (`large` for articles), `NumberField`, `MoneyField`
      (euros on screen, cents sent), `SuggestField` (free text with suggestions), `Toggle`, `Select`,
-     `Choices` (numbers), `TextChoices` (texts, e.g. a blog's kind), `RangeField`, `MonthRange`
+     `Choices` (numbers; `labels` shows the labels), `TextChoices` (texts, e.g. a blog's kind; `none`
+     adds a "not set" choice), `RangeField`, `MonthRange`, `MonthPair` (a season inside a list row),
+     `DurationField` («2 years» / «4-6 weeks», with an «Εύρος» button)
+   - `ui/sun-window.tsx`: `SunWindow`, a 00:00–24:00 bar with draggable edges and span (sends
+     `sunStart` / `sunEnd`). It and `DurationField` are run by `/admin-widgets.js`
+     (`backend/admin-editor/widgets.ts`, the second bundle of `npm run build:admin`); they keep their
+     value in hidden `data-field` inputs, so the form reads them like any field
    - `ui/repeatable-list.tsx`: `RepeatableList` (add/remove, `sortable` for drag and ↑/↓; `variants`
-     for several kinds of new rows, e.g. an existing tip or a new one)
+     for several kinds of new rows, e.g. an existing tip or a new one). Moves happen only in the page;
+     the order is saved with the form. Options: `max` (add buttons hide when full), `addAt="foot"`,
+     `shape="tuple"` (a row is sent as `[field "0", field "1"]`, e.g. seasons), `skipEmpty`, and
+     `groups` + `groupOf` + variant `group` (rows stay inside their group, new rows go to its end, a
+     `[data-switch-group]` button moves a row to the other group; see the plant stages)
    - **Blog links in texts:** `blogLinks` on `TextArea` / `TextField` / `SuggestField` plus one
      `<BlogLinkPicker options={await blogLinkOptions(ctx.db)} />` in the form (`ui/blog-link-picker.tsx`).
      Such fields become small editor boxes (`backend/admin-editor/linked-text.ts`, in the editor

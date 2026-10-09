@@ -4,6 +4,8 @@
 const TOKENS = `
   --primary: #2f7a3e;
   --primary-soft: #dcefe0;
+  --seed-soft: #f4ead6;
+  --seed-ink: #7a5520;
   --accent: #f28c28;
   --ink: #1f3d24;
   --ink-muted: rgba(31, 61, 36, 0.7);
@@ -92,7 +94,7 @@ a.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-raised); }
 .banner { border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md); background: #fdecea;
           color: var(--danger); font-weight: 700; }
 .field { display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; }
-.field > .caption { font-size: var(--text-small); color: var(--ink-muted); }
+.field > .caption, .duration-head > .caption { font-size: var(--text-small); color: var(--ink-muted); }
 .field .error { margin: 0; font-size: var(--text-small); color: var(--danger); }
 .field .error:empty { display: none; }
 .field.invalid input, .field.invalid textarea, .field.invalid select { border-color: var(--danger); }
@@ -110,9 +112,6 @@ input.big { font-size: var(--text-big); font-weight: 700; }
 input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .row { display: flex; gap: var(--space-sm); align-items: flex-end; flex-wrap: wrap; }
 .row > .field { flex: 1 1 80px; }
-/* MonthRanges: bare selects (no .field each), one season per line */
-.row > select { flex: 1 1 80px; width: auto; min-width: 0; }
-[data-month-range] + [data-month-range] { margin-top: var(--space-xs); }
 .dash { padding-bottom: var(--space-sm); color: var(--ink-muted); }
 
 /* Title block: name (big) with the price on the right, like the app's plant page */
@@ -159,7 +158,66 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .list-empty { font-size: var(--text-small); color: var(--ink-muted); padding: var(--space-sm); }
 .list:not(:empty) + .list-empty { display: none; }
 .add { align-self: flex-start; }
-.add-buttons { display: flex; flex-wrap: wrap; gap: var(--space-xs); justify-content: flex-end; }
+.add-buttons { display: flex; flex-wrap: wrap; gap: var(--space-xs); justify-content: flex-end; align-items: center; }
+.section > .add-buttons { justify-content: flex-start; margin-top: var(--space-sm); }
+/* A list with a maximum (data-max): the add buttons give way to «Έως N» when it is full */
+.list-full { display: none; }
+.add-buttons[data-full] .add { display: none; }
+.add-buttons[data-full] .list-full { display: inline; }
+/* Grouped lists (data-groups): each group's first row carries its label; seed stages are sand-coloured */
+.list-row[data-group-label]:not(:first-child) { margin-top: var(--space-md); }
+.list-row[data-group-label] { position: relative; }
+.list-row[data-group-label]::before { content: attr(data-group-label); position: absolute; top: -20px; left: var(--space-xs);
+  font-size: var(--text-small); font-weight: 700; color: var(--ink-muted); }
+.list-row[data-group-label]:first-child { margin-top: 18px; }
+.list-row[data-group="seed"] { background: var(--seed-soft); }
+.stage-head .row { align-items: center; justify-content: space-between; }
+.stage-badge { font-size: var(--text-small); font-weight: 700; color: var(--primary); }
+.list-row[data-group="seed"] .stage-badge { color: var(--seed-ink); }
+
+/* A small pill button inside fields («Εύρος», «→ στάδιο φυτού», sun bar buttons) */
+.chip-button { border: 1px solid var(--border); background: var(--surface); color: var(--primary); border-radius: 999px;
+  padding: 2px var(--space-sm); font: inherit; font-size: var(--text-small); font-weight: 700; cursor: pointer; min-height: 28px; }
+.chip-button:hover { border-color: var(--primary); }
+.chip-button[aria-pressed="true"] { background: var(--primary); color: var(--surface); border-color: var(--primary); }
+.chip-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+
+/* Duration box: one bordered box with the number (and, in range mode, «– number»), then the unit */
+/* Pair rows (data-shape="tuple", e.g. seasons): the row's buttons in one line, so a row stays short */
+[data-shape="tuple"] > .list-row { align-items: center; }
+[data-shape="tuple"] > .list-row > .tools { flex-direction: row; }
+.duration-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.duration-row { align-items: stretch; flex-wrap: nowrap; }
+.duration-box { display: flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); width: 110px; transition: width .15s; }
+.duration[data-range] .duration-box { width: 200px; }
+.duration-box:focus-within { outline: 2px solid var(--primary-soft); outline-offset: 1px; border-color: var(--primary); }
+.duration-box input[type=number] { border: 0; outline: 0; background: transparent; min-width: 0; flex: 1; text-align: center;
+  -moz-appearance: textfield; }
+.duration-box input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.duration-box input[type=number]:focus { outline: 0; }
+.duration-dash { color: var(--ink-muted); }
+.duration:not([data-range]) .duration-dash, .duration:not([data-range]) [data-duration-to] { display: none; }
+.duration-row > select { flex: 1; width: auto; min-width: 0; }
+
+/* Sun bar: 00:00–24:00, the span between --from and --to, a handle on each edge */
+.sun-track { position: relative; height: 10px; margin: 18px 14px 6px; border-radius: 999px;
+  background: linear-gradient(to right, #c9d3e6, #fff3d6 25%, #fff3d6 75%, #c9d3e6); }
+.sun-span { position: absolute; top: 0; bottom: 0; left: var(--from); right: calc(100% - var(--to)); border-radius: 999px;
+  background: var(--accent); cursor: grab; touch-action: none; }
+.sun-window.dragging .sun-span { cursor: grabbing; }
+.sun-handle { position: absolute; top: 50%; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 999px;
+  background: var(--surface); border: 3px solid var(--accent); box-shadow: var(--shadow-button); cursor: ew-resize;
+  touch-action: none; }
+.sun-handle[data-edge="start"] { left: var(--from); }
+.sun-handle[data-edge="end"] { left: var(--to); }
+.sun-span:focus-visible, .sun-handle:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sun-ticks { position: relative; height: 16px; margin: 0 14px; font-size: var(--text-small); color: var(--ink-muted); }
+.sun-ticks > span { position: absolute; transform: translateX(-50%); }
+.sun-label { margin: var(--space-xs) 0 0; font-weight: 700; color: var(--primary); }
+.sun-window[data-empty] .sun-span, .sun-window[data-empty] .sun-handle, .sun-window[data-empty] [data-sun-clear],
+.sun-window:not([data-empty]) [data-sun-set] { display: none; }
+.sun-window[data-empty] .sun-label { color: var(--ink-muted); font-weight: 400; }
 
 /* Search select: a text box with a results list under it */
 .search-select { position: relative; }
