@@ -38,34 +38,33 @@ const MONTH_ABBREVIATIONS = [
   'ΔΕΚ',
 ];
 
-const SEASONS = [
-  { emoji: '❄️', months: [12, 1, 2] },
-  { emoji: '🌷', months: [3, 4, 5] },
-  { emoji: '☀️', months: [6, 7, 8] },
-  { emoji: '🍂', months: [9, 10, 11] },
+export type Season = 'winter' | 'spring' | 'summer' | 'autumn';
+
+const SEASONS: { key: Season; emoji: string; months: number[] }[] = [
+  { key: 'winter', emoji: '❄️', months: [12, 1, 2] },
+  { key: 'spring', emoji: '🌷', months: [3, 4, 5] },
+  { key: 'summer', emoji: '☀️', months: [6, 7, 8] },
+  { key: 'autumn', emoji: '🍂', months: [9, 10, 11] },
 ];
 const ALL_YEAR_EMOJI = '📅';
 
-// Label like 'ΦΕΒ – ΝΟΕ', and the icon of the season covering most of the range
-// (ties go to the season the range starts in; 10+ months counts as all year)
-export function plantingPeriod(range: MonthRange): Trait {
+/**
+ * The season covering most of a range (ties go to the season the range starts in), or 'all' for
+ * 10+ months
+ */
+export function rangeSeason(range: MonthRange): Season | 'all' {
   const months = monthsOfRange(range);
-  const label = `${MONTH_ABBREVIATIONS[range[0] - 1]} – ${MONTH_ABBREVIATIONS[range[1] - 1]}`;
-  if (months.length >= 10) return { emoji: ALL_YEAR_EMOJI, label };
+  if (months.length >= 10) return 'all';
+  const firstSeason = SEASONS.find((season) => season.months.includes(range[0]))!;
+  const covered = (season: (typeof SEASONS)[number]) => months.filter((month) => season.months.includes(month)).length;
+  return SEASONS.reduce((top, season) => (covered(season) > covered(top) ? season : top), firstSeason).key;
+}
 
-  const firstSeason = SEASONS.find((season) =>
-    season.months.includes(range[0]),
-  )!;
-  const best = SEASONS.reduce((top, season) => {
-    const count = months.filter((month) =>
-      season.months.includes(month),
-    ).length;
-    const topCount = months.filter((month) =>
-      top.months.includes(month),
-    ).length;
-    return count > topCount ? season : top;
-  }, firstSeason);
-  return { emoji: best.emoji, label };
+// Label like 'ΦΕΒ – ΝΟΕ', and the icon of its season (rangeSeason)
+export function plantingPeriod(range: MonthRange): Trait {
+  const label = `${MONTH_ABBREVIATIONS[range[0] - 1]} – ${MONTH_ABBREVIATIONS[range[1] - 1]}`;
+  const season = rangeSeason(range);
+  return { emoji: season === 'all' ? ALL_YEAR_EMOJI : SEASONS.find((s) => s.key === season)!.emoji, label };
 }
 
 /* ─────────────── From the database's plant fields (see @growme/shared PlantSummary) ─────────────── */

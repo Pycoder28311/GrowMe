@@ -1,6 +1,6 @@
 import type { Disease } from '@growme/shared';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
@@ -21,19 +21,19 @@ export function WatchOutList({ items }: { items: Disease[] }) {
 
   return (
     <Animated.View layout={LinearTransition} style={styles.card}>
-      <PressableScale
+      {/* No shrink on press: only a light dim */}
+      <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(!open)}
-        pressedScale={0.98}
-        style={styles.head}>
+        style={({ pressed }) => [styles.head, pressed && styles.pressed]}>
         <AppText bold accessibilityRole="header">
           Τι να προσέχεις ({items.length})
         </AppText>
         <Animated.View style={chevron}>
           <Icon name="chevronDown" size={iconSize.normal} color={colors.primary} bold />
         </Animated.View>
-      </PressableScale>
+      </Pressable>
 
       {open && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.items}>
@@ -74,6 +74,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 48,
+  },
+  pressed: {
+    opacity: 0.7,
   },
   items: {
     paddingBottom: space.sm,

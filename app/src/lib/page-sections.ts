@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
+import type { LayoutChangeEvent, ScrollView } from 'react-native';
 
 /** A section counts as seen once its top passes this much of the screen's height */
 const SEEN_AT = 0.85;
@@ -23,8 +23,9 @@ const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>) => a.size === b
 
 /**
  * Where a scrolling page is, by section: each section reports its top (`register(id)` as its onLayout,
- * on a direct child of the ScrollView's content), the ScrollView gets `scrollProps`. Re-renders only
- * when the current section, the seen or the below sections change. `headerLine`: the y on screen
+ * on a direct child of the ScrollView's content), the ScrollView gets `scrollProps` and reports its
+ * offset to `onScrollY`. Re-renders only when the current section, the seen or the below sections
+ * change. `headerLine`: the y on screen
  * where content starts below the header (useTopClearance). The current section is the one at the
  * screen's middle, or after `scrollTo(id)` that one, until the user scrolls away.
  */
@@ -77,18 +78,22 @@ export function usePageSections(order: readonly string[], headerLine: number) {
     [headerLine, update],
   );
 
-  const scrollProps = {
-    ref: scrollRef,
-    scrollEventThrottle: 32,
-    onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      y.current = event.nativeEvent.contentOffset.y;
+  /** Call with the page's scroll offset on every scroll event */
+  const onScrollY = useCallback(
+    (offset: number) => {
+      y.current = offset;
       update();
     },
+    [update],
+  );
+
+  const scrollProps = {
+    ref: scrollRef,
     onLayout: (event: LayoutChangeEvent) => {
       viewport.current = event.nativeEvent.layout.height;
       update();
     },
   };
 
-  return { ...state, register, scrollTo, scrollProps, scrollRef, scrollY: y };
+  return { ...state, register, scrollTo, onScrollY, scrollProps, scrollRef, scrollY: y };
 }

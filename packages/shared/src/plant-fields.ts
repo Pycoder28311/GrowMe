@@ -36,7 +36,7 @@ export const PLANT_SIZE_LABELS: Record<PlantSize, string> = { small: 'Μικρό
  * (null = nothing shown). The key is the API field (and, in snake case, the column).
  */
 export const PLANT_FLAGS = [
-  { key: 'food', label: 'Βρώσιμο', emoji: '🍅', yes: 'Φαγώσιμο', no: null },
+  { key: 'food', label: 'Βρώσιμο', emoji: '🍅', yes: 'Φαγώσιμο', no: 'Μη φαγώσιμο' },
   { key: 'aromatic', label: 'Αρωματικό', emoji: '🌿', yes: 'Αρωματικό', no: null },
   { key: 'climbing', label: 'Αναρριχητικό', emoji: '🧗', yes: 'Αναρριχητικό', no: null },
   { key: 'ornamental', label: 'Καλλωπιστικό', emoji: '🌸', yes: 'Καλλωπιστικό', no: null },
@@ -44,7 +44,7 @@ export const PLANT_FLAGS = [
   { key: 'smallTree', label: 'Μικρό δέντρο', emoji: '🌳', yes: null, no: null },
   { key: 'privacy', label: 'Ιδιωτικότητα (φράχτης)', emoji: '🏡', yes: 'Ιδιωτικότητα', no: null },
   { key: 'nearSea', label: 'Κοντά στη θάλασσα', emoji: '🌊', yes: 'Κοντά στη θάλασσα', no: null },
-  { key: 'frostHardy', label: 'Αντέχει τον παγετό', emoji: '❄️', yes: 'Ανθεκτικό στον παγετό', no: 'Ευαίσθητο στον παγετό' },
+  { key: 'frostHardy', label: 'Αντέχει τον παγετό', emoji: '❄️', yes: 'Ανθεκτικό στον παγετό', no: null },
 ] as const satisfies readonly { key: string; label: string; emoji: string; yes: string | null; no: string | null }[]
 
 export type PlantFlag = (typeof PLANT_FLAGS)[number]['key']

@@ -203,3 +203,13 @@ Expo web + Playwright with the plan 09/10 harness (local backend, seeded plants 
 - **Colours** (light orange page `#fff1e0`, sun span `#ffb867`) and **sentences** for the rows (e.g. μικρό δέντρο) are proposals, chosen while implementing.
 - **«Night» sun icon:** the sun window can't be at night, so the third icon is **afternoon / sunset**. Say if you meant something else.
 - **The animations' style** (flat, 2–3 colours, thin outlines) — you'll see a first batch (wind, βρώσιμο, kind) before the rest are drawn.
+
+## As built
+
+Implemented on the app; differences from the text above:
+- **Combination and related cards** live in `plant-carousel.tsx` (no separate `combo-card.tsx`). Related cards show the scientific name (the search index has no description).
+- **Stages** always show the start of their text (2 lines), as in the wireframe, so the old teaser (`useTeaser`) is gone. The full lifecycle page is unchanged.
+- **Thumbnails:** at most 6; in the stack they are 80% size and tilted.
+- **Android blur:** `expo-blur` needs a blur target on Android, which a full-screen modal can't have, so Android gets a soft white veil instead of a real blur. iOS and web blur.
+- **Removed:** `plant-facts.tsx`, `plant-gallery.tsx`, `lifecycle/use-teaser.ts`.
+- **Checked** on Expo web (Playwright, mocked API): header fade and push back, thumbnails flying to the stack, lightbox with blur, tile animations, sun bar, rows, lifecycle split / join and the lit button, carousels. Not yet checked on a phone.

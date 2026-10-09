@@ -16,7 +16,7 @@ type TimelineProps = {
   stages: Lifecycle[];
   /** compact: titles and teasers in a box of limited height; full: every text, the page's own scroll */
   mode: 'compact' | 'full';
-  /** Compact: the stage showing its first line now (useTeaser) */
+  /** Compact: the stage showing its first line now */
   teased?: number | null;
   /** Compact: a stage's «Δες περισσότερα» */
   onOpen?: (index: number, rect: Rect) => void;
