@@ -1,6 +1,7 @@
 import {
   DIFFICULTY_LABELS,
   flagPhrase,
+  PLANT_FLAGS,
   PLANT_KIND_LABELS,
   PLANT_SIZE_LABELS,
   WIND_LABELS,
@@ -28,14 +29,21 @@ export type TileArt =
   | { kind: 'difficulty'; value: Difficulty }
   | { kind: 'size'; value: PlantSize };
 
-export type InfoTile = { key: string; icon: PlantIcon; label: string; arts: TileArt[] };
+/** `label`: what the tile is about («Αέρας»); `value`: the plant's value, in bold («Αντέχει δυνατό αέρα») */
+export type InfoTile = { key: string; icon: PlantIcon; label: string; value: string; arts: TileArt[] };
+
+/** Tile titles that differ from the dashboard's flag names */
+const FLAG_TITLES: Partial<Record<PlantFlag, string>> = { frostHardy: 'Χειμώνας' };
 
 /** A yes/no tile: shown when yes, or always (`always`) with the «no» words */
 function flagTile(plant: PlantSummary, key: PlantFlag, art: (value: boolean) => TileArt, always = false): InfoTile | null {
   const value = plant[key];
-  const label = flagPhrase(key, value);
-  if (!label || (!value && !always)) return null;
-  return { key, icon: FLAG_ICONS[key], label, arts: [art(value)] };
+  const phrase = flagPhrase(key, value);
+  if (!phrase || (!value && !always)) return null;
+  const flag = PLANT_FLAGS.find((f) => f.key === key)!;
+  const label = FLAG_TITLES[key] ?? flag.label;
+  // «Αναρριχητικό: Αναρριχητικό» says nothing: then the value is just «Ναι»
+  return { key, icon: FLAG_ICONS[key], label, value: phrase === label ? 'Ναι' : phrase, arts: [art(value)] };
 }
 
 /** The tiles a plant shows, in the page's order */
@@ -44,11 +52,12 @@ export function infoTiles(plant: PlantSummary): InfoTile[] {
   // One drawing per range's season, the same season once
   const seasons = [...new Set(plant.monthRanges.map(rangeSeason))];
   return [
-    plant.wind && { key: 'wind', icon: WIND_ICON, label: WIND_LABELS[plant.wind], arts: [{ kind: 'wind', level: plant.wind }] },
+    plant.wind && { key: 'wind', icon: WIND_ICON, label: 'Αέρας', value: WIND_LABELS[plant.wind], arts: [{ kind: 'wind', level: plant.wind }] },
     season && {
       key: 'months',
       icon: FACT_ICONS.season,
-      label: `Φύτεμα: ${season.label}`,
+      label: 'Φύτεμα',
+      value: season.label,
       arts: seasons.map((s) => ({ kind: 'season', season: s })),
     },
     flagTile(plant, 'climbing', () => ({ kind: 'climbing' })),
@@ -59,20 +68,23 @@ export function infoTiles(plant: PlantSummary): InfoTile[] {
     plant.kind && {
       key: 'kind',
       icon: KIND_ICONS[plant.kind],
-      label: PLANT_KIND_LABELS[plant.kind],
+      label: 'Είδος',
+      value: PLANT_KIND_LABELS[plant.kind],
       arts: [{ kind: 'plantKind', value: plant.kind }],
     },
     flagTile(plant, 'frostHardy', () => ({ kind: 'frost' })),
     {
       key: 'difficulty',
       icon: FACT_ICONS.difficulty,
-      label: `Δυσκολία: ${DIFFICULTY_LABELS[plant.difficulty]}`,
+      label: 'Δυσκολία',
+      value: DIFFICULTY_LABELS[plant.difficulty],
       arts: [{ kind: 'difficulty', value: plant.difficulty }],
     },
     plant.size && {
       key: 'size',
       icon: SIZE_ICON,
-      label: `Μέγεθος: ${PLANT_SIZE_LABELS[plant.size]}`,
+      label: 'Μέγεθος',
+      value: PLANT_SIZE_LABELS[plant.size],
       arts: [{ kind: 'size', value: plant.size }],
     },
   ].filter((tile): tile is InfoTile => !!tile);

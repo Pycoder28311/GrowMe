@@ -7,7 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import type { Rect } from '@/config/search-motion';
-import { colors, iconSize, radius, space } from '@/theme';
+import { colors, iconSize, radius, shadow, space } from '@/theme';
 
 import { firstLine } from './stage-groups';
 
@@ -74,7 +74,7 @@ type StagesBoxProps = {
 };
 
 /**
- * A life cycle's stages in one rounded box, seed stages on top (sand), the plant's own below (gray).
+ * A life cycle's stages in one white rounded box, seed stages on top, the plant's own below.
  * When it splits, the halves separate, the seed half sinks behind and fades, the plant half moves up
  * to where the seed half started; then the seed half leaves the layout in the same frame as the plant
  * half's offset is reset, so nothing jumps. The reverse brings it back.
@@ -118,7 +118,7 @@ export function StagesBox({ seed, plant, onOpen, split, collapsed, seedHeight, s
             const height = event.nativeEvent.layout.height;
             if (height > 0) seedHeight.set(height);
           }}
-          style={[styles.half, styles.seed, styles.top, seedStyle]}>
+          style={[styles.half, styles.top, seedStyle]}>
           {seed.map(([index, stage], i) => (
             <StageRow key={stage.id} stage={stage} first={i === 0} onOpen={(rect) => onOpen(index, rect)} />
           ))}
@@ -129,7 +129,7 @@ export function StagesBox({ seed, plant, onOpen, split, collapsed, seedHeight, s
         // Later in the tree, so it passes over the seed half
         <Animated.View
           ref={plantRef}
-          style={[styles.half, styles.plant, styles.bottom, both && styles.joint, plantStyle]}>
+          style={[styles.half, styles.bottom, both && styles.joint, plantStyle]}>
           {plant.map(([index, stage], i) => (
             <StageRow key={stage.id} stage={stage} first={i === 0} onOpen={(rect) => onOpen(index, rect)} />
           ))}
@@ -141,8 +141,9 @@ export function StagesBox({ seed, plant, onOpen, split, collapsed, seedHeight, s
 
 const styles = StyleSheet.create({
   half: {
-    overflow: 'hidden',
     paddingHorizontal: space.md,
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
   },
   top: {
     borderTopLeftRadius: R,
@@ -152,19 +153,15 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: R,
     borderBottomRightRadius: R,
   },
-  seed: {
-    backgroundColor: colors.seedSoft,
-  },
-  plant: {
-    backgroundColor: '#e9e9ec',
-  },
   // The line between the two halves while they are joined
   joint: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(31, 61, 36, 0.12)',
   },
+  // Darkens the seed half as it goes behind (rounded like the half once it has split off)
   shade: {
     ...StyleSheet.absoluteFill,
+    borderRadius: R,
     backgroundColor: '#000000',
   },
   row: {

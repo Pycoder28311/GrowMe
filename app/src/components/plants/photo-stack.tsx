@@ -4,19 +4,17 @@ import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PHOTO_HEIGHT, THUMBS_CENTER } from '@/components/plants/photo-header';
+import { PHOTO_HEIGHT, THUMB_SIZE, THUMBS_CENTER } from '@/components/plants/photo-header';
 import type { Rect } from '@/config/search-motion';
 import { colors, radius, shadow, size, space } from '@/theme';
 
 /** At most this many thumbnails */
 const MAX_THUMBS = 6;
-const THUMB = size.touch;
 const GAP = space.sm;
-/** In the stack, each thumbnail shows this much of itself below the one above */
-const STACK_STEP = THUMB * 0.36;
-const STACK_SCALE = 0.8;
-/** Each one's tilt in the stack, like Instagram's «Instants» */
-const TILTS = [-6, 5, -4, 6, -3, 4];
+/** In the pile, each photo behind sits this much lower and to the left: only its edges show */
+const PILE_STEP = { x: -1.5, y: 2.5 };
+/** Each one's tilt in the pile, like Instagram's «Instants»: the top one almost straight */
+const TILTS = [-3, 5, -7, 8, -9, 6];
 /** The scroll over which they fly from the photos' edge to the stack */
 const FLY_FROM = PHOTO_HEIGHT * 0.3;
 const FLY_TO = PHOTO_HEIGHT * 0.9;
@@ -34,10 +32,11 @@ type ThumbProps = {
   scrollY: SharedValue<number>;
   rest: { x: number; y: number };
   stack: { x: number; y: number };
+  size: number;
   onOpen: (rect: Rect) => void;
 };
 
-function Thumb({ uri, i, count, active, scrollY, rest, stack, onOpen }: ThumbProps) {
+function Thumb({ uri, i, count, active, scrollY, rest, stack, size, onOpen }: ThumbProps) {
   const ref = useRef<View>(null);
   // One after the other: each starts a little later than the one before
   const lag = count > 1 ? Math.min(0.12, 0.5 / (count - 1)) : 0;
@@ -53,7 +52,6 @@ function Thumb({ uri, i, count, active, scrollY, rest, stack, onOpen }: ThumbPro
         { translateX: rest.x + (stack.x - rest.x) * e },
         { translateY: restY + (stack.y - restY) * e },
         { rotate: `${TILTS[i % TILTS.length] * e}deg` },
-        { scale: 1 + (STACK_SCALE - 1) * e },
       ],
     };
   });
@@ -65,7 +63,7 @@ function Thumb({ uri, i, count, active, scrollY, rest, stack, onOpen }: ThumbPro
         accessibilityRole="imagebutton"
         accessibilityLabel={`Φωτογραφία ${i + 1}, άνοιγμα`}
         onPress={() => ref.current?.measureInWindow((left, top, width, height) => onOpen({ left, top, width, height }))}
-        style={[styles.thumb, active && styles.thumbActive]}>
+        style={[styles.thumb, { width: size, height: size }, active && styles.thumbActive]}>
         <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
       </Pressable>
     </Animated.View>
@@ -74,8 +72,8 @@ function Thumb({ uri, i, count, active, scrollY, rest, stack, onOpen }: ThumbPro
 
 /**
  * The photos' thumbnails, over the page: first in a row centred on the photos' faded edge, then, as
- * the page scrolls, they fly one by one to the top right under the search button and stack there
- * half-hidden and tilted. A tap opens that photo (PhotoLightbox).
+ * the page scrolls, they fly one by one to the top right under the search button and pile up there
+ * one behind the other, tilted, so only the edges of those behind show. A tap opens that photo.
  */
 export function PhotoStack({
   photos,
@@ -92,7 +90,9 @@ export function PhotoStack({
   const insets = useSafeAreaInsets();
   const thumbs = photos.slice(0, MAX_THUMBS);
   const count = thumbs.length;
-  const rowWidth = count * THUMB + (count - 1) * GAP;
+  // As big as THUMB_SIZE, smaller when the row wouldn't fit
+  const thumb = Math.min(THUMB_SIZE, (width - 2 * space.md - (count - 1) * GAP) / count);
+  const rowWidth = count * thumb + (count - 1) * GAP;
   // Under the search button (top right corner), with the corners' gap
   const stackTop = insets.top + space.md + size.touch + space.sm;
 
@@ -106,8 +106,10 @@ export function PhotoStack({
           count={count}
           active={i === index}
           scrollY={scrollY}
-          rest={{ x: (width - rowWidth) / 2 + i * (THUMB + GAP), y: THUMBS_CENTER - THUMB / 2 }}
-          stack={{ x: width - space.md - THUMB, y: stackTop + i * STACK_STEP }}
+          size={thumb}
+          rest={{ x: (width - rowWidth) / 2 + i * (thumb + GAP), y: THUMBS_CENTER - thumb / 2 }}
+          // The pile: right-aligned with the search button, each one just behind the one before
+          stack={{ x: width - space.md - thumb + i * PILE_STEP.x, y: stackTop + i * PILE_STEP.y }}
           onOpen={(rect) => onOpen(i, rect)}
         />
       ))}
@@ -122,8 +124,6 @@ const styles = StyleSheet.create({
     top: 0,
   },
   thumb: {
-    width: THUMB,
-    height: THUMB,
     overflow: 'hidden',
     borderRadius: radius.sm,
     borderWidth: 2,

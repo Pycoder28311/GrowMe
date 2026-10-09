@@ -5,7 +5,7 @@ import { IconCircle } from '@/components/plants/icon-circle';
 import { LinkedText } from '@/components/ui/linked-text';
 import { ShakeOnTap } from '@/components/ui/shake-on-tap';
 import { FACT_ICONS, FLAG_ICONS, type PlantIcon } from '@/config/plant-icons';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, shadow, space } from '@/theme';
 
 type Row = { key: string; icon: PlantIcon; text: string };
 
@@ -24,7 +24,7 @@ export function traitRows(plant: PlantSummary, withLifespan: boolean): Row[] {
   ].filter((row): row is Row => !!row);
 }
 
-/** Gray rounded rows, one line each (the origin may link to a blog); a tap only shakes them */
+/** White rows like the info tiles (same corner and shadow), one line each (the origin may link to a blog); a tap only shakes them */
 export function TraitRows({ plant, withLifespan }: { plant: PlantSummary; withLifespan: boolean }) {
   const rows = traitRows(plant, withLifespan);
   if (rows.length === 0) return null;
@@ -54,8 +54,9 @@ const styles = StyleSheet.create({
     gap: space.sm,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
-    borderRadius: radius.md,
-    backgroundColor: '#e9e9ec',
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
   },
   text: {
     flex: 1,

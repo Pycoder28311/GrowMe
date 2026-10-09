@@ -10,29 +10,37 @@ import { infoTiles } from '@/config/plant-tiles';
 import { colors, radius, shadow, space } from '@/theme';
 
 /**
- * The plant's info as white tiles in two columns: the icon top-left, the words under it, and a small
- * animation on the right (one per value: a tile with several takes a whole row). A tap only shakes it.
+ * The plant's info as almost square white tiles in two columns: the icon top left, a small animation
+ * top right (one per value: a tile with several takes a whole row), then the title and the plant's
+ * value in bold. A tap only shakes it.
  * The animations run while `playing` (the tiles are on screen) and never with Reduce Motion.
  */
 export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: boolean }) {
   const reduced = useReducedMotion();
-  const tiles = infoTiles(plant);
+  // Tiles with several animations take a whole row: first, so the half-width ones pair up below
+  const all = infoTiles(plant);
+  const tiles = [...all.filter((tile) => tile.arts.length > 1), ...all.filter((tile) => tile.arts.length <= 1)];
   if (tiles.length === 0) return null;
   return (
     <View accessibilityRole="list" style={styles.grid}>
       {tiles.map((tile) => (
         <ShakeOnTap key={tile.key} style={tile.arts.length > 1 ? styles.wide : styles.cell}>
-          <View style={styles.tile}>
-            <View style={styles.words}>
+          <View style={[styles.tile, tile.arts.length === 1 && styles.square]}>
+            <View style={styles.top}>
               <IconCircle icon={tile.icon} />
-              <AppText size="small" color={colors.ink}>
+              <View style={styles.arts}>
+                {tile.arts.map((art, i) => (
+                  <TileArtView key={i} art={art} playing={playing && !reduced} />
+                ))}
+              </View>
+            </View>
+            <View style={styles.words}>
+              <AppText size="small" color={colors.inkMuted}>
                 {tile.label}
               </AppText>
-            </View>
-            <View style={styles.arts}>
-              {tile.arts.map((art, i) => (
-                <TileArtView key={i} art={art} playing={playing && !reduced} />
-              ))}
+              <AppText bold color={colors.ink}>
+                {tile.value}
+              </AppText>
             </View>
           </View>
         </ShakeOnTap>
@@ -45,31 +53,38 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: space.sm,
+    justifyContent: 'space-between',
+    rowGap: space.sm,
   },
-  // Two per row
+  // Two per row; one left alone stays half wide
   cell: {
-    flexBasis: '47%',
-    flexGrow: 1,
+    width: '48.6%',
   },
   wide: {
     flexBasis: '100%',
   },
   tile: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-    minHeight: 84,
-    padding: space.sm,
+    justifyContent: 'space-between',
+    gap: space.sm,
+    minHeight: 128,
+    padding: space.sm + 2,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,
     boxShadow: shadow.tile,
   },
+  // Close to a square: a little wider than tall
+  square: {
+    aspectRatio: 1.15,
+  },
+  // The icon top left, the animation top right
+  top: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  // The title above, the plant's value in bold below it
   words: {
-    flex: 1,
-    alignSelf: 'stretch',
-    gap: space.xs,
+    gap: 2,
   },
   arts: {
     flexDirection: 'row',

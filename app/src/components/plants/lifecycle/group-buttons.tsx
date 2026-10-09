@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, shadow, space } from '@/theme';
 
 import type { StageGroup } from './stage-groups';
 
@@ -12,7 +12,7 @@ const BUTTONS: { group: StageGroup; label: string; color: string }[] = [
 
 /**
  * The life cycle's two big buttons, «Από σπόρο» | «Μεταμφύτευση»: the group whose stages take more
- * of the screen is lit (its own colour), the other one is gray
+ * of the screen is lit (its colour on the outline and the words), the other one is plain white
  */
 export function GroupButtons({ lit, onPick }: { lit: StageGroup; onPick: (group: StageGroup) => void }) {
   return (
@@ -26,8 +26,8 @@ export function GroupButtons({ lit, onPick }: { lit: StageGroup; onPick: (group:
             accessibilityState={{ selected: on }}
             aria-selected={on}
             onPress={() => onPick(group)}
-            style={({ pressed }) => [styles.button, { backgroundColor: on ? color : GRAY }, pressed && styles.pressed]}>
-            <AppText bold={on} color={on ? colors.surface : colors.ink}>
+            style={({ pressed }) => [styles.button, on && { borderColor: color }, pressed && styles.pressed]}>
+            <AppText bold={on} color={on ? color : colors.inkMuted}>
               {label}
             </AppText>
           </Pressable>
@@ -36,8 +36,6 @@ export function GroupButtons({ lit, onPick }: { lit: StageGroup; onPick: (group:
     </View>
   );
 }
-
-const GRAY = '#dcdce0';
 
 const styles = StyleSheet.create({
   row: {
@@ -51,6 +49,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: space.sm,
     borderRadius: radius.sm,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
   },
   pressed: {
     opacity: 0.8,

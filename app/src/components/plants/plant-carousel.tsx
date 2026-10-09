@@ -7,7 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { ArrowButton } from '@/components/ui/arrow-button';
 import { Icon } from '@/components/ui/icon';
 import type { PlantCardItem } from '@/lib/plants';
-import { colors, iconSize, radius, size, space } from '@/theme';
+import { colors, iconSize, radius, shadow, size, space } from '@/theme';
 
 const GAP = space.sm;
 /** How much of a card the photo takes */
@@ -111,13 +111,14 @@ const styles = StyleSheet.create({
   row: {
     gap: GAP,
     paddingLeft: space.md,
-    paddingVertical: space.xs,
+    paddingVertical: space.sm,
   },
   card: {
     gap: space.sm,
     padding: space.sm,
     borderRadius: radius.md,
-    backgroundColor: '#e4e4e7',
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
   },
   pressed: {
     opacity: 0.85,
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     gap: space.xs,
     paddingVertical: space.sm,
     borderRadius: radius.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primarySoft,
   },
   arrow: {
     position: 'absolute',

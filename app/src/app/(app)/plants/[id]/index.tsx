@@ -19,6 +19,7 @@ import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
 import { PHOTO_HEIGHT, PhotoHeader } from '@/components/plants/photo-header';
 import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lightbox';
 import { PhotoStack } from '@/components/plants/photo-stack';
+import { cardFromIndex, PlantCard } from '@/components/plants/plant-card';
 import { PlantCarousel } from '@/components/plants/plant-carousel';
 import { PlantTiles } from '@/components/plants/plant-tiles';
 import { SectionBar, type PageSection } from '@/components/plants/section-bar';
@@ -243,8 +244,13 @@ export default function PlantScreen() {
         )}
         {related.length > 0 && (
           <Block onLayout={register('related')}>
+            {/* The same cards as the results page */}
             <Section title="Σχετικά φυτά">
-              <PlantCarousel plants={related} />
+              <View style={styles.related}>
+                {related.map((other) => (
+                  <PlantCard key={other.id} plant={cardFromIndex(other)} />
+                ))}
+              </View>
             </Section>
           </Block>
         )}
@@ -288,6 +294,9 @@ const styles = StyleSheet.create({
   },
   name: {
     flexShrink: 1,
+  },
+  related: {
+    gap: space.sm,
   },
   notFound: {
     alignItems: 'center',

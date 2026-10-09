@@ -78,7 +78,7 @@ export function useCombinationPlants(combinationId: number | null, exceptId: num
   }, [combinationId, exceptId, loaded]);
 }
 
-const RELATED_MAX = 8;
+const RELATED_MAX = 6;
 
 /**
  * Plants like this one, from the search index: the same kind counts most, then each yes/no
@@ -100,19 +100,14 @@ export function relatedPlants(plant: PlantSummary, all: SearchPlant[], exclude: 
     .map(({ other }) => other);
 }
 
-/** Related plants as carousel cards (the search index loads once per session) */
-export function useRelatedPlants(plant: PlantSummary | null, exclude: readonly number[]): PlantCardItem[] {
+/** Related plants (the search index loads once per session) */
+export function useRelatedPlants(plant: PlantSummary | null, exclude: readonly number[]): SearchPlant[] {
   const { index, load } = useSearchIndex();
   useEffect(() => load(), [load]);
   const excluded = exclude.join(',');
   return useMemo(() => {
     if (!plant || !index) return [];
     const skip = new Set(excluded ? excluded.split(',').map(Number) : []);
-    return relatedPlants(plant, index.plants, skip).map((other) => ({
-      id: other.id,
-      name: other.name,
-      text: stripBlogLinks(other.scientificName),
-      image: other.image,
-    }));
+    return relatedPlants(plant, index.plants, skip);
   }, [plant, index, excluded]);
 }

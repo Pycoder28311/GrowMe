@@ -13,8 +13,10 @@ export const PHOTO_HEIGHT = 280;
 const FADE = 110;
 /** Where the thumbnails' centres sit: on the fade, near the photos' bottom (PhotoStack) */
 export const THUMBS_CENTER = PHOTO_HEIGHT - 18;
+/** The thumbnails' size (smaller when many have to fit in a row) */
+export const THUMB_SIZE = 64;
 /** Room under the photos for the thumbnails' lower half */
-const UNDER = size.touch / 2 - 18;
+const UNDER = THUMB_SIZE / 2 - 18;
 
 type PhotoHeaderProps = {
   photos: string[];
