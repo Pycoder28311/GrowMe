@@ -156,3 +156,12 @@ Expo web + Playwright with the mocked API from plans 10–11, plus a phone; the 
 - **Remember the filters across restarts?** Today they are lost when the app closes, so the 5th tab then opens the filter sheet. They could be saved on the phone (secure store / local storage).
 - **The Portfolio reel effect** for picking a result: a later plan, once it can be checked on the PC.
 - **Colours** (overlay 35%, header gray `#eceef0`, dashboard greys) are proposals, adjusted while implementing.
+
+## As built
+
+Implemented; differences from the text above:
+- **The letters' real cause:** on web the per-letter layout `entering` animation broke the row's layout: the letters were piled on top of each other (not just low) and the title sat over the tagline. Letters and the tagline now animate with their own transforms only (no layout animation), and `pop-in.ts` is gone.
+- **Slide transitions** are set on the post and blog pages themselves (`Stack.Screen` in the page, like the plant page). A function-style option on the layout's `Stack.Screen` crashed the app on web. A blog opened from the search only fades, as its result already grew over the screen.
+- **The explore sheet** now lives in `ExploreFiltersProvider` (`openExplore()`), so the home button and the 5th tab open the same sheet.
+- **Search:** opening the search on a detail page isn't possible (its corner is the back X), so it never has to close itself there.
+- **Checked** on Expo web (Playwright, mocked API): home (letters on one row, no «Μάθε περισσότερα», five tabs, button glow), search (full width over the leaf, X closes it, darker overlay, separate result cards, gray centred headers, list as tall as its results), the 5th tab opening the filter sheet with no filters, the X on a plant page going back. Dashboard: rendered the home tiles and form controls with the new CSS (hover backgrounds). Not yet checked on a phone (the slide transitions only show there).

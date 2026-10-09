@@ -55,7 +55,7 @@ type BottomNavProps = {
   onNavigate: (id: NavId) => void;
 };
 
-/** The bottom bar: four icon tabs and a raised tile that slides to the active one */
+/** The bottom bar: five icon tabs and a raised tile that slides to the active one */
 export function BottomNav({ activeId, onNavigate }: BottomNavProps) {
   const insets = useSafeAreaInsets();
   const [positions, setPositions] = useState<Partial<Record<NavId, number>>>({});

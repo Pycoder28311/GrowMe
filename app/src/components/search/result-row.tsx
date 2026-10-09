@@ -39,13 +39,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
     padding: space.xs,
-    borderRadius: radius.sm,
+    borderRadius: radius.xs,
     backgroundColor: colors.surface,
   },
   thumb: {
     width: THUMB,
     height: THUMB,
-    borderRadius: radius.sm,
+    borderRadius: radius.xs - 2,
     backgroundColor: colors.primarySoft,
   },
   noThumb: {

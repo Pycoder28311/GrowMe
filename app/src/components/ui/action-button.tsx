@@ -28,6 +28,8 @@ type ActionButtonProps = {
   /** Darker line along the bottom edge */
   edge?: boolean;
   glow?: keyof typeof GLOW;
+  /** A very soft light-orange inner shadow along the top edge (the home page's main button) */
+  innerGlow?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -39,6 +41,7 @@ export function ActionButton({
   size = 'lg',
   edge = true,
   glow = 'full',
+  innerGlow = false,
   style,
 }: ActionButtonProps) {
   const [pressed, setPressed] = useState(false);
@@ -64,6 +67,7 @@ export function ActionButton({
         ]}>
         <View pointerEvents="none" style={[styles.shine, { experimental_backgroundImage: light(shine) }]} />
         <View pointerEvents="none" style={[styles.reflection, { experimental_backgroundImage: light(reflection) }]} />
+        {innerGlow && <View pointerEvents="none" style={styles.innerGlow} />}
         {pressed && <View pointerEvents="none" style={styles.pressed} />}
         {children}
       </View>
@@ -95,6 +99,11 @@ const styles = StyleSheet.create({
   edge: {
     borderBottomWidth: space.xs,
     borderBottomColor: shade,
+  },
+  innerGlow: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: radius.sm,
+    boxShadow: 'inset 0 3px 3px -1px rgba(255, 210, 166, 0.6)',
   },
   shine: {
     position: 'absolute',

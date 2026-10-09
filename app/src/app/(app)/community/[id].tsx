@@ -1,5 +1,5 @@
 import type { PostReply } from '@growme/shared';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -18,8 +18,18 @@ import { firstSentence, usePost, usePostThread } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
 import { colors, space } from '@/theme';
 
-/** One community post with its replies, nested like Reddit; any reply can be answered */
+/** One community post: it slides up from the bottom over the list and back down when closed */
 export default function CommunityPostScreen() {
+  return (
+    <>
+      <Stack.Screen options={{ animation: 'slide_from_bottom' }} />
+      <CommunityPost />
+    </>
+  );
+}
+
+/** One community post with its replies, nested like Reddit; any reply can be answered */
+function CommunityPost() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
   const { post, state, retry, update } = usePost(Number(id));

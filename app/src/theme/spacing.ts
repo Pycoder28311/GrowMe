@@ -12,6 +12,8 @@ export const space = {
 
 /** Corner radius (px) */
 export const radius = {
+  /** Small separate elements: search results and their list headers */
+  xs: 8,
   /** Buttons */
   sm: 12,
   /** Cards */

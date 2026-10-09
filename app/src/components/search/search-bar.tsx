@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Animated, {
   Easing,
+  interpolate,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -49,10 +50,17 @@ import { alpha, colors, fontFamily, fontSize, iconSize, radius, size, space } fr
 //               the placeholder's letters appear as it passes them (520 ms)
 //   open        typing filters plants and blogs; a tapped result grows into its page
 //   collapsing  one movement back: the bar shrinks to the right and the icon rides its left edge
+// Open, the bar spans the whole width in front of the leaf, and an X at its right end closes it.
+// On a blog, post or plant page the search button turns into an X that goes back.
 
 const PLACEHOLDER = 'Αναζήτηση φυτών και άρθρων';
 const CONTROL = size.touch;
 const SCRIM_MS = 300;
+/** The search button turning into the back X (and back) */
+const TO_X_MS = 250;
+
+/** Pages that open over a list (a blog, a post, a plant and its life cycle): the corner goes back */
+const isDetailPage = (pathname: string) => /^\/(wiki|community|plants)\/[^/]+/.test(pathname);
 
 type Phase = 'closed' | 'expanding' | 'travelling' | 'open' | 'collapsing';
 
@@ -94,8 +102,8 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const { index, error, load } = useSearchIndex();
 
-  // The bar meets the leaf with the usual corner gap; no measuring needed, both corners are fixed
-  const openWidth = screenWidth - 2 * space.md - CONTROL - space.sm;
+  // Open, the bar spans the screen between the side margins, in front of the leaf
+  const openWidth = screenWidth - 2 * space.md;
   const travel = openWidth - CONTROL;
 
   const width = useSharedValue<number>(CONTROL);
@@ -104,6 +112,8 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   const turn = useSharedValue(0);
   const clock = useSharedValue(0); // ms into the sweep, for the placeholder letters
   const scrim = useSharedValue(0);
+  const detail = isDetailPage(usePathname());
+  const toX = useSharedValue(detail ? 1 : 0);
 
   const clearTimers = useCallback(() => {
     for (const timer of timers.current) clearTimeout(timer);
@@ -179,6 +189,14 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
     [phase, clearTimers, reduced, width, glyph, riding, turn, clock, scrim],
   );
 
+  // On a detail page the corner is the back X: the magnifier turns into it (a result closes the
+  // search before its page opens, so the search is never open there)
+  useEffect(() => {
+    toX.set(withTiming(detail ? 1 : 0, { duration: reduced ? 0 : TO_X_MS }));
+  }, [detail, reduced, toX]);
+
+  const goBack = () => (router.canGoBack() ? router.back() : router.navigate('/'));
+
   const searching = phase !== 'closed' && phase !== 'collapsing';
   const inputReady = phase === 'travelling' || phase === 'open';
 
@@ -221,7 +239,7 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
         onLanded: () => {
           if (result.type === 'plant')
             router.push({ pathname: '/plants/[id]', params: { id: String(result.item.id), via: 'search' } });
-          else router.push({ pathname: '/wiki/[id]', params: { id: String(result.item.id) } });
+          else router.push({ pathname: '/wiki/[id]', params: { id: String(result.item.id), via: 'search' } });
         },
       });
       close(true);
@@ -258,6 +276,19 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
     ],
   }));
   const scrimStyle = useAnimatedStyle(() => ({ opacity: scrim.get() }));
+  // The magnifier turns away as the X turns in (detail pages)
+  const searchIconStyle = useAnimatedStyle(() => ({
+    opacity: 1 - toX.get(),
+    transform: [{ rotate: `${toX.get() * 90}deg` }],
+  }));
+  const backIconStyle = useAnimatedStyle(() => ({
+    opacity: toX.get(),
+    transform: [{ rotate: `${(toX.get() - 1) * 90}deg` }],
+  }));
+  // The close X at the bar's right end, once the magnifier has left it; gone while it collapses
+  const closeStyle = useAnimatedStyle(() => ({
+    opacity: riding.get() ? 0 : interpolate(glyph.get(), [0.5, 1], [0, 1], 'clamp'),
+  }));
 
   const panelTop = top + CONTROL + space.xs;
   const showResults = inputReady && query.trim().length > 0;
@@ -305,15 +336,26 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
             style={[styles.input, !inputReady && styles.hidden]}
           />
         </View>
-        {/* The button itself travels, so it is pressed where it is seen */}
-        <Animated.View style={[styles.glyphButton, glyphStyle]}>
+        {/* Where the magnifier started: the X that closes the open search */}
+        <Animated.View pointerEvents={phase === 'open' || phase === 'travelling' ? 'auto' : 'none'} style={[styles.glyphButton, closeStyle]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Κλείσιμο αναζήτησης" onPress={() => close()} style={styles.glyph}>
+            <Icon name="close" size={iconSize.big} color={colors.ink} style={tileIcon} />
+          </Pressable>
+        </Animated.View>
+        {/* The button itself travels, so it is pressed where it is seen; on a detail page it is the back X */}
+        <Animated.View pointerEvents={searching ? 'none' : 'auto'} style={[styles.glyphButton, glyphStyle]}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={searching ? 'Κλείσιμο αναζήτησης' : 'Άνοιγμα αναζήτησης'}
-            accessibilityState={{ expanded: searching }}
-            onPress={() => (searching ? close() : open())}
+            accessibilityLabel={detail ? 'Πίσω' : 'Άνοιγμα αναζήτησης'}
+            accessibilityState={detail ? undefined : { expanded: searching }}
+            onPress={() => (detail ? goBack() : open())}
             style={styles.glyph}>
-            <Icon name="search" size={iconSize.big} color={colors.ink} style={tileIcon} />
+            <Animated.View style={searchIconStyle}>
+              <Icon name="search" size={iconSize.big} color={colors.ink} style={tileIcon} />
+            </Animated.View>
+            <Animated.View style={[styles.layered, backIconStyle]}>
+              <Icon name="close" size={iconSize.big} color={colors.ink} style={tileIcon} />
+            </Animated.View>
           </Pressable>
         </Animated.View>
       </Animated.View>
@@ -329,7 +371,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: alpha(colors.ink, 0.25),
+    backgroundColor: alpha('#000000', 0.35),
   },
   bar: {
     backgroundColor: alpha(colors.surface, 0.97),
@@ -369,6 +411,10 @@ const styles = StyleSheet.create({
     right: -1,
     width: CONTROL,
     height: CONTROL,
+  },
+  // The back X over the magnifier, in the same place
+  layered: {
+    position: 'absolute',
   },
   glyph: {
     width: CONTROL,

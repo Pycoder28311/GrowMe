@@ -1,44 +1,47 @@
-// The dashboard's CSS, served as /admin.css. Tokens copy the app's theme (app/src/theme) so admin pages
-// look like the app: same colors, 3 text sizes, few spacings, rounded white cards with soft shadows.
+// The dashboard's CSS, served as /admin.css. Its own, more serious theme (not the app's): greys, white
+// cards with a thin border and small corners, filled buttons only for the main actions (save, create,
+// delete) and text buttons whose light-grey background appears on hover.
 
 const TOKENS = `
-  --primary: #2f7a3e;
-  --primary-soft: #dcefe0;
+  --bg: #f4f5f7;
+  --primary: #24292f;
+  --primary-soft: #eaeef2;
+  --hover: #eaeef2;
   --seed-soft: #f4ead6;
   --seed-ink: #7a5520;
   --accent: #f28c28;
-  --ink: #1f3d24;
-  --ink-muted: rgba(31, 61, 36, 0.7);
+  --ink: #1f2328;
+  --ink-muted: #656d76;
   --surface: #ffffff;
-  --border: #e5e7eb;
-  --surface-muted: #f3f4f6;
-  --danger: #b42318;
+  --border: #e2e4e8;
+  --surface-muted: #f6f8fa;
+  --danger: #cf222e;
   --link: #1e73d8;
-  --outline: rgba(31, 61, 36, 0.05);
+  --outline: rgba(31, 35, 40, 0.08);
   --text-small: 12px;
   --text-normal: 16px;
   --text-big: 24px;
+  --text-huge: 40px;
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
   --space-lg: 24px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
   --touch: 48px;
-  --shadow-card: 0 3px 10px rgba(31, 61, 36, 0.1);
-  --shadow-raised: 0 4px 12px rgba(31, 61, 36, 0.14), 0 1px 3px rgba(31, 61, 36, 0.1);
-  --shadow-button: 0 2px 6px -1px rgba(31, 61, 36, 0.25);
+  --shadow-card: 0 1px 2px rgba(31, 35, 40, 0.06);
+  --shadow-raised: 0 4px 12px rgba(31, 35, 40, 0.12), 0 1px 3px rgba(31, 35, 40, 0.08);
+  --shadow-button: none;
 `
 
 export const ADMIN_CSS = `
 :root { ${TOKENS} }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: var(--text-normal); color: var(--ink);
-       background: linear-gradient(to bottom, rgba(242, 140, 40, 0.25), var(--surface) 320px) no-repeat, var(--surface);
-       min-height: 100vh; }
+       background: var(--bg); min-height: 100vh; }
 main { max-width: 960px; margin: 0 auto; padding: var(--space-lg) var(--space-md) 120px; }
 main.narrow { max-width: 640px; }
-a { color: var(--primary); }
+a { color: var(--ink); }
 h1 { margin: 0; font-size: var(--text-big); color: var(--primary); }
 h2 { font-size: var(--text-normal); margin: var(--space-lg) 0 var(--space-sm); }
 .muted { color: var(--ink-muted); }
@@ -50,28 +53,43 @@ h2 { font-size: var(--text-normal); margin: var(--space-lg) 0 var(--space-sm); }
        margin-bottom: var(--space-lg); }
 .top .back { display: inline-block; font-size: var(--text-small); font-weight: 700; text-decoration: none;
              margin-bottom: var(--space-xs); }
-.logout { color: var(--accent); font-weight: 700; text-decoration: none; }
+.logout { color: var(--ink-muted); font-weight: 700; text-decoration: none; padding: var(--space-xs) var(--space-sm);
+          border-radius: var(--radius-sm); }
+.logout:hover { background: var(--hover); color: var(--ink); }
 
 /* Cards and grids */
-.card { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--radius-md);
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
         padding: var(--space-md); box-shadow: var(--shadow-card); }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-sm); }
-a.card { display: block; color: inherit; text-decoration: none; transition: transform .15s, box-shadow .15s; }
-a.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-raised); }
-.count { font-size: var(--text-big); font-weight: 700; color: var(--primary); }
-.label { font-size: var(--text-small); color: var(--ink-muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-md); }
+a.card { display: block; color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+a.card:hover { border-color: #c9ced6; box-shadow: var(--shadow-raised); }
+/* Home tiles: big, the whole tile opens the list, «+ Δημιουργία» in the corner opens the empty form */
+.tile { position: relative; min-height: 120px; display: flex; flex-direction: column; justify-content: flex-end;
+        transition: border-color .15s, box-shadow .15s; }
+.tile:hover { border-color: #c9ced6; box-shadow: var(--shadow-raised); }
+.tile-link { color: inherit; text-decoration: none; }
+.tile-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.tile-create { position: absolute; z-index: 1; top: var(--space-sm); right: var(--space-sm); }
+.count { font-size: var(--text-huge); line-height: 1; font-weight: 700; color: var(--ink); }
+.label { font-size: var(--text-normal); color: var(--ink-muted); margin-top: var(--space-xs); }
 
 /* Buttons */
+/* Main actions (save, create) filled dark grey, delete filled red; every other button is text only and
+   gets its light-grey background on hover or keyboard focus */
 .button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-sm);
-          min-height: var(--touch); padding: 0 var(--space-lg); border-radius: 999px; border: 0;
+          min-height: 40px; padding: 0 var(--space-md); border-radius: var(--radius-sm); border: 0;
           font: inherit; font-weight: 700; cursor: pointer; text-decoration: none;
-          background: var(--primary); color: var(--surface); box-shadow: var(--shadow-button); }
-.button.secondary { background: var(--surface); color: var(--primary); }
-.button.danger { background: var(--surface); color: var(--danger); }
+          background: var(--primary); color: var(--surface); box-shadow: var(--shadow-button); transition: background .12s; }
+.button:hover { background: #3a4048; }
+.button.small { min-height: 30px; padding: 0 var(--space-sm); font-size: var(--text-small); }
+.button.secondary { background: transparent; color: var(--ink); }
+.button.secondary:hover, .button.secondary:focus-visible { background: var(--hover); }
+.button.danger { background: var(--danger); color: var(--surface); }
+.button.danger:hover { background: #a40e26; }
 .button:disabled { opacity: .6; cursor: progress; }
-.icon-button { width: 32px; height: 32px; border-radius: 999px; border: 0; background: var(--surface);
-               color: var(--ink); cursor: pointer; font: inherit; box-shadow: 0 1px 2px rgba(31, 61, 36, 0.1); }
-.icon-button:hover { color: var(--primary); }
+.icon-button { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 0; background: transparent;
+               color: var(--ink); cursor: pointer; font: inherit; }
+.icon-button:hover, .icon-button:focus-visible { background: var(--hover); }
 .icon-button.remove:hover { color: var(--danger); }
 .icon-button:disabled { opacity: .3; cursor: default; }
 
@@ -102,11 +120,11 @@ input[type=text], input[type=number], input[type=url], textarea, select {
   width: 100%; font: inherit; color: var(--ink); background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-sm); }
 input:focus, textarea:focus, select:focus, button:focus-visible {
-  outline: 2px solid var(--primary-soft); outline-offset: 1px; border-color: var(--primary); }
+  outline: 2px solid #c9ced6; outline-offset: 1px; border-color: var(--primary); }
 textarea { resize: vertical; min-height: 72px; line-height: 1.4; }
 .meta { display: flex; flex-wrap: wrap; gap: var(--space-sm); margin-top: var(--space-xs); }
 .badge { display: inline-flex; align-items: center; gap: var(--space-xs); padding: var(--space-xs) var(--space-sm);
-         border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: var(--text-small);
+         border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--primary); font-size: var(--text-small);
          font-weight: 700; }
 input.big { font-size: var(--text-big); font-weight: 700; }
 input.small { font-size: var(--text-small); color: var(--ink-muted); }
@@ -128,13 +146,14 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .fact > .field, .fact > .row { flex: 1; }
 .toggles { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
 .toggle { display: inline-flex; align-items: center; gap: var(--space-sm); min-height: 40px; padding: 0 var(--space-md);
-          border-radius: 999px; background: var(--primary-soft); color: var(--primary); cursor: pointer; user-select: none; }
+          border-radius: var(--radius-sm); background: var(--primary-soft); color: var(--primary); cursor: pointer; user-select: none; }
+.toggle:hover { background: #dde2e8; }
 .toggle input { accent-color: var(--primary); width: 18px; height: 18px; margin: 0; }
 .choices { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
 .choice { position: relative; }
 .choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .choice span { display: grid; place-items: center; min-width: 40px; height: 40px; padding: 0 var(--space-sm);
-               border-radius: 999px; border: 1px solid var(--border); font-weight: 700; }
+               border-radius: var(--radius-sm); border: 1px solid var(--border); font-weight: 700; }
 .choice input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--surface); }
 .choice input:focus-visible + span { outline: 2px solid var(--primary-soft); outline-offset: 1px; }
 
@@ -176,9 +195,9 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .list-row[data-group="seed"] .stage-badge { color: var(--seed-ink); }
 
 /* A small pill button inside fields («Εύρος», «→ στάδιο φυτού», sun bar buttons) */
-.chip-button { border: 1px solid var(--border); background: var(--surface); color: var(--primary); border-radius: 999px;
+.chip-button { border: 1px solid transparent; background: transparent; color: var(--ink); border-radius: var(--radius-sm);
   padding: 2px var(--space-sm); font: inherit; font-size: var(--text-small); font-weight: 700; cursor: pointer; min-height: 28px; }
-.chip-button:hover { border-color: var(--primary); }
+.chip-button:hover { background: var(--hover); }
 .chip-button[aria-pressed="true"] { background: var(--primary); color: var(--surface); border-color: var(--primary); }
 .chip-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 
@@ -233,7 +252,7 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .picked-text { margin: 0; white-space: pre-wrap; }
 
 /* Blog links in texts: the button over a selection, the picker's list, the links line under a field */
-.link-pill { position: absolute; z-index: 5; min-height: 32px; padding: 0 var(--space-md); border: 0; border-radius: 999px;
+.link-pill { position: absolute; z-index: 5; min-height: 32px; padding: 0 var(--space-md); border: 0; border-radius: var(--radius-sm);
              background: var(--link); color: var(--surface); font: inherit; font-size: var(--text-small);
              font-weight: 700; cursor: pointer; box-shadow: var(--shadow-raised); }
 .search-results.in-dialog { position: static; max-height: 300px; margin: var(--space-sm) 0 var(--space-md);
@@ -256,12 +275,12 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 /* The bar over the blog link the cursor is in: the blog's title (opens it) and ✕ (unlinks) */
 .link-popover { position: absolute; z-index: 6; display: flex; align-items: center; gap: var(--space-xs);
                 max-width: min(420px, calc(100vw - 16px)); padding: var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm);
-                background: var(--surface); border-radius: 999px; box-shadow: var(--shadow-raised); }
+                background: var(--surface); border-radius: var(--radius-sm); box-shadow: var(--shadow-raised); }
 .link-popover a { color: var(--link); font-size: var(--text-small); font-weight: 700; text-decoration: none;
                   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .link-popover a:hover { text-decoration: underline; }
 .link-tabs { display: flex; gap: var(--space-xs); margin-bottom: var(--space-sm); }
-.link-tab { flex: 1; min-height: 36px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+.link-tab { flex: 1; min-height: 36px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
             color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
 .link-tab[aria-selected="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
 .picked-text:empty { display: none; }
@@ -381,13 +400,13 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 
 /* Sticky save bar and toast */
 .save-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: var(--space-md);
-            background: linear-gradient(to top, var(--surface) 60%, rgba(255, 255, 255, 0)); }
+            background: linear-gradient(to top, var(--bg) 60%, rgba(244, 245, 247, 0)); }
 .save-bar > div { max-width: 640px; margin: 0 auto; display: flex; gap: var(--space-sm); justify-content: flex-end; }
 .save-bar .button[type=submit] { flex: 1; max-width: 320px; }
 .toast.error { background: var(--danger); }
 .toast { position: fixed; top: var(--space-md); left: 50%; transform: translateX(-50%); z-index: 10;
          background: var(--primary); color: var(--surface); font-weight: 700; padding: var(--space-sm) var(--space-lg);
-         border-radius: 999px; box-shadow: var(--shadow-raised); }
+         border-radius: var(--radius-sm); box-shadow: var(--shadow-raised); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 `

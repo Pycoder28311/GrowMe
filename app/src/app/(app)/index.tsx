@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -13,17 +12,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ExploreSheet } from '@/components/explore/explore-sheet';
 import { AskCard } from '@/components/home/ask-card';
 import { FollowUs } from '@/components/home/follow-us';
 import { ActionButton, ActionButtonText } from '@/components/ui/action-button';
-import { AppText } from '@/components/ui/app-text';
 import { AppTitle } from '@/components/ui/app-title';
 import { GlassText } from '@/components/ui/glass-text';
 import { Icon } from '@/components/ui/icon';
-import { PressableScale } from '@/components/ui/pressable-scale';
 import { APP_TAGLINE } from '@/config/app';
-import type { Filters } from '@/config/plant-filters';
 import { useBackgroundBlur } from '@/lib/background-blur';
 import { useExploreFilters } from '@/lib/explore-filters';
 import { colors, iconSize, shade, space } from '@/theme';
@@ -62,8 +57,7 @@ function NudgingChevron() {
 }
 
 export default function HomeScreen() {
-  const { filters, setFilters } = useExploreFilters();
-  const [isExploreOpen, setIsExploreOpen] = useState(false);
+  const { openExplore } = useExploreFilters();
   const blur = useBackgroundBlur();
   // Reduced-motion users keep a sharp background
   const reduceMotion = useReducedMotion();
@@ -87,15 +81,7 @@ export default function HomeScreen() {
     return { opacity: 1 - p * 0.6, transform: [{ translateY: p * -70 }, { scale: 1 - p * 0.18 }] };
   });
 
-  const handleExploreClose = (applied: Filters | null) => {
-    setIsExploreOpen(false);
-    if (!applied) return;
-    setFilters(applied);
-    router.navigate('/results');
-  };
-
   return (
-    <>
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -106,7 +92,7 @@ export default function HomeScreen() {
             <AppTitle />
             {/* Bold phrase that pops in as the title's last letters land */}
             <GlassText text={APP_TAGLINE} delayMs={450} maxWidth={TAGLINE_WIDTH} />
-            <ActionButton onPress={() => setIsExploreOpen(true)}>
+            <ActionButton innerGlow onPress={openExplore}>
               {/* The word stays centred in the button; the arrow hangs off its right side */}
               <View>
                 <ActionButtonText shadow>Επίλεξε φυτό</ActionButtonText>
@@ -114,14 +100,6 @@ export default function HomeScreen() {
               </View>
             </ActionButton>
           </Animated.View>
-
-          {/* Small link centred at the bottom of the first screen; the white glow keeps it readable */}
-          <PressableScale accessibilityRole="button" style={styles.learnMore}>
-            <AppText bold color={colors.primary} style={styles.glow}>
-              Μάθε περισσότερα
-            </AppText>
-            <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
-          </PressableScale>
         </View>
 
         {/* Below the first screen: reached by scrolling, over the blurred background */}
@@ -130,9 +108,6 @@ export default function HomeScreen() {
           <FollowUs />
         </View>
       </Animated.ScrollView>
-
-      {isExploreOpen && <ExploreSheet initialFilters={filters} onClose={handleExploreClose} />}
-    </>
   );
 }
 
@@ -158,20 +133,5 @@ const styles = StyleSheet.create({
     marginTop: -iconSize.normal / 2,
     marginLeft: space.md,
     filter: [{ dropShadow: { offsetX: 0, offsetY: 2, standardDeviation: 0, color: shade } }],
-  },
-  learnMore: {
-    position: 'absolute',
-    bottom: space.md,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-    paddingHorizontal: space.md,
-    paddingVertical: space.xs,
-  },
-  glow: {
-    textShadowColor: colors.surface,
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
   },
 });
