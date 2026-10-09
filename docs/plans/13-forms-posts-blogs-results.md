@@ -50,7 +50,7 @@
 | D11 | **Actions scale with the photo:** a post with photos shows its actions (Απαντήσεις, like, dislike) at **normal size** (icon 20, text normal); a text-only post keeps them **small** (icon 16, small text) | User |
 | D12 | **One post's page:** <br>• the post is full width, no corners <br>• a **gray gap** (12 px, `#eceef0`) between the post and its replies <br>• the **bottom field answers the post** (placeholder «Γράψε απάντηση…»): the in-card reply field and the «new post» bottom field go | User |
 | D13 | **Replies show no date** (post replies; blog comments too, as they share the component) | User |
-| D14 | **Blog tabs:** «Όλα · Άρθρα · Γλωσσάρι · Μπαλκόνια» (kinds `article`, `glossary`, `balcony`). Kind `wiki` gets no tab; it shows under «Όλα» only. The tabs **filter for real** (`GET /api/blogs?kind=`). Shown as a **horizontally scrolling row** with **no visible scrollbar**, pills light gray (active: dark text on a slightly darker gray) | User |
+| D14 | **Blog tabs:** «Όλα · Άρθρα · Γλωσσάρι · Μπαλκόνια» (kinds `article`, `glossary`, `balcony`). Kind `wiki` gets no tab; it shows under «Όλα» only. The tabs **filter for real**: a new optional `?kind=` on `GET /api/blogs` (the API can't filter by kind yet). Shown as a **horizontally scrolling row** with **no visible scrollbar**, pills light gray (active: dark text on a slightly darker gray) | User |
 | D15 | **Blog cards** (all but balcony): <br>• a **black gradient from the bottom to the middle**, low opacity (0 → 55%) <br>• a **bigger title** (28 px) <br>• «Δες περισσότερα ›» **bottom right** <br>Balcony cards stay as they are | User |
 | D16 | **Minutes badge** (card and article page): **small corners (6 px), light gray** (`#eceef0`), **no border** | User |
 | D17 | **Search on the blog pages** (`/wiki`, `/wiki/[id]`): **«Άρθρα» first, «Φυτά» after**. Elsewhere plants stay first | User |
@@ -64,7 +64,7 @@
 1. **The flying animation needs positions:** each piece (text, photo thumbnails) is measured (`measureInWindow`) and copied into an overlay over the form. The real inputs clear at once under it, so nothing jumps.
 2. **Growing inputs on web:** react-native-web's multiline `TextInput` doesn't grow by itself; the height comes from `onContentSizeChange` (works on web and phones), clamped to 5 lines.
 3. **The focus outline on web** is removed with `outlineStyle: 'none'` (web-only style) and replaced by the gray border. Keyboard users still see the border change.
-4. **Blog filter by kind:** the API already accepts `kind` (`blogFilter`); the paged list needs one list per tab (reset on tab change).
+4. **Blog filter by kind:** the API has no kind filter yet. It gets a small one, the same way plants filter by combination (`blogFilter` in shared, `filter` in the crud routes, a `where` in `blogsRepo.list`). The app's paged list needs one list per tab (reset on tab change).
 5. **The months carousel** runs a timer per visible card; it pauses when the card leaves the screen (`FlatList` `onViewableItemsChanged`) to save work in long lists.
 
 ## 2 — Question form (`components/home/ask-card.tsx`)
@@ -127,6 +127,7 @@
   - `radius.xs`
   - the results page's tabs keep the equal-width variant
 - **Filtering:**
+  - backend: `blogFilter = z.object({ kind: z.enum(BLOG_KINDS).optional() })` in `packages/shared/src/blogs.ts`; `blogs.routes.ts` passes it as the list filter (like `plantFilter`); `blogsRepo.list(ctx, page, { kind })` adds `eq(blogs.kind, kind)` to the `where`
   - `api/blogs.ts` `list(cursor, kind?)`
   - `lib/blogs.ts` `useBlogs(kind?)`: the paged list keyed by kind, so a tab change starts again from the first page
   - `wiki/index.tsx` passes the tab's kind (`undefined` for «Όλα»)
@@ -165,7 +166,7 @@ Expo web + Playwright with the mocked API (plans 10–12), plus a phone.
 | Blog page | Tabs Όλα/Άρθρα/Γλωσσάρι/Μπαλκόνια filter the list; no scrollbar shown; cards with the bottom gradient, bigger title, «Δες περισσότερα» bottom right; minutes badge light gray, small corners, no border; on /wiki the search shows «Άρθρα» first |
 | Result cards | Icons instead of emoji; no wind; months pill: 1 range still, 2 swap every 2 s, 3 slide; no sun in the pill |
 | Filters button | Flips vertically between «Φίλτρα» and «Υποβολή» |
-| Checks | `npx tsc --noEmit`, `npx expo lint` (app), `tsc` (backend if the blogs API changes) |
+| Checks | `npx tsc --noEmit`, `npx expo lint` (app), `tsc` (backend, shared) |
 
 ## Task list
 
@@ -176,15 +177,15 @@ Expo web + Playwright with the mocked API (plans 10–12), plus a phone.
 | 3 | `SendButton`; `MessageInput` multiline, focus border | `components/ui/send-button.tsx`, `components/ui/message-input.tsx` |
 | 4 | Posts list full width; actions size; optional date | `app/(app)/community/index.tsx`, `components/discussion/discussion-item.tsx`, `post-photos.tsx` |
 | 5 | Post page: full width, gap, reply composer, no reply dates | `app/(app)/community/[id].tsx`, `components/discussion/reply-thread.tsx` |
-| 6 | Blog tabs (scroll variant) and filtering by kind | `config/wiki-posts.ts`, `components/ui/category-tabs.tsx`, `api/blogs.ts`, `lib/blogs.ts`, `app/(app)/wiki/index.tsx` |
+| 6 | Blog tabs (scroll variant) and filtering by kind (API + app) | `packages/shared/src/blogs.ts`, `backend/src/resources/blogs/blogs.routes.ts`, `blogs.repo.ts`, `config/wiki-posts.ts`, `components/ui/category-tabs.tsx`, `api/blogs.ts`, `lib/blogs.ts`, `app/(app)/wiki/index.tsx` |
 | 7 | Blog card style; minutes badge | `components/wiki/post-card.tsx`, `read-time-badge.tsx` |
 | 8 | Search: articles first on blog pages | `components/search/search-results.tsx`, `search-bar.tsx` |
 | 9 | Result card icons, months pill | `components/plants/plant-card.tsx`, `months-pill.tsx`, `app/(app)/results.tsx` |
 | 10 | Filters button flip | `components/filters/filters-button.tsx` |
 | 11 | Tests (web + phone), typecheck, lint | scratchpad |
-| 12 | **With approval:** commit, new app build | — |
+| 12 | **With approval:** commit, deploy the backend (blog filter), new app build | — |
 
-**Files not touched:** the database, the dashboard, the plant page.
+**Files not touched:** the database (no migration), the dashboard, the plant page.
 
 ## Open items
 
