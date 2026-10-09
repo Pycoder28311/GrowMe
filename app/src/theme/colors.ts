@@ -16,6 +16,9 @@ export const colors = {
   surface: '#ffffff',
   /** Borders and dividers */
   border: '#e5e7eb',
+  /** Seed stages of a life cycle (before the plant is sold ready to plant): sand background and dot */
+  seedSoft: '#f4ead6',
+  seed: '#b07d33',
 } as const;
 
 export type ColorName = keyof typeof colors;

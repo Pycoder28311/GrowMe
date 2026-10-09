@@ -33,6 +33,7 @@ const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
       id: p.id,
       name: p.name,
       scientificName: p.scientificName,
+      native: p.native,
       image: cover(p.images),
       ...toFilterFields(p),
     })),

@@ -20,8 +20,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { ResultFlight, type Flight } from '@/components/search/result-flight';
-import type { SearchResult } from '@/components/search/result-row';
+import { ResultRowContent, type SearchResult } from '@/components/search/result-row';
 import { SearchResults } from '@/components/search/search-results';
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
@@ -37,6 +36,7 @@ import {
   placeholderRevealWindow,
   type Rect,
 } from '@/config/search-motion';
+import { useFlight } from '@/lib/flight';
 import { useSearchIndex } from '@/lib/search';
 import { matchSearch } from '@/lib/search-match';
 import { alpha, colors, fontFamily, fontSize, iconSize, radius, size, space } from '@/theme';
@@ -84,7 +84,7 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   const [phase, setPhase] = useState<Phase>('closed');
   const [query, setQuery] = useState('');
   const [keyboard, setKeyboard] = useState(0);
-  const [flight, setFlight] = useState<Flight | null>(null);
+  const fly = useFlight();
   const [letterCenters, setLetterCenters] = useState<(number | null)[]>(() => [...PLACEHOLDER].map(() => null));
   const inputRef = useRef<TextInput>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -208,12 +208,20 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
 
   const matches = useMemo(() => (index && query.trim() ? matchSearch(index, query) : null), [index, query]);
 
+  // The tapped result grows into its page
   const pick = useCallback(
     (result: SearchResult, rect: Rect) => {
-      setFlight({ result, rect });
+      fly({
+        rect,
+        front: <ResultRowContent result={result} />,
+        onLanded: () => {
+          if (result.type === 'plant') router.push({ pathname: '/plants/[id]', params: { id: String(result.item.id) } });
+          else router.push({ pathname: '/wiki/[id]', params: { id: String(result.item.id) } });
+        },
+      });
       close(true);
     },
-    [close],
+    [close, fly],
   );
 
   // Enter opens the first result, growing from the bar
@@ -225,13 +233,6 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
         : null;
     if (first) pick(first, { left: screenWidth - space.md - openWidth, top, width: openWidth, height: CONTROL });
   };
-
-  const openPage = useCallback(() => {
-    if (!flight) return;
-    const { result } = flight;
-    if (result.type === 'plant') router.push({ pathname: '/plants/[id]', params: { id: String(result.item.id) } });
-    else router.push({ pathname: '/wiki/[id]', params: { id: String(result.item.id) } });
-  }, [flight]);
 
   // Each letter's reveal window, from where it sits in the open bar
   const windows = useMemo(
@@ -312,14 +313,6 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
         </Animated.View>
       </Animated.View>
 
-      {flight && (
-        <ResultFlight
-          key={`${flight.result.type}-${flight.result.item.id}-${flight.rect.left}-${flight.rect.top}`}
-          flight={flight}
-          onLanded={openPage}
-          onDone={() => setFlight(null)}
-        />
-      )}
     </View>
   );
 }

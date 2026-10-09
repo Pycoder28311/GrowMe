@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import type { NavId } from '@/config/app';
 import { BlogPreviewProvider } from '@/lib/blog-preview';
 import { ExploreFiltersProvider } from '@/lib/explore-filters';
+import { FlightProvider } from '@/lib/flight';
 
 // The pages paint no background of their own, so the shell's photos and washes show through
 // (the navigation theme's background would cover them: black in dark mode). The design is light only.
@@ -31,17 +32,20 @@ export default function AppLayout() {
 
   return (
     <ExploreFiltersProvider>
-      <AppShell
-        activeNavId={navIdFor(pathname)}
-        onNavigate={(id) => router.navigate(TAB_ROUTES[id])}
-        background={pathname === '/' ? 'scene' : 'plain'}>
-        <ThemeProvider value={SHELL_THEME}>
-          {/* Blue blog links in texts open their panel over any page */}
-          <BlogPreviewProvider>
-            <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
-          </BlogPreviewProvider>
-        </ThemeProvider>
-      </AppShell>
+      {/* Around the shell, so a tapped result or stage can grow over the whole screen */}
+      <FlightProvider>
+        <AppShell
+          activeNavId={navIdFor(pathname)}
+          onNavigate={(id) => router.navigate(TAB_ROUTES[id])}
+          background={pathname === '/' ? 'scene' : 'plain'}>
+          <ThemeProvider value={SHELL_THEME}>
+            {/* Blue blog links in texts open their panel over any page */}
+            <BlogPreviewProvider>
+              <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+            </BlogPreviewProvider>
+          </ThemeProvider>
+        </AppShell>
+      </FlightProvider>
     </ExploreFiltersProvider>
   );
 }

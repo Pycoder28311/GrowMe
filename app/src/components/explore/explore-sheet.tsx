@@ -1,13 +1,14 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { FilterSection } from '@/components/filters/filter-section';
 import { ActionButton, ActionButtonText } from '@/components/ui/action-button';
 import { AppText } from '@/components/ui/app-text';
 import { BottomSheet, type BottomSheetHandle } from '@/components/ui/bottom-sheet';
-import { Chip } from '@/components/ui/chip';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { Section } from '@/components/ui/section';
-import { FILTER_GROUPS, type Filters } from '@/config/filters';
+import { SHORT_FILTERS, type Filters } from '@/config/plant-filters';
+import { activeFilters, matchPlantFilters, priceCounts } from '@/lib/plant-filter-match';
+import { useSearchIndex } from '@/lib/search';
 import { colors, space } from '@/theme';
 
 type ExploreSheetProps = {
@@ -16,21 +17,21 @@ type ExploreSheetProps = {
   onClose: (applied: Filters | null) => void;
 };
 
-// Edits only count when "show plants" is pressed
+/**
+ * The home screen's quick plant filters (the short set of config/plant-filters.ts). Edits only count
+ * when «Εμφάνιση φυτών» is pressed; the button says how many plants match.
+ */
 export function ExploreSheet({ initialFilters, onClose }: ExploreSheetProps) {
   const sheetRef = useRef<BottomSheetHandle>(null);
   const appliedRef = useRef<Filters | null>(null);
   const [draft, setDraft] = useState(initialFilters);
 
-  const selectedCount = Object.values(draft).reduce((total, ids) => total + ids.length, 0);
-
-  const toggle = (groupId: string, optionId: string) => {
-    setDraft((current) => {
-      const selected = current[groupId] ?? [];
-      const next = selected.includes(optionId) ? selected.filter((id) => id !== optionId) : [...selected, optionId];
-      return { ...current, [groupId]: next };
-    });
-  };
+  // Every plant, for the count and the price chart (loaded once per session)
+  const { index, load } = useSearchIndex();
+  useEffect(load, [load]);
+  const plants = useMemo(() => index?.plants ?? [], [index]);
+  const prices = useMemo(() => priceCounts(plants), [plants]);
+  const matching = index && activeFilters(draft).length > 0 ? matchPlantFilters(plants, draft).matches.length : null;
 
   const closeSheet = () => sheetRef.current?.close();
 
@@ -54,23 +55,12 @@ export function ExploreSheet({ initialFilters, onClose }: ExploreSheetProps) {
       }
       footer={
         <ActionButton edge={false} glow="soft" onPress={apply}>
-          <ActionButtonText>{selectedCount > 0 ? `Εμφάνιση φυτών (${selectedCount})` : 'Εμφάνιση φυτών'}</ActionButtonText>
+          <ActionButtonText>{matching === null ? 'Εμφάνιση φυτών' : `Εμφάνιση φυτών (${matching})`}</ActionButtonText>
         </ActionButton>
       }>
       <View style={styles.groups}>
-        {FILTER_GROUPS.map((group) => (
-          <Section key={group.id} title={group.label}>
-            <View style={styles.options}>
-              {group.options.map((option) => (
-                <Chip
-                  key={option.id}
-                  label={option.label}
-                  selected={draft[group.id]?.includes(option.id) ?? false}
-                  onToggle={() => toggle(group.id, option.id)}
-                />
-              ))}
-            </View>
-          </Section>
+        {SHORT_FILTERS.map((id) => (
+          <FilterSection key={id} id={id} filters={draft} onChange={setDraft} withLinked prices={prices} />
         ))}
       </View>
     </BottomSheet>
@@ -83,10 +73,5 @@ const styles = StyleSheet.create({
   },
   groups: {
     gap: space.lg,
-  },
-  options: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.sm,
   },
 });

@@ -23,7 +23,7 @@ import { GlassText } from '@/components/ui/glass-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { APP_TAGLINE } from '@/config/app';
-import type { Filters } from '@/config/filters';
+import type { Filters } from '@/config/plant-filters';
 import { useBackgroundBlur } from '@/lib/background-blur';
 import { useExploreFilters } from '@/lib/explore-filters';
 import { colors, iconSize, shade, space } from '@/theme';

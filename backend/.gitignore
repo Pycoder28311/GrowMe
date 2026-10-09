@@ -35,3 +35,4 @@ lerna-debug.log*
 # built by `npm run build:admin` (wrangler runs it before dev and deploy)
 src/resources/admin/editor.client.js
 src/resources/admin/widgets.client.js
+backup*.sql

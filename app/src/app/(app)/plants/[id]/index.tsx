@@ -1,8 +1,10 @@
 import { useLocalSearchParams } from 'expo-router';
+import { useRef } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTopClearance } from '@/components/layout/app-shell';
-import { LifeCycleCard } from '@/components/plants/life-cycle-card';
+import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
+import { PlantBadges } from '@/components/plants/plant-badges';
 import { PlantFacts } from '@/components/plants/plant-facts';
 import { PlantGallery } from '@/components/plants/plant-gallery';
 import { AppText } from '@/components/ui/app-text';
@@ -19,6 +21,8 @@ export default function PlantScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
   const { plant, state, retry } = usePlant(Number(id));
+  const page = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
 
   if (state === 'loading') {
     return <ActivityIndicator color={colors.primary} style={{ marginTop: topClearance }} />;
@@ -39,7 +43,11 @@ export default function PlantScreen() {
 
   return (
     // The photos start at the very top, under the corner buttons; without photos the title clears them
-    <ScrollView contentContainerStyle={[styles.page, photos.length === 0 && { paddingTop: topClearance }]}>
+    <ScrollView
+      ref={page}
+      onScroll={(event) => (scrollY.current = event.nativeEvent.contentOffset.y)}
+      scrollEventThrottle={32}
+      contentContainerStyle={[styles.page, photos.length === 0 && { paddingTop: topClearance }]}>
       {photos.length > 0 && <PlantGallery photos={photos} label={plant.name} />}
 
       <View style={styles.body}>
@@ -58,9 +66,21 @@ export default function PlantScreen() {
             {plant.scientificName}
           </AppText>
         </View>
+        <PlantBadges plant={plant} />
 
         <PlantFacts plant={plant} />
-        {plant.lifecycles.length > 0 && <LifeCycleCard stages={plant.lifecycles} />}
+        {plant.lifecycles.length > 0 && (
+          <LifecycleCard
+            plantId={plant.id}
+            stages={plant.lifecycles}
+            // The stage's group label just under the corner buttons
+            onRevealOutside={(row) =>
+              row.measureInWindow((_, y) =>
+                page.current?.scrollTo({ y: Math.max(0, scrollY.current + y - topClearance - space.md) }),
+              )
+            }
+          />
+        )}
 
         {/* Optional sections: shown only when the plant has them */}
         {plant.tips.length > 0 && (

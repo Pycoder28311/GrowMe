@@ -1,29 +1,24 @@
-import { durationLabel, visibleFlags, type PlantSummary } from "@growme/shared";
-import { StyleSheet, View } from "react-native";
+import { durationLabel, type PlantSummary } from '@growme/shared';
+import type { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { AppText } from "@/components/ui/app-text";
-import { LinkedText } from "@/components/ui/linked-text";
-import { card } from "@/components/ui/styles";
-import {
-  effortTrait,
-  originTrait,
-  seasonTrait,
-  sunlightHoursLabel,
-  sunlightTrait,
-  type Trait,
-} from "@/config/plant-traits";
-import { colors, radius, space } from "@/theme";
+import { SunGraph } from '@/components/plants/sun-graph';
+import { AppText } from '@/components/ui/app-text';
+import { LinkedText } from '@/components/ui/linked-text';
+import { card } from '@/components/ui/styles';
+import { effortTrait, originTrait, seasonTrait, sunlightTrait, type Trait } from '@/config/plant-traits';
+import { colors, radius, space } from '@/theme';
 
-function FactRow({ trait }: { trait: Trait }) {
+function FactRow({ emoji, children }: { emoji: string; children: ReactNode }) {
   return (
     <View style={styles.factRow}>
-      <AppText style={styles.emoji}>{trait.emoji}</AppText>
-      <LinkedText>{trait.label}</LinkedText>
+      <AppText style={styles.emoji}>{emoji}</AppText>
+      {children}
     </View>
   );
 }
 
-/** Light-green strip with one fact in a sentence (how it grows, where it comes from, climate) */
+/** Light-green strip with one fact in a sentence (where it comes from) */
 function InfoPill({ emoji, text }: { emoji: string; text: string }) {
   return (
     <View style={styles.pill}>
@@ -35,38 +30,31 @@ function InfoPill({ emoji, text }: { emoji: string; text: string }) {
   );
 }
 
-/** The plant's main characteristics at a glance (only those it has values for) */
+/** The plant's main facts at a glance (only those it has values for): sun, difficulty, seasons, lifespan */
 export function PlantFacts({ plant }: { plant: PlantSummary }) {
   const sun = sunlightTrait(plant);
-  const sunHours = sunlightHoursLabel(plant);
   const season = seasonTrait(plant);
   const lifespan = durationLabel(plant.lifespan);
   const rows = [
-    sun && { ...sun, label: sunHours ?? sun.label },
     effortTrait(plant),
     season && { emoji: season.emoji, label: `Φύτεμα: ${season.label}` },
-    lifespan && { emoji: "⏳", label: `Ζει ${lifespan}` },
+    lifespan && { emoji: '⏳', label: `Ζει ${lifespan}` },
   ].filter((trait): trait is Trait => !!trait);
   // Where it comes from, as a sentence under the card
   const origin = originTrait(plant);
-  const flags = visibleFlags(plant);
 
   return (
     <View style={styles.root}>
-      {flags.length > 0 && (
-        <View style={styles.chips}>
-          {flags.map((flag) => (
-            <View key={flag.key} style={styles.chip}>
-              <AppText size="small" color={colors.primary}>
-                {flag.emoji} {flag.label}
-              </AppText>
-            </View>
-          ))}
-        </View>
-      )}
       <View style={styles.card}>
+        {sun && (
+          <FactRow emoji={sun.emoji}>
+            <SunGraph start={plant.sunStart} end={plant.sunEnd} />
+          </FactRow>
+        )}
         {rows.map((trait) => (
-          <FactRow key={trait.label} trait={trait} />
+          <FactRow key={trait.label} emoji={trait.emoji}>
+            <LinkedText>{trait.label}</LinkedText>
+          </FactRow>
         ))}
       </View>
 
@@ -84,30 +72,18 @@ const styles = StyleSheet.create({
     gap: space.sm,
     padding: space.md,
   },
-  // The yes/no characteristics (plan 09 moves them under the scientific name)
-  chips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: space.xs,
-  },
-  chip: {
-    borderRadius: radius.full,
-    backgroundColor: colors.primarySoft,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-  },
   factRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space.sm,
   },
   emoji: {
     width: space.lg,
-    textAlign: "center",
+    textAlign: 'center',
   },
   pill: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space.sm,
     borderRadius: radius.md,
     backgroundColor: colors.primarySoft,

@@ -6,7 +6,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
-import { stripBlogLinks, type PlantSummary } from '@growme/shared';
+import { stripBlogLinks, type PlantSummary, type SearchPlant } from '@growme/shared';
 import {
   effortTrait,
   originTrait,
@@ -29,11 +29,30 @@ function TraitLabel({ trait }: { trait: Trait }) {
   );
 }
 
+/** What a card shows: from the plants list (PlantSummary) or the search index (SearchPlant) */
+export type PlantCardData = Pick<
+  PlantSummary,
+  | 'id'
+  | 'name'
+  | 'scientificName'
+  | 'priceMin'
+  | 'priceMax'
+  | 'difficulty'
+  | 'sunStart'
+  | 'sunEnd'
+  | 'monthRanges'
+  | 'food'
+  | 'native'
+> & { cover: string | null };
+
+export const cardFromSummary = (plant: PlantSummary): PlantCardData => ({ ...plant, cover: plant.images[0]?.url ?? null });
+export const cardFromIndex = (plant: SearchPlant): PlantCardData => ({ ...plant, cover: plant.image });
+
 /** One search result: photo with its planting months on the left, details on the right. Opens the plant's page. */
-export function PlantCard({ plant }: { plant: PlantSummary }) {
+export function PlantCard({ plant }: { plant: PlantCardData }) {
   const season = seasonTrait(plant);
   const price = priceLabel(plant);
-  const cover = plant.images[0];
+  const cover = plant.cover;
   // Only the labels this plant has values for
   const traits = [sunlightTrait(plant), effortTrait(plant), useTrait(plant), originTrait(plant)].filter(
     (t): t is Trait => t !== null,
@@ -49,7 +68,7 @@ export function PlantCard({ plant }: { plant: PlantSummary }) {
       <View style={styles.photo}>
         {cover ? (
           <Image
-            source={{ uri: cover.url }}
+            source={{ uri: cover }}
             contentFit="cover"
             transition={150}
             accessibilityLabel={plant.name}

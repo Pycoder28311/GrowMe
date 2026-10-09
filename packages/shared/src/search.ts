@@ -10,7 +10,14 @@ export type PlantFilterFields = Pick<
   'priceMin' | 'priceMax' | 'sunStart' | 'sunEnd' | 'monthRanges' | 'wind' | 'kind' | 'size' | 'difficulty' | PlantFlag
 >
 
-export type SearchPlant = PlantFilterFields & { id: number; name: string; scientificName: string; image: string | null }
+export type SearchPlant = PlantFilterFields & {
+  id: number
+  name: string
+  scientificName: string
+  /** e.g. «Ιθαγενές της Μεσογείου» (may hold blog links); the plant cards show it */
+  native: string | null
+  image: string | null
+}
 export type SearchBlog = { id: number; name: string; kind: BlogKind; image: string | null }
 
 /** GET /api/search-index: every plant (with its filter fields) and blog with its first cover; the app
