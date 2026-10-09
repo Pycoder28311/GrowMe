@@ -1,9 +1,8 @@
 import { asc, desc, eq, sql } from 'drizzle-orm'
-import { blogComments, images, notes, postImages, postReplies, posts, user } from '../../db/schema'
+import { blogComments, images, postImages, postReplies, posts, user } from '../../db/schema'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { deleteBlogComment } from '../blog-comments/blog-comments.repo'
 import { deleteImages, imageUrl } from '../images/images.repo'
-import { deleteNote } from '../notes/notes.repo'
 import { deletePostReply } from '../post-replies/post-replies.repo'
 import { deletePost } from '../posts/posts.repo'
 import { adminResource, numericId } from './resource'
@@ -192,24 +191,4 @@ export const imagesAdmin = adminResource({
       return true
     }),
   ListItem: card('🖼️', () => 'Να διαγραφεί η εικόνα; Θα φύγει και από ό,τι τη χρησιμοποιεί.'),
-})
-
-export const notesAdmin = adminResource({
-  path: 'notes',
-  title: 'Σημειώσεις',
-  async list(ctx, page) {
-    const rows = await ctx.db
-      .select({ id: notes.id, text: notes.text, userName: user.name })
-      .from(notes)
-      .innerJoin(user, eq(user.id, notes.userId))
-      .where(beforeCursor(notes.id, page))
-      .orderBy(desc(notes.id))
-      .limit(fetchLimit(page) ?? -1)
-    return mapPage(
-      toPage(rows, page, (n) => n.id),
-      (n): Item => ({ id: n.id, title: snippet(n.text, 80), lines: [n.userName] }),
-    )
-  },
-  remove: (ctx, raw) => withId(raw, (id) => deleteNote(ctx, id)),
-  ListItem: card('📝', () => 'Να διαγραφεί αυτή η σημείωση και οι φωτογραφίες της;'),
 })

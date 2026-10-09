@@ -4,10 +4,10 @@ import type { SQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core'
 import type { Db } from '../db'
 import { HttpError } from './errors'
 
-/** A many-to-many link table, e.g. note_images(note_id, image_id, position) */
+/** A many-to-many link table, e.g. post_images(post_id, image_id, position) */
 export type LinkTable<T extends SQLiteTable> = {
   table: T
-  parent: SQLiteColumn // the column pointing to the parent, e.g. noteImages.noteId
+  parent: SQLiteColumn // the column pointing to the parent, e.g. postImages.postId
   toRow: (parentId: number, childId: number, position: number) => T['$inferInsert']
 }
 

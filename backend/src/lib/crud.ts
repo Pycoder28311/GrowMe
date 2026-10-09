@@ -13,7 +13,7 @@ import { parseOrThrow, validate } from './validate'
 
 /**
  * Who may read and write a resource:
- * - owner:        signed in; each user sees and changes only their own rows (e.g. notes)
+ * - owner:        signed in; each user sees and changes only their own rows
  * - public-owner: everyone reads; signed-in users create; owners change their own rows (e.g. posts)
  * - public-admin: everyone reads; only admins write (e.g. plants, blogs)
  * - admin:        only admins read and write (e.g. moderation)

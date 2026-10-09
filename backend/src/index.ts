@@ -17,7 +17,6 @@ import imagesRoutes from './resources/images/images.routes'
 import lifecyclesRoutes from './resources/lifecycles/lifecycles.routes'
 import likesRoutes from './resources/likes/likes.routes'
 import meRoutes from './resources/me/me.routes'
-import notesRoutes from './resources/notes/notes.routes'
 import plantsRoutes from './resources/plants/plants.routes'
 import postRepliesRoutes from './resources/post-replies/post-replies.routes'
 import postsRoutes from './resources/posts/posts.routes'
@@ -61,7 +60,6 @@ app.on(['GET', 'POST'], '/api/auth/*', (c) => createAuth(c.env).handler(c.req.ra
 
 // One line per resource (see instructions/adding-a-resource.md)
 const routes = app
-  .route('/api/notes', notesRoutes)
   .route('/api/images', imagesRoutes)
   .route('/api/posts', postsRoutes)
   .route('/api/post-replies', postRepliesRoutes)

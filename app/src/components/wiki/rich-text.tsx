@@ -22,6 +22,9 @@ import { colors, fontFamily, radius, space } from '@/theme';
 /** Image URLs by id (the document stores only ids) */
 const ImageUrls = createContext<Map<number, string>>(new Map());
 
+/** One look for every letter, links too (e.g. a glowing copy of the text: LightUpText) */
+const Tint = createContext<TextStyle | null>(null);
+
 /** Opens web and email links (the server allows nothing else, besides blog links) */
 const openWebLink = (href: string) => {
   if (/^(https?:\/\/|mailto:)/i.test(href)) Linking.openURL(href).catch(() => {});
@@ -46,6 +49,7 @@ function markStyle(marks: RichMark[] = []): TextStyle {
 /** The text pieces of a paragraph or heading, nested inside its AppText */
 function Inlines({ content }: { content?: RichInline[] }) {
   const openBlog = useBlogPreview();
+  const tint = useContext(Tint);
   const openLink = (href: string) => {
     const blogId = blogIdOfHref(href);
     if (blogId !== null) openBlog(blogId);
@@ -59,7 +63,7 @@ function Inlines({ content }: { content?: RichInline[] }) {
         return (
           <Text
             key={i}
-            style={markStyle(node.marks)}
+            style={[markStyle(node.marks), tint && { color: tint.color }]}
             onPress={link ? () => openLink(link.attrs.href) : undefined}
             accessibilityRole={link ? 'link' : undefined}>
             {node.text}
@@ -108,12 +112,13 @@ function ArticleImage({ image }: { image: RichImage }) {
 }
 
 function Block({ block }: { block: RichBlock }) {
+  const tint = useContext(Tint);
   switch (block.type) {
     case 'image':
       return <ArticleImage image={block} />;
     case 'paragraph':
       return (
-        <AppText style={[styles.paragraph, { textAlign: block.attrs?.textAlign ?? 'left' }]}>
+        <AppText style={[styles.paragraph, { textAlign: block.attrs?.textAlign ?? 'left' }, tint]}>
           <Inlines content={block.content} />
         </AppText>
       );
@@ -123,7 +128,7 @@ function Block({ block }: { block: RichBlock }) {
           size={block.attrs.level === 2 ? 'big' : 'normal'}
           bold
           accessibilityRole="header"
-          style={[styles.heading, { textAlign: block.attrs.textAlign ?? 'left' }]}>
+          style={[styles.heading, { textAlign: block.attrs.textAlign ?? 'left' }, tint]}>
           <Inlines content={block.content} />
         </AppText>
       );
@@ -159,11 +164,16 @@ function withoutTrailingEmpty(blocks: RichBlock[]) {
   return blocks.slice(0, end);
 }
 
-/** An article's formatted text; `images` gives the URLs of the photos placed in it */
-export function RichText({ doc, images = [] }: { doc: RichDoc; images?: ImageRef[] }) {
+/**
+ * A formatted text (an article, a plant's description, a «Τι να προσέχεις» text); `images` gives the
+ * URLs of the photos placed in it. `tint`: one colour (and shadow) for all its letters
+ */
+export function RichText({ doc, images = [], tint = null }: { doc: RichDoc; images?: ImageRef[]; tint?: TextStyle | null }) {
   return (
     <ImageUrls.Provider value={new Map(images.map((i) => [i.id, i.url]))}>
-      <Blocks blocks={withoutTrailingEmpty(doc.content)} />
+      <Tint.Provider value={tint}>
+        <Blocks blocks={withoutTrailingEmpty(doc.content)} />
+      </Tint.Provider>
     </ImageUrls.Provider>
   );
 }

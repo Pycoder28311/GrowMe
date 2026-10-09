@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { visibleLength } from './blog-links'
 import { entityId, imageIds, queryId, type ImageRef } from './common'
+import { optionalRichText, richTextNoImages } from './rich-text'
 import {
   DIFFICULTIES,
   MAX_MONTH_RANGES,
@@ -245,10 +246,13 @@ const uniqueBy =
 
 /**
  * The plant form's body (PUT/POST /api/admin/plants). Every field is sent (nothing is optional);
- * the order of lifecycles, tips and imageIds is their position.
+ * the order of lifecycles, tips and imageIds is their position. The description and each «Τι να
+ * προσέχεις» text are formatted texts from the editor (rich-text.ts, no photos); they are stored as
+ * JSON text, and readers parse them with parseRichContent (older plain texts still read fine).
  */
 export const plantSave = plantFields
   .extend({
+    description: optionalRichText,
     lifecycles: z
       .array(z.object({ id: childId, title, content: text, seed: z.boolean(), duration: duration.nullable() }))
       .max(50)
@@ -257,7 +261,9 @@ export const plantSave = plantFields
       .array(plantTipRow)
       .max(50)
       .superRefine(uniqueBy((row) => ('tipId' in row ? row.tipId : undefined), 'Tip picked twice', 'tipId')),
-    diseases: z.array(z.object({ id: childId, title, label: label.nullable(), content: text })).max(50),
+    diseases: z
+      .array(z.object({ id: childId, title, label: label.nullable(), content: richTextNoImages }))
+      .max(50),
   })
   .refine(priceInOrder, rangeMessage)
   .refine(sunInOrder, sunMessage)

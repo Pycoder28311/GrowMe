@@ -67,13 +67,15 @@ const blogOptions = () =>
 
 /**
  * Shows «🔗» over selected words (to link them, or to change the link they are in); hides it
- * otherwise. A cursor in a link gets the link bar instead (link-popover.ts).
+ * otherwise. A cursor in a link gets the link bar instead (link-popover.ts). The article editor uses
+ * it too: there words inside a web link get no pill (its toolbar's link dialog changes those).
  */
-function updatePill(editor: Editor) {
+export function updatePill(editor: Editor) {
   if (!pill) return
   const { from, to, empty } = editor.state.selection
   const inLink = editor.isActive('link')
-  if (!editor.isFocused || empty) {
+  const inWebLink = inLink && blogIdOfHref(String(editor.getAttributes('link').href ?? '')) === null
+  if (!editor.isFocused || empty || inWebLink) {
     if (pillEditor === editor) pill.hidden = true
     return
   }
@@ -146,7 +148,9 @@ function applyLink(id: string | null) {
   linking = null
 }
 
-if (pill && dialog) {
+// The script can run more than once on a page (each editor brings its tag): wire the button once
+if (pill && dialog && pill.dataset.wired === undefined) {
+  pill.dataset.wired = ''
   // Keeps the box's selection while the button is pressed
   pill.addEventListener('mousedown', (event) => event.preventDefault())
   pill.addEventListener('click', () => pillEditor && openDialog(pillEditor))

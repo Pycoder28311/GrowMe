@@ -8,8 +8,8 @@ import { Placeholder } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 import { ArticleImage, dropImage, insertImages } from './image'
 import { blurLinkPopover, updateLinkPopover } from './link-popover'
-// Text fields with blog links (they set themselves up)
-import './linked-text'
+// Text fields with blog links (they set themselves up); its «🔗» button works in articles too
+import { updatePill } from './linked-text'
 
 type Command = {
   run: (editor: Editor) => void
@@ -133,7 +133,7 @@ function linkDialog(root: HTMLElement, editor: Editor) {
   function apply() {
     const href = toHref(hrefInput!.value)
     if (!href) {
-      error!.textContent = 'Γράψε μια σωστή διεύθυνση, π.χ. https://growme.gr'
+      error!.textContent = 'Γράψε μια σωστή διεύθυνση, π.χ. https://growhere.gr'
       hrefInput!.focus()
       return
     }
@@ -246,6 +246,9 @@ const COMMANDS: Record<string, Command> = {
 }
 
 function mount(root: HTMLElement) {
+  // Once per editor (the script runs again for every editor's tag), and never inside a row template
+  if (root.dataset.mounted !== undefined || root.closest('template')) return
+  root.dataset.mounted = ''
   const input = root.querySelector<HTMLInputElement>('input[data-field]')
   const area = root.querySelector<HTMLElement>('[data-editor-area]')
   if (!input || !area) return
@@ -287,15 +290,17 @@ function mount(root: HTMLElement) {
       },
       // A click on a web link opens it in a new tab (a blog link shows its bar); the cursor lands there, so 🔗 can edit it
       // Image files pasted or dropped into the text are uploaded and placed there
+      // (Only where photos are allowed: an editor without an upload address takes none)
       handlePaste: (_view, event) => {
         const files = [...(event.clipboardData?.files ?? [])]
-        if (!files.some((f) => f.type.startsWith('image/'))) return false
+        if (!uploadUrl || !files.some((f) => f.type.startsWith('image/'))) return false
         insertImages(editor, uploadUrl, files, status)
         return true
       },
       handleDrop: (view, event, _slice, moved) => {
         if (dropImage(view, event, moved)) return true
         const files = [...(event.dataTransfer?.files ?? [])]
+        if (!uploadUrl) return files.length > 0 // dropped files are ignored, never opened by the browser
         if (moved || !files.some((f) => f.type.startsWith('image/'))) return false
         const at = view.posAtCoords({ left: event.clientX, top: event.clientY })
         insertImages(editor, uploadUrl, files, status, at?.pos)
@@ -316,13 +321,18 @@ function mount(root: HTMLElement) {
       input.dispatchEvent(new Event('input', { bubbles: true }))
     },
     onTransaction: () => refreshToolbar(),
-    onSelectionUpdate: ({ editor }) => updateLinkPopover(editor),
+    onSelectionUpdate: ({ editor }) => {
+      updatePill(editor)
+      updateLinkPopover(editor)
+    },
     onFocus: ({ editor }) => {
       root.classList.add('focused')
+      updatePill(editor)
       updateLinkPopover(editor)
     },
     onBlur: ({ editor }) => {
       root.classList.remove('focused')
+      setTimeout(() => updatePill(editor), 150)
       blurLinkPopover(editor)
     },
   })
@@ -360,4 +370,9 @@ function mount(root: HTMLElement) {
   refreshToolbar()
 }
 
-for (const root of document.querySelectorAll<HTMLElement>('[data-rich-editor]')) mount(root)
+const mountIn = (where: ParentNode) => {
+  for (const root of where.querySelectorAll<HTMLElement>('[data-rich-editor]')) mount(root)
+}
+mountIn(document)
+// Rows added to lists later (e.g. a new «Τι να προσέχεις» row): admin.client.js tells when
+document.addEventListener('admin:row-added', (event) => mountIn(event.target as ParentNode))

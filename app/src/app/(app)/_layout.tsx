@@ -25,7 +25,7 @@ const navIdFor = (pathname: string): NavId => {
   if (pathname.startsWith('/community')) return 'messages';
   if (pathname.startsWith('/wiki')) return 'wiki';
   if (pathname.startsWith('/results')) return 'results';
-  if (pathname.startsWith('/profile') || pathname.startsWith('/notes')) return 'profile';
+  if (pathname.startsWith('/profile')) return 'profile';
   return 'home';
 };
 

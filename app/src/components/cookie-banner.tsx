@@ -25,7 +25,7 @@ export function CookieBanner() {
                 <ThemedText type="smallBold">Cookies</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
                     We use necessary cookies to keep you signed in. With your permission, we&apos;d also use
-                    analytics cookies to improve GrowMe. You can change this anytime.{' '}
+                    analytics cookies to improve Grow Here. You can change this anytime.{' '}
                     <Link href="/privacy">
                         <ThemedText type="small" style={styles.link}>Privacy &amp; cookie policy</ThemedText>
                     </Link>

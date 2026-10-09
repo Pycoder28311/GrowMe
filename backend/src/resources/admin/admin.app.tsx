@@ -13,7 +13,6 @@ import { combinationsAdmin } from './combinations/combinations.admin'
 import {
   blogCommentsAdmin,
   imagesAdmin,
-  notesAdmin,
   postRepliesAdmin,
   postsAdmin,
   usersAdmin,
@@ -81,7 +80,6 @@ const adminApp = new Hono<AdminEnv>()
   .route('/', postRepliesAdmin)
   .route('/', blogCommentsAdmin)
   .route('/', imagesAdmin)
-  .route('/', notesAdmin)
 
 // The script and the CSS (behind Access like everything else); ?v= changes on every edit
 for (const asset of Object.values(ASSETS)) {

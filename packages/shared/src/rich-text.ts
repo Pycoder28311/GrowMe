@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { blogIdOfHref } from './blog-links'
+import { blogIdOfHref, parseBlogLinks } from './blog-links'
 
 // Formatted text written with the dashboard's editor (Tiptap) and shown natively by the app.
 // Stored as the editor's JSON document. Only what is listed here is allowed: parsing with `richDoc`
@@ -114,6 +114,28 @@ export const richDoc: z.ZodType<RichDoc> = z
   .refine((doc) => richImageIds(doc).length <= 50, { message: 'Too many images' })
   .refine((doc) => JSON.stringify(doc).length <= MAX_JSON_LENGTH, { message: 'The text is too long' })
 
+/**
+ * A formatted text without photos (a plant's description, a «Τι να προσέχεις» text): written with
+ * the same editor as articles and stored the same way (JSON text), but with no image blocks
+ */
+export const richTextNoImages = richDoc.refine((doc) => richImageIds(doc).length === 0, {
+  message: 'Photos are not allowed here',
+})
+
+/** Whether an editor's document has no words and no photos (an empty optional field) */
+function isBlankDoc(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || (value as { type?: unknown }).type !== 'doc') return false
+  try {
+    const doc = value as RichDoc
+    return plainTextOf(doc).trim() === '' && richImageIds(doc).length === 0
+  } catch {
+    return false
+  }
+}
+
+/** An optional formatted text without photos: an empty editor counts as no text (null) */
+export const optionalRichText = z.preprocess((value) => (isBlankDoc(value) ? null : value), richTextNoImages.nullable())
+
 /** The text without formatting (for reading time, previews and search) */
 export function plainTextOf(doc: RichDoc): string {
   const inlineText = (content?: RichInline[]) =>
@@ -171,7 +193,20 @@ export function richBlogLinkIds(doc: RichDoc): number[] {
   return [...new Set(ids)]
 }
 
-/** Plain text as a document: an empty line starts a new paragraph, a single newline breaks the line */
+/** One line of plain text as inline nodes: `[words](blog:12)` markers become blog links */
+const lineToInlines = (line: string): RichInline[] =>
+  parseBlogLinks(line)
+    .filter((part) => part.text !== '')
+    .map((part) =>
+      'blogId' in part
+        ? { type: 'text', text: part.text, marks: [{ type: 'link', attrs: { href: `blog:${part.blogId}` } }] }
+        : { type: 'text', text: part.text },
+    )
+
+/**
+ * Plain text as a document: an empty line starts a new paragraph, a single newline breaks the line,
+ * and `[words](blog:12)` markers (older plant texts) become blog links
+ */
 export function plainTextToDoc(text: string): RichDoc {
   const paragraphs = text
     .split(/\n\s*\n/)
@@ -184,7 +219,7 @@ export function plainTextToDoc(text: string): RichDoc {
       content: p
         ? p.split('\n').flatMap((line, i): RichInline[] => [
             ...(i > 0 ? [{ type: 'hardBreak' as const }] : []),
-            ...(line ? [{ type: 'text' as const, text: line }] : []),
+            ...(line ? lineToInlines(line) : []),
           ])
         : undefined,
     })),

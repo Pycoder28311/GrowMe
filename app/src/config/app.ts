@@ -1,6 +1,6 @@
 import type { IconName } from '@/components/ui/icon';
 
-export const APP_NAME = 'GrowMe';
+export const APP_NAME = 'Grow Here';
 export const APP_TAGLINE = 'Βρες τα φυτά που ταιριάζουν στο μπαλκόνι σου!';
 
 export type NavId = 'home' | 'messages' | 'results' | 'wiki' | 'profile';

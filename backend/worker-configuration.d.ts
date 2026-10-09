@@ -6,9 +6,9 @@ interface __BaseEnv_CloudflareBindings {
 	DB: D1Database;
 	AUTH_STRICT: RateLimit;
 	API_GENERAL: RateLimit;
-	APP_NAME: "GrowMe";
+	APP_NAME: "Grow Here";
 	APP_SCHEME: "growme";
-	EMAIL_FROM: "GrowMe <no-reply@testingggg.lol>";
+	EMAIL_FROM: "Grow Here <no-reply@testingggg.lol>";
 	ADMIN_HOST: "admin.testingggg.lol";
 	ADMIN_EMAILS: "kopotitore@gmail.com";
 	ACCESS_TEAM_DOMAIN: "https://odd-frost-5cc5.cloudflareaccess.com";

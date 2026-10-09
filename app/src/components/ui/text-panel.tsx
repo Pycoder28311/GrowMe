@@ -1,11 +1,15 @@
+import { parseRichContent } from '@growme/shared';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
-import { LinkedText } from '@/components/ui/linked-text';
+import { RichText } from '@/components/wiki/rich-text';
 import { colors, space } from '@/theme';
 
-/** A text in a panel sliding up from below (e.g. one «Τι να προσέχεις» item): title, a label, the text */
+/**
+ * A text in a panel sliding up from below (e.g. one «Τι να προσέχεις» item): title, a label, the text.
+ * The text is the editor's (formatted, as JSON) or an older plain text with blog links: both show.
+ */
 export function TextPanel({
   title,
   label,
@@ -25,7 +29,7 @@ export function TextPanel({
             {label}
           </AppText>
         )}
-        <LinkedText>{text}</LinkedText>
+        <RichText doc={parseRichContent(text)} />
       </View>
     </BottomSheet>
   );

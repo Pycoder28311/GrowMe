@@ -45,7 +45,7 @@ crudRoutes({ access, paginate?, filter?, create, update, repo })
 
 | Mode | Read | Write | Example |
 |---|---|---|---|
-| `owner` | signed in, own rows | signed in, own rows | notes |
+| `owner` | signed in, own rows | signed in, own rows | (a user's private items) |
 | `public-owner` | everyone | signed in; change only own rows | posts |
 | `public-admin` | everyone | admins only | plants, blogs |
 | `admin` | admins only | admins only | moderation |
@@ -204,7 +204,7 @@ export default crudRoutes({ access: 'owner', create: taskCreate, update: taskUpd
 import tasksRoutes from './resources/tasks/tasks.routes'
 
 const routes = app
-  .route('/api/notes', notesRoutes)
+  .route('/api/posts', postsRoutes)
   .route('/api/images', imagesRoutes)
   .route('/api/tasks', tasksRoutes)
 ```
@@ -219,7 +219,7 @@ npm run deploy --workspace backend
 
 ### 7. Use it in the app
 
-Add an API file in the app following `app/src/api/notes.ts`, then build the screens under
+Add an API file in the app following `app/src/api/posts.ts`, then build the screens under
 `app/src/app/(app)/`.
 
 ## Relationships
@@ -239,7 +239,7 @@ Before saving, check that the parent belongs to the user:
 
 ### Many-to-many (e.g. tasks ↔ tags)
 
-1. Add a link table in `schema.ts` (see `noteImages`): two foreign keys with
+1. Add a link table in `schema.ts` (see `postImages`): two foreign keys with
    `onDelete: 'cascade'`, a composite primary key and, if order matters, a `position` column.
    Add Drizzle `relations()` for both tables so queries can load linked rows with `with`.
 2. In the repo, describe the link once:
@@ -265,10 +265,10 @@ Before saving, check that the parent belongs to the user:
    ])
    ```
 
-4. Use `removedIds(before, after)` if unlinked rows need cleanup (as notes do with images).
+4. Use `removedIds(before, after)` if unlinked rows need cleanup (as posts do with images).
 5. Statement lists built at runtime (e.g. "update only if fields were sent"): `runBatch(ctx.db, [...])`.
 
-`resources/notes/notes.repo.ts` is a complete working example.
+`resources/posts/posts.repo.ts` is a complete working example.
 
 ### Images on a resource
 

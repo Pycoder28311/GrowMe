@@ -5,7 +5,6 @@ import {
   blogs,
   combinations,
   images,
-  notes,
   plants,
   postReplies,
   posts,
@@ -27,7 +26,6 @@ const TABLES = [
   { key: 'posts', label: 'Αναρτήσεις', table: posts, path: '/posts' },
   { key: 'postReplies', label: 'Απαντήσεις', table: postReplies, path: '/post-replies' },
   { key: 'images', label: 'Εικόνες', table: images, path: '/images' },
-  { key: 'notes', label: 'Σημειώσεις', table: notes, path: '/notes' },
 ] as const
 
 export type TableCount = { key: string; label: string; path: string; count: number; create: boolean }

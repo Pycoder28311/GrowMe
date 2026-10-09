@@ -47,9 +47,7 @@ const STEPS = [
   `DELETE FROM likes WHERE liked_type = 'post_reply' AND (
      liked_id IN ${USER_REPLY_THREADS} OR liked_id IN (SELECT id FROM post_replies WHERE post_id IN ${OWN_POSTS}))`,
   `DELETE FROM likes WHERE liked_type = 'blog_comment' AND liked_id IN ${USER_THREADS}`,
-  // 5. Notes (their user_id has no cascade), then the user: sessions, accounts, posts, replies,
-  //    comments and image rows cascade
-  'DELETE FROM notes WHERE user_id = ?1',
+  // 5. The user: sessions, accounts, posts, replies, comments and image rows cascade
   'DELETE FROM "user" WHERE id = ?1',
 ]
 

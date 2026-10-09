@@ -22,17 +22,18 @@ export async function assertBlogLinks(db: Db, fields: BlogLinkField[], selfId?: 
 }
 
 /**
- * How many texts link to a blog: plain texts holding `](blog:N)` and articles holding a `blog:N`
- * link. LIKE over the text columns: fine for a dashboard action, not for the app.
+ * How many texts link to a blog: plain texts holding `](blog:N)`, and editor texts (articles, plant
+ * descriptions, «Τι να προσέχεις»; older plant texts may still be plain) holding a `blog:N` link.
+ * LIKE over the text columns: fine for a dashboard action, not for the app.
  */
 export async function linkedFromCount(db: Db, blogId: number) {
   const plain = `%](blog:${Number(blogId)})%`
   const rich = `%"href":"blog:${Number(blogId)}"%`
   const row = await db.get<{ n: number }>(sql`SELECT
-      (SELECT count(*) FROM plants WHERE description LIKE ${plain} OR native LIKE ${plain})
+      (SELECT count(*) FROM plants WHERE description LIKE ${plain} OR description LIKE ${rich} OR native LIKE ${plain})
     + (SELECT count(*) FROM lifecycles WHERE content LIKE ${plain})
     + (SELECT count(*) FROM tips WHERE content LIKE ${plain})
-    + (SELECT count(*) FROM diseases WHERE content LIKE ${plain})
+    + (SELECT count(*) FROM diseases WHERE content LIKE ${plain} OR content LIKE ${rich})
     + (SELECT count(*) FROM combinations WHERE description LIKE ${plain})
     + (SELECT count(*) FROM blogs WHERE id != ${blogId} AND content LIKE ${rich}) AS n`)
   return row?.n ?? 0

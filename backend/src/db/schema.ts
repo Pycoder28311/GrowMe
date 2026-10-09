@@ -10,18 +10,6 @@ const owner = () => text('user_id').notNull().references(() => user.id, { onDele
 const optionalOwner = () => text('user_id').references(() => user.id, { onDelete: 'cascade' })
 const flag = (name: string) => integer(name, { mode: 'boolean' }).notNull().default(false)
 
-/* ─────────────── Notes (existing) ─────────────── */
-
-export const notes = sqliteTable(
-    'notes',
-    {
-        id: id(),
-        userId: owner(),
-        text: text('text').notNull(),
-    },
-    (t) => [index('notes_user_id_idx').on(t.userId)],
-)
-
 /* ─────────────── A user's area (profile): approximate only, for plant advice by climate ─────────────── */
 
 export const userLocations = sqliteTable('user_locations', {
@@ -241,16 +229,6 @@ export const diseases = sqliteTable(
 
 /* ─────────────── Image links: which images belong to what, in carousel order ─────────────── */
 
-export const noteImages = sqliteTable(
-    'note_images',
-    {
-        noteId: integer('note_id').notNull().references(() => notes.id, { onDelete: 'cascade' }),
-        imageId: integer('image_id').notNull().references(() => images.id, { onDelete: 'cascade' }),
-        position: integer('position').notNull(),
-    },
-    (t) => [primaryKey({ columns: [t.noteId, t.imageId] })],
-)
-
 export const postImages = sqliteTable(
     'post_images',
     {
@@ -292,10 +270,6 @@ export const plantImages = sqliteTable(
 )
 
 /* ─────────────── Relations: let one query load an item with its children ─────────────── */
-
-export const notesRelations = relations(notes, ({ many }) => ({
-    images: many(noteImages),
-}))
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
     user: one(user, { fields: [posts.userId], references: [user.id] }),
@@ -358,11 +332,6 @@ export const plantTipsRelations = relations(plantTips, ({ one }) => ({
 
 export const diseasesRelations = relations(diseases, ({ one }) => ({
     plant: one(plants, { fields: [diseases.plantId], references: [plants.id] }),
-}))
-
-export const noteImagesRelations = relations(noteImages, ({ one }) => ({
-    note: one(notes, { fields: [noteImages.noteId], references: [notes.id] }),
-    image: one(images, { fields: [noteImages.imageId], references: [images.id] }),
 }))
 
 export const postImagesRelations = relations(postImages, ({ one }) => ({

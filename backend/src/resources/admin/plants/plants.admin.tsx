@@ -10,6 +10,7 @@ import {
   PLANT_TRAIT_SUGGESTIONS,
   WIND_LABELS,
   WIND_LEVELS,
+  parseRichContent,
   plantSave,
   type Lifecycle,
   type Plant,
@@ -39,6 +40,7 @@ import { BlogLinkPicker } from '../ui/blog-link-picker'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { RepeatableList } from '../ui/repeatable-list'
+import { EMPTY_DOC, RichTextEditor } from '../ui/rich-text-editor'
 import { SunWindow } from '../ui/sun-window'
 import { SearchOptions, SearchSelect, type SearchOption } from '../ui/search-select'
 import { savePlant } from './plants.save'
@@ -280,20 +282,27 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
               <TextField field="title" value={d?.title} placeholder="Τι να προσέχεις (π.χ. Αφίδες)" required />
               <TextField field="label" value={d?.label} placeholder="Ετικέτα (προαιρετική)" nullable maxLength={100} />
             </div>
-            <TextArea
+            {/* Formatted text (no photos); older plain texts open as paragraphs with their blog links */}
+            <RichTextEditor
               field="content"
-              value={d?.content}
+              label="Τι κάνει και πώς αντιμετωπίζεται"
+              value={d ? parseRichContent(d.content) : EMPTY_DOC}
               placeholder="Τι κάνει και πώς αντιμετωπίζεται"
-              rows={2}
-              required
-              blogLinks
+              compact
             />
           </>
         )}
       />
 
       <FormSection title="Περιγραφή">
-        <TextArea field="description" value={p?.description} placeholder="Λίγα λόγια για το φυτό" rows={4} nullable blogLinks />
+        {/* Formatted text (no photos); empty = no description */}
+        <RichTextEditor
+          field="description"
+          label="Περιγραφή"
+          value={p?.description ? parseRichContent(p.description) : EMPTY_DOC}
+          placeholder="Λίγα λόγια για το φυτό"
+          compact
+        />
       </FormSection>
 
       <FormSection title="Συνδυασμοί">

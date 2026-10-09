@@ -1,4 +1,4 @@
-import { blogLinkIds, type PlantSave } from '@growme/shared'
+import { blogLinkIds, richBlogLinkIds, type PlantSave } from '@growme/shared'
 import { and, asc, eq, inArray, notExists } from 'drizzle-orm'
 import type { Db } from '../../../db'
 import { combinations, diseases, lifecycles, plantImages, plants, plantTips, tips } from '../../../db/schema'
@@ -38,7 +38,8 @@ const diseaseRows: ChildTable<typeof diseases, Rows<'diseases'>> = {
   table: diseases,
   id: diseases.id,
   parent: diseases.plantId,
-  toRow: (plantId, { title, label, content }) => ({ plantId, title, label, content }),
+  // The text is the editor's document, stored as JSON text (like an article's)
+  toRow: (plantId, { title, label, content }) => ({ plantId, title, label, content: JSON.stringify(content) }),
 }
 
 /** Throws 400 UNKNOWN_REFERENCE at "tips.<i>.tipId" for picked tips that aren't in the library */
@@ -94,10 +95,11 @@ const childStatements = (db: Db, plantId: number, input: PlantSave, tipIds: numb
 
 /** Every text of the form that may link to blogs, with its path for errors */
 const linkFields = (input: PlantSave) => [
-  ...(['description', 'native'] as const).map((key) => ({ path: key, ids: blogLinkIds(input[key]) })),
+  { path: 'description', ids: input.description ? richBlogLinkIds(input.description) : [] },
+  { path: 'native', ids: blogLinkIds(input.native) },
   ...input.lifecycles.map((row, i) => ({ path: `lifecycles.${i}.content`, ids: blogLinkIds(row.content) })),
   ...input.tips.map((row, i) => ({ path: `tips.${i}.content`, ids: 'tipId' in row ? [] : blogLinkIds(row.content) })),
-  ...input.diseases.map((row, i) => ({ path: `diseases.${i}.content`, ids: blogLinkIds(row.content) })),
+  ...input.diseases.map((row, i) => ({ path: `diseases.${i}.content`, ids: richBlogLinkIds(row.content) })),
 ]
 
 /** Removes the tips created for a save that then failed (no stray library entries) */
@@ -115,7 +117,8 @@ export async function savePlant(
   input: PlantSave,
 ): Promise<{ id: number } | null> {
   const { lifecycles: _lifecycles, tips: _tips, diseases: _diseases, imageIds, ...rest } = input
-  const fields = toColumns(rest)
+  // The description is the editor's document, stored as JSON text (null when empty)
+  const fields = toColumns({ ...rest, description: rest.description ? JSON.stringify(rest.description) : null })
   if (fields.combinationId) {
     await assertExists(db, combinations, combinations.id, fields.combinationId, 'combinationId')
   }

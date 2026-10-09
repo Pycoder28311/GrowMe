@@ -7,7 +7,7 @@ import { AdminLayout } from './ui/layout'
  */
 export function DashboardPage({ email, counts }: { email: string; counts: TableCount[] }) {
   return (
-    <AdminLayout title="GrowMe Admin" email={email}>
+    <AdminLayout title="Grow Here Admin" email={email}>
       <h2>Βάση δεδομένων</h2>
       <div class="grid">
         {counts.map(({ label, path, count, create }) => (

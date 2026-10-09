@@ -1,4 +1,4 @@
-import type { Plant } from '@growme/shared';
+import { parseRichContent, type Plant } from '@growme/shared';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -228,7 +228,8 @@ export default function PlantScreen() {
           <Block onLayout={register('description')}>
             <Reveal from="pop" visible={seen.has('description')}>
               <Section title="Περιγραφή">
-                <LightUpText play={seen.has('description')}>{plant.description}</LightUpText>
+                {/* The editor's formatted text (or an older plain one with blog links) */}
+                <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
               </Section>
             </Reveal>
           </Block>

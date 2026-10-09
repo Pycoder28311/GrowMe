@@ -38,7 +38,7 @@ export function AdminLayout(props: {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="robots" content="noindex, nofollow" />
-        <title>{props.back ? `${props.title} · GrowMe Admin` : props.title}</title>
+        <title>{props.back ? `${props.title} · Grow Here Admin` : props.title}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;700&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href={`${ASSETS.css.path}?v=${ASSETS.css.version}`} />

@@ -18,7 +18,7 @@ export default function PrivacyScreen() {
                 <ThemedText>None yet. If we add any, we&apos;ll only use them with your consent.</ThemedText>
                 <ThemedText type="smallBold">Your data</ThemedText>
                 <ThemedText>
-                    We store your account (name, email), your notes and your images. Contact: kopotitore@gmail.com
+                    We store your account (name, email), your posts, comments and images. Contact: kopotitore@gmail.com
                 </ThemedText>
             </ScrollView>
         </ThemedView>

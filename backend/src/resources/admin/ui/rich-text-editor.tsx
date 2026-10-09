@@ -162,7 +162,9 @@ export function withImageSources(doc: RichDoc, images: ImageRef[]): object {
 /**
  * A Word-like text editor (Tiptap, loaded only on pages that use it). The document travels as JSON in
  * a hidden input under `field`, so admin.client.js sends it like any other field and shows the
- * server's errors for it below the editor.
+ * server's errors for it below the editor. Without `uploadUrl` it takes no photos (no image button;
+ * pasted or dropped images are ignored). `compact`: a shorter writing area (e.g. inside list rows).
+ * Selected words get the «🔗 Σύνδεσμος σε άρθρο» button too when the form renders a BlogLinkPicker.
  */
 export function RichTextEditor(props: {
   field: string
@@ -170,19 +172,21 @@ export function RichTextEditor(props: {
   value: object
   label: string
   placeholder?: string
-  /** Where the image button uploads (POST multipart "files" → [{ id, url }]) */
-  uploadUrl: string
+  /** Where the image button uploads (POST multipart "files" → [{ id, url }]); none = no photos */
+  uploadUrl?: string
+  compact?: boolean
 }) {
+  const tools = props.uploadUrl ? TOOLS : TOOLS.map((group) => group.filter((tool) => tool.cmd !== 'image'))
   return (
     <div
-      class="field rich"
+      class={props.compact ? 'field rich compact' : 'field rich'}
       data-rich-editor
       data-label={props.label}
       data-placeholder={props.placeholder ?? ''}
-      data-upload={props.uploadUrl}
+      data-upload={props.uploadUrl ?? ''}
     >
       <div class="toolbar" role="toolbar" aria-label="Μορφοποίηση κειμένου" data-toolbar>
-        {TOOLS.map((group) => (
+        {tools.map((group) => (
           <div class="tool-group">
             {group.map((tool) => (
               <button
@@ -199,8 +203,12 @@ export function RichTextEditor(props: {
         ))}
       </div>
       <div class="rich-area" data-editor-area />
-      <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden data-image-file />
-      <p class="small muted upload-status" aria-live="polite" data-image-status />
+      {props.uploadUrl && (
+        <>
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden data-image-file />
+          <p class="small muted upload-status" aria-live="polite" data-image-status />
+        </>
+      )}
       <input type="hidden" data-field={props.field} data-type="json" value={JSON.stringify(props.value)} />
       <noscript>
         <p class="small muted">Ο επεξεργαστής κειμένου χρειάζεται JavaScript.</p>

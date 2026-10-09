@@ -27,7 +27,6 @@ type Row = { icon: IconName; label: string; onPress: () => void; color?: string 
 
 /** The account rows that used to be the Settings page */
 const ROWS: Row[] = [
-  { icon: 'notes', label: 'Οι σημειώσεις μου', onPress: () => router.navigate('/notes') },
   { icon: 'privacy', label: 'Απόρρητο', onPress: () => router.navigate('/privacy') },
   // Cookies exist only on the web
   ...(Platform.OS === 'web'

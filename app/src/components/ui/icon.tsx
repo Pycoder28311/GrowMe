@@ -21,7 +21,6 @@ const ICONS = {
   chevronLeft: { ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' },
   check: { ios: 'checkmark', android: 'check', web: 'check' },
   filter: { ios: 'line.3.horizontal.decrease', android: 'filter_list', web: 'filter_list' },
-  notes: { ios: 'note.text', android: 'sticky_note_2', web: 'sticky_note_2' },
   privacy: { ios: 'hand.raised', android: 'shield', web: 'shield' },
   cookie: { ios: 'hand.raised', android: 'cookie', web: 'cookie' },
   signOut: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' },

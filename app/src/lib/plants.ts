@@ -1,6 +1,7 @@
 import {
   PLANT_FLAG_KEYS,
-  stripBlogLinks,
+  parseRichContent,
+  plainTextOf,
   sunPart,
   type Plant,
   type PlantSummary,
@@ -72,7 +73,7 @@ export function useCombinationPlants(combinationId: number | null, exceptId: num
       .map((plant) => ({
         id: plant.id,
         name: plant.name,
-        text: plant.description ? stripBlogLinks(plant.description) : plant.scientificName,
+        text: plant.description ? plainTextOf(parseRichContent(plant.description)) : plant.scientificName,
         image: plant.images[0]?.url ?? null,
       }));
   }, [combinationId, exceptId, loaded]);

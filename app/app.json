@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "GrowMe",
+    "name": "Grow Here",
     "slug": "growme",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -42,7 +42,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Η GrowMe χρησιμοποιεί την περίπου τοποθεσία σου (περιοχή, όχι διεύθυνση) για να προτείνει φυτά για το κλίμα της περιοχής σου."
+          "locationWhenInUsePermission": "Η Grow Here χρησιμοποιεί την περίπου τοποθεσία σου (περιοχή, όχι διεύθυνση) για να προτείνει φυτά για το κλίμα της περιοχής σου."
         }
       ]
     ],

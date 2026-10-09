@@ -369,6 +369,9 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .dialog-actions .button { min-height: 40px; padding: 0 var(--space-md); }
 .rich-area { padding: var(--space-md); min-height: 360px; }
 .rich-area .ProseMirror { min-height: 340px; outline: none; line-height: 1.6; }
+/* A shorter editor (a plant's description, «Τι να προσέχεις» rows) */
+.rich.compact .rich-area { min-height: 0; padding: var(--space-sm) var(--space-md); }
+.rich.compact .rich-area .ProseMirror { min-height: 96px; }
 .ProseMirror { position: relative; word-wrap: break-word; white-space: pre-wrap; white-space: break-spaces;
                font-variant-ligatures: none; font-feature-settings: "liga" 0; }
 .ProseMirror li { position: relative; }

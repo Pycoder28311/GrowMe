@@ -5,7 +5,8 @@ import { adminResource, numericId } from '../resource'
 import { TextChoices, TextField } from '../ui/fields'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
-import { SearchOptions, type SearchOption } from '../ui/search-select'
+import { BlogLinkPicker } from '../ui/blog-link-picker'
+import { type SearchOption } from '../ui/search-select'
 import { formatDate } from '../ui/format'
 import { EMPTY_DOC, RichTextEditor, withImageSources } from '../ui/rich-text-editor'
 import { saveBlog } from './blogs.save'
@@ -69,7 +70,8 @@ function BlogForm({ item: b, options }: { item: BlogWithLinks | null; options: S
           uploadUrl="/api/admin/images"
         />
       </FormSection>
-      <SearchOptions source="blogs" options={options.filter((o) => o.value !== b?.id)} />
+      {/* The other blogs, for links: the toolbar's link dialog and the «🔗» button over selected words */}
+      <BlogLinkPicker options={options.filter((o) => o.value !== b?.id)} />
     </>
   )
 }
