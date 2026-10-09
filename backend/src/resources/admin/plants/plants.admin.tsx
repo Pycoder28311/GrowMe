@@ -271,13 +271,13 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
 
       <RepeatableList
         field="diseases"
-        title="Ασθένειες"
-        itemLabel="Ασθένεια"
+        title="Τι να προσέχεις"
+        itemLabel="Θέμα"
         items={p?.diseases ?? []}
         renderItem={(d) => (
           <>
             <div class="row">
-              <TextField field="title" value={d?.title} placeholder="Ασθένεια" required />
+              <TextField field="title" value={d?.title} placeholder="Τι να προσέχεις (π.χ. Αφίδες)" required />
               <TextField field="label" value={d?.label} placeholder="Ετικέτα (προαιρετική)" nullable maxLength={100} />
             </div>
             <TextArea

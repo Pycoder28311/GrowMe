@@ -8,6 +8,8 @@ export const shadow = {
   card: `0 3px 10px ${alpha(colors.ink, 0.1)}`,
   /** Small lift for tabs */
   small: `0 1px 2px ${alpha(colors.ink, 0.1)}`,
+  /** White tiles on the page (a plant's characteristics): a small shadow below */
+  tile: `0 2px 6px ${alpha(colors.ink, 0.1)}`,
   /** Bottom sheet, casting upwards */
   sheet: `0 -8px 30px ${alpha(colors.ink, 0.12)}`,
   /** Buttons */

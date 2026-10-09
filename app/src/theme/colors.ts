@@ -1,9 +1,9 @@
 /** App colors (from the Plant demo design). Mobile only, light theme. */
 export const colors = {
-  /** Main green: titles, links, active elements */
-  primary: '#2f7a3e',
-  /** Light green background: selected chips, badges */
-  primarySoft: '#dcefe0',
+  /** Main green: titles, links, active elements (5.4:1 on white) */
+  primary: '#1a7a36',
+  /** Light green background: selected chips, badges (the green on it: 4.5:1) */
+  primarySoft: '#d4f1db',
   /** Orange: the main call-to-action button */
   accent: '#f28c28',
   /** Links to blogs inside texts (light blue, 4.7:1 on white) */

@@ -2,31 +2,24 @@ import { durationLabel, type PlantSummary } from '@growme/shared';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { IconCircle } from '@/components/plants/icon-circle';
 import { SunGraph } from '@/components/plants/sun-graph';
-import { AppText } from '@/components/ui/app-text';
 import { LinkedText } from '@/components/ui/linked-text';
+import { ShakeOnTap } from '@/components/ui/shake-on-tap';
 import { card } from '@/components/ui/styles';
-import { effortTrait, originTrait, seasonTrait, sunlightTrait, type Trait } from '@/config/plant-traits';
+import { FACT_ICONS, type PlantIcon } from '@/config/plant-icons';
+import { effortTrait, originTrait, seasonTrait, sunlightTrait } from '@/config/plant-traits';
 import { colors, radius, space } from '@/theme';
 
-function FactRow({ emoji, children }: { emoji: string; children: ReactNode }) {
+/** One fact: its icon, then the text (or the sun graph); a tap only shakes it */
+function FactRow({ icon, children }: { icon: PlantIcon; children: ReactNode }) {
   return (
-    <View style={styles.factRow}>
-      <AppText style={styles.emoji}>{emoji}</AppText>
-      {children}
-    </View>
-  );
-}
-
-/** Light-green strip with one fact in a sentence (where it comes from) */
-function InfoPill({ emoji, text }: { emoji: string; text: string }) {
-  return (
-    <View style={styles.pill}>
-      <AppText style={styles.emoji}>{emoji}</AppText>
-      <LinkedText color={colors.primary} style={styles.pillText}>
-        {text}
-      </LinkedText>
-    </View>
+    <ShakeOnTap>
+      <View style={styles.factRow}>
+        <IconCircle icon={icon} size={28} />
+        <View style={styles.factBody}>{children}</View>
+      </View>
+    </ShakeOnTap>
   );
 }
 
@@ -35,30 +28,42 @@ export function PlantFacts({ plant }: { plant: PlantSummary }) {
   const sun = sunlightTrait(plant);
   const season = seasonTrait(plant);
   const lifespan = durationLabel(plant.lifespan);
-  const rows = [
-    effortTrait(plant),
-    season && { emoji: season.emoji, label: `Φύτεμα: ${season.label}` },
-    lifespan && { emoji: '⏳', label: `Ζει ${lifespan}` },
-  ].filter((trait): trait is Trait => !!trait);
-  // Where it comes from, as a sentence under the card
   const origin = originTrait(plant);
 
   return (
     <View style={styles.root}>
       <View style={styles.card}>
         {sun && (
-          <FactRow emoji={sun.emoji}>
+          <FactRow icon={FACT_ICONS.sun}>
             <SunGraph start={plant.sunStart} end={plant.sunEnd} />
           </FactRow>
         )}
-        {rows.map((trait) => (
-          <FactRow key={trait.label} emoji={trait.emoji}>
-            <LinkedText>{trait.label}</LinkedText>
+        <FactRow icon={FACT_ICONS.difficulty}>
+          <LinkedText>{`Δυσκολία: ${effortTrait(plant).label}`}</LinkedText>
+        </FactRow>
+        {season && (
+          <FactRow icon={FACT_ICONS.season}>
+            <LinkedText>{`Φύτεμα: ${season.label}`}</LinkedText>
           </FactRow>
-        ))}
+        )}
+        {lifespan && (
+          <FactRow icon={FACT_ICONS.lifespan}>
+            <LinkedText>{`Ζει ${lifespan}`}</LinkedText>
+          </FactRow>
+        )}
       </View>
 
-      {origin && <InfoPill emoji={origin.emoji} text={origin.label} />}
+      {/* Where it comes from, as a sentence under the card */}
+      {origin && (
+        <ShakeOnTap>
+          <View style={styles.pill}>
+            <IconCircle icon={FACT_ICONS.origin} size={28} />
+            <LinkedText color={colors.primary} style={styles.factBody}>
+              {origin.label}
+            </LinkedText>
+          </View>
+        </ShakeOnTap>
+      )}
     </View>
   );
 }
@@ -77,9 +82,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
-  emoji: {
-    width: space.lg,
-    textAlign: 'center',
+  factBody: {
+    flex: 1,
   },
   pill: {
     flexDirection: 'row',
@@ -89,8 +93,5 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
-  },
-  pillText: {
-    flex: 1,
   },
 });

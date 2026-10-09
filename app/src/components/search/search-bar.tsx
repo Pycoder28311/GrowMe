@@ -20,6 +20,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
+import { useSetSearching } from '@/components/layout/page-header';
 import { ResultRowContent, type SearchResult } from '@/components/search/result-row';
 import { SearchResults } from '@/components/search/search-results';
 import { Icon } from '@/components/ui/icon';
@@ -82,6 +83,9 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const reduced = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('closed');
+  // The page's header content (between the corners) hides while the search is open
+  const setSearching = useSetSearching();
+  useEffect(() => setSearching(phase !== 'closed'), [phase, setSearching]);
   const [query, setQuery] = useState('');
   const [keyboard, setKeyboard] = useState(0);
   const fly = useFlight();
@@ -215,7 +219,8 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
         rect,
         front: <ResultRowContent result={result} />,
         onLanded: () => {
-          if (result.type === 'plant') router.push({ pathname: '/plants/[id]', params: { id: String(result.item.id) } });
+          if (result.type === 'plant')
+            router.push({ pathname: '/plants/[id]', params: { id: String(result.item.id), via: 'search' } });
           else router.push({ pathname: '/wiki/[id]', params: { id: String(result.item.id) } });
         },
       });
