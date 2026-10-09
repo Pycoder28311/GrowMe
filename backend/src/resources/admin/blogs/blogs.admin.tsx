@@ -78,7 +78,7 @@ function BlogForm({ item: b, options }: { item: BlogWithLinks | null; options: S
 export const blogsAdmin = adminResource({
   path: 'blogs',
   title: 'Άρθρα',
-  list: (ctx, page) => blogsRepo.list(ctx, page, undefined),
+  list: (ctx, page) => blogsRepo.list(ctx, page, {}),
   remove: async (ctx, raw) => {
     const id = numericId(raw)
     return id !== null && blogsRepo.remove(ctx, id)

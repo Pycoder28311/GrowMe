@@ -11,8 +11,8 @@ const AVATAR = size.touch / 1.5;
 
 type DiscussionItemProps = {
   author: string;
-  /** e.g. "2 ημέρες πριν" */
-  date: string;
+  /** e.g. "2 ημέρες πριν"; replies show none */
+  date?: string;
   /** Bold line above the text (posts) */
   title?: string;
   text: string;
@@ -33,6 +33,8 @@ type DiscussionItemProps = {
   onReply?: () => void;
   /** Makes the whole item tappable (e.g. open the post) */
   onPress?: () => void;
+  /** The actions' size: `normal` on a post with photos (they scale with it), else `small` */
+  actionSize?: 'small' | 'normal';
   style?: StyleProp<ViewStyle>;
 };
 
@@ -49,13 +51,15 @@ function ItemAction({ children, label, onPress, selected }: { children: ReactNod
   );
 }
 
-function ReactionButton({ icon, label, active, count, onPress }: { icon: IconName; label: string; active: boolean; count?: number; onPress: () => void }) {
+type ActionSize = 'small' | 'normal';
+
+function ReactionButton({ icon, label, active, count, onPress, size: actionSize }: { icon: IconName; label: string; active: boolean; count?: number; onPress: () => void; size: ActionSize }) {
   const color = active ? colors.primary : colors.inkMuted;
   return (
     <ItemAction label={label} selected={active} onPress={onPress}>
-      <Icon name={icon} size={iconSize.small} color={color} bold={active} />
+      <Icon name={icon} size={actionSize === 'normal' ? iconSize.normal : iconSize.small} color={color} bold={active} />
       {count !== undefined && (
-        <AppText size="small" bold={active} color={color}>
+        <AppText size={actionSize} bold={active} color={color}>
           {count}
         </AppText>
       )}
@@ -82,6 +86,7 @@ export function DiscussionItem({
   repliesOpen,
   onReply,
   onPress,
+  actionSize = 'small',
   style,
 }: DiscussionItemProps) {
   const content = (
@@ -93,9 +98,11 @@ export function DiscussionItem({
           </AppText>
         </View>
         <AppText bold>{author}</AppText>
-        <AppText size="small" color={colors.inkMuted}>
-          {date}
-        </AppText>
+        {date && (
+          <AppText size="small" color={colors.inkMuted}>
+            {date}
+          </AppText>
+        )}
       </View>
 
       {title !== undefined && <AppText bold>{title}</AppText>}
@@ -108,7 +115,7 @@ export function DiscussionItem({
             label={onToggleReplies && (repliesOpen ? 'Απόκρυψη απαντήσεων' : 'Εμφάνιση απαντήσεων')}
             selected={onToggleReplies ? !!repliesOpen : undefined}
             onPress={onToggleReplies ?? onPress}>
-            <AppText size="small" bold color={colors.primary}>
+            <AppText size={actionSize} bold color={colors.primary}>
               {onToggleReplies && repliesOpen ? 'Απόκρυψη' : 'Απαντήσεις'}
               {replyCount > 0 ? ` (${replyCount})` : ''}
             </AppText>
@@ -116,13 +123,13 @@ export function DiscussionItem({
         )}
         {onReply && (
           <ItemAction onPress={onReply}>
-            <AppText size="small" bold color={colors.primary}>
+            <AppText size={actionSize} bold color={colors.primary}>
               Απάντηση
             </AppText>
           </ItemAction>
         )}
-        <ReactionButton icon="like" label="Μου αρέσει" active={reaction === 'like'} count={likeCount} onPress={() => onReact('like')} />
-        <ReactionButton icon="dislike" label="Δεν μου αρέσει" active={reaction === 'dislike'} onPress={() => onReact('dislike')} />
+        <ReactionButton icon="like" label="Μου αρέσει" active={reaction === 'like'} count={likeCount} onPress={() => onReact('like')} size={actionSize} />
+        <ReactionButton icon="dislike" label="Δεν μου αρέσει" active={reaction === 'dislike'} onPress={() => onReact('dislike')} size={actionSize} />
       </View>
     </>
   );

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, TextInput, View, type NativeSyntheticEvent, type TextInputKeyPressEventData } from 'react-native';
 
-import { Icon } from '@/components/ui/icon';
-import { PressableScale } from '@/components/ui/pressable-scale';
-import { colors, fontFamily, fontSize, iconSize, radius, size, space } from '@/theme';
+import { SEND_BUTTON_HEIGHT, SendButton } from '@/components/ui/send-button';
+import { alpha, colors, fontFamily, fontSize, formGray, radius, space } from '@/theme';
 
-const SEND = size.touch - space.sm;
+const LINE = 22;
+const MAX_LINES = 5;
 
 type MessageInputProps = {
   /** e.g. "Γράψε σχόλιο..." (also read by screen readers) */
@@ -15,71 +15,82 @@ type MessageInputProps = {
   autoFocus?: boolean;
 };
 
-/** A rounded text field with a round send button inside it (comments, replies, posts) */
+/**
+ * A message field (comments, replies, posts): the text wraps onto new lines and the field grows up
+ * to 5 lines, then scrolls; «Αποστολή ›» stays at the bottom right, next to the last line. Focused, it
+ * gets a gray border (no orange outline). On web, Enter sends and Shift+Enter starts a new line.
+ */
 export function MessageInput({ placeholder, onSend, autoFocus }: MessageInputProps) {
   const [text, setText] = useState('');
+  const [height, setHeight] = useState(LINE);
+  const [focused, setFocused] = useState(false);
   const canSend = text.trim().length > 0;
 
   const send = () => {
     if (!canSend) return;
     onSend(text.trim());
     setText('');
+    setHeight(LINE);
+  };
+
+  const onKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData & { shiftKey?: boolean }>) => {
+    if (Platform.OS !== 'web' || event.nativeEvent.key !== 'Enter' || event.nativeEvent.shiftKey) return;
+    event.preventDefault();
+    send();
   };
 
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, focused && styles.focused]}>
       <TextInput
         value={text}
         onChangeText={setText}
-        onSubmitEditing={send}
+        onKeyPress={onKeyPress}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onContentSizeChange={(event) =>
+          setHeight(Math.min(LINE * MAX_LINES, Math.max(LINE, event.nativeEvent.contentSize.height)))
+        }
+        multiline
+        scrollEnabled={height >= LINE * MAX_LINES}
         placeholder={placeholder}
         placeholderTextColor={colors.inkMuted}
-        returnKeyType="send"
         autoFocus={autoFocus}
         accessibilityLabel={placeholder}
-        style={styles.input}
+        textAlignVertical="top"
+        style={[styles.input, { height }]}
       />
-      <PressableScale
-        accessibilityRole="button"
-        accessibilityLabel="Αποστολή"
-        accessibilityState={{ disabled: !canSend }}
-        disabled={!canSend}
-        onPress={send}
-        style={[styles.send, !canSend && styles.sendDisabled]}>
-        <Icon name="send" size={iconSize.normal} color={colors.surface} bold />
-      </PressableScale>
+      <SendButton onPress={send} disabled={!canSend} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // The button follows the last line
   field: {
     flexDirection: 'row',
-    alignItems: 'center',
-    height: size.touch,
-    borderRadius: radius.full,
+    alignItems: 'flex-end',
+    gap: space.sm,
+    borderRadius: radius.xs,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     paddingLeft: space.md,
     paddingRight: space.xs,
+    paddingVertical: space.xs,
+  },
+  focused: {
+    borderColor: alpha(formGray, 0.5),
   },
   input: {
     flex: 1,
-    height: '100%',
+    // A single line sits level with the button's middle; more lines grow upwards
+    marginVertical: (SEND_BUTTON_HEIGHT - LINE) / 2,
+    padding: 0,
     fontFamily: fontFamily.normal,
     fontSize: fontSize.normal,
+    lineHeight: LINE,
     color: colors.ink,
-  },
-  send: {
-    width: SEND,
-    height: SEND,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-  },
-  sendDisabled: {
-    opacity: 0.4,
+    // No browser focus ring (the field's border shows the focus)
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
 });

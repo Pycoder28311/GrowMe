@@ -43,7 +43,11 @@ export const blogUpdate = z.object({
  */
 export const blogSave = z.object({ kind, name, content: richDoc, imageIds })
 
+/** GET /api/blogs?kind=glossary (optional): only one kind */
+export const blogFilter = z.object({ kind: kind.optional() })
+
 export type BlogCreate = z.infer<typeof blogCreate>
+export type BlogFilter = z.infer<typeof blogFilter>
 export type BlogSave = z.infer<typeof blogSave>
 export type BlogUpdate = z.infer<typeof blogUpdate>
 

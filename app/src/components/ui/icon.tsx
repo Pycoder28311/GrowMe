@@ -28,6 +28,7 @@ const ICONS = {
   like: { ios: 'hand.thumbsup', android: 'thumb_up', web: 'thumb_up' },
   dislike: { ios: 'hand.thumbsdown', android: 'thumb_down', web: 'thumb_down' },
   send: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' },
+  paperplane: { ios: 'paperplane.fill', android: 'send', web: 'send' },
   share: { ios: 'square.and.arrow.up', android: 'share', web: 'share' },
   photo: { ios: 'photo', android: 'image', web: 'image' },
   close: { ios: 'xmark', android: 'close', web: 'close' },

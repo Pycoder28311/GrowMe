@@ -7,8 +7,8 @@ import { colors, radius, size, space } from '@/theme';
 const TILE = size.touch * 4;
 
 /**
- * A post's photos inside its card: one photo full width, several side by side (scroll sideways).
- * `compact` (lists) shows a single small row of thumbnails.
+ * A post's photos: one photo full width, several side by side (scroll sideways), with small
+ * corners. `compact` (lists) shows a single small row of thumbnails.
  */
 export function PostPhotos({ images, label, compact }: { images: ImageRef[]; label: string; compact?: boolean }) {
   if (images.length === 0) return null;
@@ -44,14 +44,14 @@ const styles = StyleSheet.create({
   single: {
     width: '100%',
     aspectRatio: 4 / 3,
-    borderRadius: radius.sm,
+    borderRadius: radius.xs,
     backgroundColor: colors.border,
   },
   row: {
     gap: space.sm,
   },
   tile: {
-    borderRadius: radius.sm,
+    borderRadius: radius.xs,
     backgroundColor: colors.border,
   },
 });

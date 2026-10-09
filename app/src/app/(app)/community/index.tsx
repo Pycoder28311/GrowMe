@@ -9,7 +9,6 @@ import { PostPhotos } from '@/components/discussion/post-photos';
 import { useTopClearance } from '@/components/layout/app-shell';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
-import { card } from '@/components/ui/styles';
 import { timeAgo } from '@/lib/format';
 import { firstSentence, usePosts } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
@@ -65,6 +64,7 @@ export default function CommunityScreen() {
               onReact={(pressed) => reactions.toggle(item, pressed)}
               replyCount={item.replyCount}
               onPress={() => openPost(item.id)}
+              actionSize={item.images.length > 0 ? 'normal' : 'small'}
               style={styles.post}>
               <PostPhotos images={item.images} label={item.title} compact />
             </DiscussionItem>
@@ -106,8 +106,8 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
   },
+  // Posts run the screen's full width; only the title keeps the side margin
   list: {
-    paddingHorizontal: space.md,
     paddingBottom: space.md,
   },
   header: {
@@ -115,13 +115,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: space.md,
+    paddingHorizontal: space.md,
   },
   post: {
-    ...card,
     padding: space.md,
+    backgroundColor: colors.surface,
   },
   gap: {
-    height: space.sm,
+    height: 1,
+    backgroundColor: colors.border,
   },
   empty: {
     marginTop: space.lg,

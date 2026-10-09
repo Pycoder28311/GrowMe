@@ -7,18 +7,18 @@ import { AppText } from '@/components/ui/app-text';
 import { CategoryTabs } from '@/components/ui/category-tabs';
 import { PillButton } from '@/components/ui/pill-button';
 import { PostCard } from '@/components/wiki/post-card';
-import { WIKI_TABS } from '@/config/wiki-posts';
+import { WIKI_TABS, type WikiTabId } from '@/config/wiki-posts';
 import { useBlogs } from '@/lib/blogs';
 import { colors, space } from '@/theme';
 
 /**
- * The Encyclopedia: the articles from the database, newest first; more load while scrolling.
- * The tabs don't filter yet: the database has no categories so far.
+ * The Encyclopedia: the articles from the database, newest first; more load while scrolling. The tabs
+ * (a sideways-scrolling row) show all of them or one kind.
  */
 export default function WikiScreen() {
   const topClearance = useTopClearance();
-  const [tabId, setTabId] = useState<string>('all');
-  const { blogs, loading, error, loadMore, refresh } = useBlogs();
+  const [tabId, setTabId] = useState<WikiTabId>('all');
+  const { blogs, loading, error, loadMore, refresh } = useBlogs(tabId === 'all' ? undefined : tabId);
 
   return (
     <FlatList
@@ -35,7 +35,7 @@ export default function WikiScreen() {
       ItemSeparatorComponent={() => <View style={styles.gap} />}
       ListHeaderComponent={
         <View style={styles.tabs}>
-          <CategoryTabs tabs={WIKI_TABS} activeId={tabId} onChange={setTabId} />
+          <CategoryTabs variant="scroll" tabs={WIKI_TABS} activeId={tabId} onChange={(id) => setTabId(id as WikiTabId)} />
         </View>
       }
       ListEmptyComponent={

@@ -2,16 +2,17 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { MonthsPill } from '@/components/plants/months-pill';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
 import { stripBlogLinks, type PlantSummary, type SearchPlant } from '@growme/shared';
+import { FACT_ICONS, FLAG_ICONS, type PlantIcon } from '@/config/plant-icons';
 import {
   effortTrait,
   originTrait,
   priceLabel,
-  seasonTrait,
   sunlightTrait,
   useTrait,
   type Trait,
@@ -21,11 +22,15 @@ import { alpha, colors, iconSize, radius, space } from '@/theme';
 // Fixed square photo; the details column is laid out to fit within the same height
 const PHOTO_SIZE = 98;
 
-function TraitLabel({ trait }: { trait: Trait }) {
+/** One field on the card: its icon (no emoji), then the words */
+function TraitLabel({ trait, icon }: { trait: Trait; icon: PlantIcon }) {
   return (
-    <AppText size="small" numberOfLines={1}>
-      {trait.emoji} {stripBlogLinks(trait.label)}
-    </AppText>
+    <View style={styles.trait}>
+      <Icon name={icon.icon} size={14} color={colors.inkMuted} bold />
+      <AppText size="small" numberOfLines={1} style={styles.traitText}>
+        {stripBlogLinks(trait.label)}
+      </AppText>
+    </View>
   );
 }
 
@@ -50,13 +55,15 @@ export const cardFromIndex = (plant: SearchPlant): PlantCardData => ({ ...plant,
 
 /** One search result: photo with its planting months on the left, details on the right. Opens the plant's page. */
 export function PlantCard({ plant }: { plant: PlantCardData }) {
-  const season = seasonTrait(plant);
   const price = priceLabel(plant);
   const cover = plant.cover;
-  // Only the labels this plant has values for
-  const traits = [sunlightTrait(plant), effortTrait(plant), useTrait(plant), originTrait(plant)].filter(
-    (t): t is Trait => t !== null,
-  );
+  // Only the fields this plant has values for, each with its icon (the card never shows wind)
+  const traits = [
+    [sunlightTrait(plant), FACT_ICONS.sun],
+    [effortTrait(plant), FACT_ICONS.difficulty],
+    [useTrait(plant), FLAG_ICONS.food],
+    [originTrait(plant), FACT_ICONS.origin],
+  ].filter((pair): pair is [Trait, PlantIcon] => pair[0] !== null);
 
   return (
     <PressableScale
@@ -79,15 +86,9 @@ export function PlantCard({ plant }: { plant: PlantCardData }) {
             <AppText size="big">🪴</AppText>
           </View>
         )}
-        {season && (
+        {plant.monthRanges.length > 0 && (
           <View style={styles.season}>
-            {/* The month emoji is muted so it reads as a quiet label on the photo */}
-            <AppText size="small" style={styles.seasonEmoji}>
-              {season.emoji}
-            </AppText>
-            <AppText size="small" bold numberOfLines={1}>
-              {season.label}
-            </AppText>
+            <MonthsPill ranges={plant.monthRanges} />
           </View>
         )}
       </View>
@@ -105,8 +106,8 @@ export function PlantCard({ plant }: { plant: PlantCardData }) {
         </View>
 
         <View style={styles.traits}>
-          {traits.map((trait) => (
-            <TraitLabel key={trait.label} trait={trait} />
+          {traits.map(([trait, icon]) => (
+            <TraitLabel key={trait.label} trait={trait} icon={icon} />
           ))}
         </View>
 
@@ -154,8 +155,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primarySoft,
   },
-  seasonEmoji: {
-    opacity: 0.7,
+  trait: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    flexShrink: 1,
+  },
+  traitText: {
+    flexShrink: 1,
   },
   details: {
     flex: 1,

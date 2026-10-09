@@ -28,3 +28,8 @@ export function alpha(hex: string, opacity: number) {
   const value = parseInt(hex.slice(1), 16);
   return `rgba(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255}, ${opacity})`;
 }
+
+/** Gray of form controls (the photo button, a focused field's border), like an email form */
+export const formGray = '#5f6368';
+/** Light gray for quiet surfaces: list headers, tabs, badges, gaps between sections */
+export const quietGray = '#eceef0';

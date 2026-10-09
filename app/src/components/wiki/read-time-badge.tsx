@@ -1,9 +1,9 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { alpha, colors, radius, size, space } from '@/theme';
+import { quietGray, size, space } from '@/theme';
 
-/** Small round badge with a reading time in minutes (e.g. 3′) */
+/** A small light-gray badge with a reading time in minutes (e.g. 3′): small corners, no border */
 export function ReadTimeBadge({ minutes }: { minutes: number }) {
   return (
     <View accessibilityLabel={`${minutes} λεπτά ανάγνωση`} style={styles.badge}>
@@ -20,10 +20,8 @@ const styles = StyleSheet.create({
     height: size.touch / 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.full,
-    backgroundColor: alpha(colors.surface, 0.9),
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 6,
+    backgroundColor: quietGray,
     paddingHorizontal: space.sm,
   },
 });

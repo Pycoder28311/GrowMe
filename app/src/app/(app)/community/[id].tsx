@@ -1,22 +1,20 @@
 import type { PostReply } from '@growme/shared';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
-import { postRepliesApi, postsApi } from '@/api/posts';
+import { postRepliesApi } from '@/api/posts';
 import { BottomComposer } from '@/components/discussion/bottom-composer';
 import { DiscussionItem } from '@/components/discussion/discussion-item';
 import { PostPhotos } from '@/components/discussion/post-photos';
 import { ReplyLevel } from '@/components/discussion/reply-thread';
 import { useTopClearance } from '@/components/layout/app-shell';
 import { AppText } from '@/components/ui/app-text';
-import { MessageInput } from '@/components/ui/message-input';
 import { PillButton } from '@/components/ui/pill-button';
-import { card } from '@/components/ui/styles';
 import { timeAgo } from '@/lib/format';
-import { firstSentence, usePost, usePostThread } from '@/lib/posts';
+import { usePost, usePostThread } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
-import { colors, space } from '@/theme';
+import { colors, quietGray, space } from '@/theme';
 
 /** One community post: it slides up from the bottom over the list and back down when closed */
 export default function CommunityPostScreen() {
@@ -64,23 +62,12 @@ function CommunityPost() {
     }
   };
 
-  // A new post (not a reply): it opens in its own page
-  const newPost = async (text: string) => {
-    setError(null);
-    try {
-      const created = await postsApi.create({ title: firstSentence(text), content: text, imageIds: [] });
-      router.replace({ pathname: '/community/[id]', params: { id: String(created.id) } });
-    } catch {
-      setError('Η ανάρτηση δεν στάλθηκε. Δοκίμασε ξανά.');
-    }
-  };
-
   const { reaction, likeCount } = reactions.stateOf(post);
 
   return (
     <View style={styles.page}>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingTop: topClearance }]}>
-        <View style={styles.card}>
+        <View style={styles.block}>
           <DiscussionItem
             author={post.author.name}
             date={timeAgo(post.createdAt)}
@@ -89,10 +76,10 @@ function CommunityPost() {
             likeCount={likeCount}
             reaction={reaction}
             onReact={(pressed) => reactions.toggle(post, pressed)}
-            replyCount={post.replyCount}>
+            replyCount={post.replyCount}
+            actionSize={post.images.length > 0 ? 'normal' : 'small'}>
             <PostPhotos images={post.images} label={post.title} />
           </DiscussionItem>
-          <MessageInput placeholder="Γράψε απάντηση..." onSend={reply} />
           {(error || reactions.error) && (
             <AppText size="small" color={colors.accent} accessibilityLiveRegion="polite">
               {error ?? 'Η αντίδρασή σου δεν αποθηκεύτηκε. Δοκίμασε ξανά.'}
@@ -100,7 +87,10 @@ function CommunityPost() {
           )}
         </View>
 
-        <View style={styles.card}>
+        {/* A gray gap between the post and its replies */}
+        <View style={styles.gap} />
+
+        <View style={styles.block}>
           <ReplyLevel source={thread} parentId={null} added={added} onReplied={countReply} />
           {post.replyCount === 0 && added.length === 0 && (
             <AppText color={colors.inkMuted}>Γράψε την πρώτη απάντηση!</AppText>
@@ -108,7 +98,8 @@ function CommunityPost() {
         </View>
       </ScrollView>
 
-      <BottomComposer placeholder="Η ανάρτησή σου..." onSend={newPost} />
+      {/* The bottom field answers this post */}
+      <BottomComposer placeholder="Γράψε απάντηση..." onSend={reply} />
     </View>
   );
 }
@@ -117,15 +108,18 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
   },
+  // Full width: the post and the replies are white bands across the screen
   content: {
-    gap: space.md,
-    paddingHorizontal: space.md,
     paddingBottom: space.md,
   },
-  card: {
-    ...card,
+  block: {
     gap: space.sm,
     padding: space.md,
+    backgroundColor: colors.surface,
+  },
+  gap: {
+    height: 12,
+    backgroundColor: quietGray,
   },
   notFound: {
     alignItems: 'center',

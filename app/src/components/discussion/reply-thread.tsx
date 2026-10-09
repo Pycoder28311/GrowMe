@@ -6,7 +6,6 @@ import { DiscussionItem } from '@/components/discussion/discussion-item';
 import { AppText } from '@/components/ui/app-text';
 import { MessageInput } from '@/components/ui/message-input';
 import { PillButton } from '@/components/ui/pill-button';
-import { timeAgo } from '@/lib/format';
 import { useReactions, type Reaction } from '@/lib/reactions';
 import { usePagedList } from '@/lib/use-api';
 import { colors, space } from '@/theme';
@@ -81,7 +80,6 @@ function ReplyNode<T extends ThreadItem>(props: {
     <View style={[depth > 0 && styles.nested, depth > MAX_INDENT_DEPTH && styles.flat]}>
       <DiscussionItem
         author={reply.author.name}
-        date={timeAgo(reply.createdAt)}
         text={reply.content}
         likeCount={props.likeCount}
         reaction={props.reaction}

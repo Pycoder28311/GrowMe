@@ -192,3 +192,16 @@ Expo web + Playwright with the mocked API (plans 10–12), plus a phone.
 - **The `wiki` kind** has no tab now; existing wiki blogs show only under «Όλα». Say if they should move to another kind in the dashboard.
 - **Blog comments** lose their dates too (they share the reply component). Say if only post replies should lose them.
 - **Colours** (gray `#5f6368` for the photo button and focus border, tab grays) are proposals.
+
+## As built
+
+Implemented; differences from the text above:
+- **Blog cards:** «Δες περισσότερα» sits on its own line under the title, at the bottom right. With a 28 px title, a long Greek word left no room for it on the title's line.
+- **Months pill:** the timer runs on every card (one 2-second timer each). Pausing cards that are off screen wasn't needed in tests, so `results.tsx` doesn't track visible cards. The pill takes the width of its widest range, so no label is cut.
+- **Colours** `formGray` (#5f6368) and `quietGray` (#eceef0) are now theme tokens.
+- **Checked** on Expo web (Playwright, mocked API):
+  - **Question form:** gray focus border, gray photo button; on send, the text flies into the plane on a white card, the plane leaves and comes back, and the placeholder becomes «Επόμενη ερώτηση…»
+  - **Posts:** full-width posts with bigger actions on the one with a photo; the post page with the gray gap, replies without dates, and the bottom field replying; a long reply wraps and grows with the button on its last line
+  - **Blogs:** tabs request `?kind=glossary`; cards in the new style with the light-gray minutes badge; on the blog page the search shows «Άρθρα» first
+  - **Results:** icons on the cards; the months pill swaps (2 ranges) and slides (3); the filters button flips
+- Not yet checked on a phone.

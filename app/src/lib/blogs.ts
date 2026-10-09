@@ -1,13 +1,15 @@
-import { readingMinutes, type Blog, type BlogComment } from '@growme/shared';
-import { useMemo } from 'react';
+import { readingMinutes, type Blog, type BlogComment, type BlogKind } from '@growme/shared';
+import { useCallback, useMemo } from 'react';
 
 import { blogCommentsApi, blogsApi } from '@/api/blogs';
 import type { ThreadSource } from '@/components/discussion/reply-thread';
 import { useApiItem, usePagedList } from '@/lib/use-api';
 
-/** The Encyclopedia's articles from the API, newest first, a page at a time */
-export function useBlogs() {
-  const { items, ...rest } = usePagedList(blogsApi.list);
+/** The Encyclopedia's articles from the API, newest first, a page at a time; `kind` keeps one kind */
+export function useBlogs(kind?: BlogKind) {
+  // A new kind is a new list: it starts again from the first page
+  const fetchPage = useCallback((cursor: string | null) => blogsApi.list(cursor, kind), [kind]);
+  const { items, ...rest } = usePagedList(fetchPage);
   return { blogs: items, ...rest };
 }
 

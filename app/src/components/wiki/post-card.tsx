@@ -77,11 +77,12 @@ export function PostCard({ post, onPress, style }: PostCardProps) {
         <ReadTimeBadge minutes={minutes} />
       </View>
 
+      {/* The big title, then «Δες περισσότερα» at the bottom right */}
       <View style={styles.bottom}>
-        <AppText size="big" bold color={colors.surface} style={styles.title}>
+        <AppText bold color={colors.surface} style={styles.title}>
           {post.name}
         </AppText>
-        <View style={styles.more}>
+        <View style={[styles.more, styles.moreRight]}>
           <AppText bold color={colors.surface}>
             Δες περισσότερα
           </AppText>
@@ -108,9 +109,10 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.primary,
   },
+  // Black from the bottom up to the middle, soft, so the white words read on any photo
   shade: {
     ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `linear-gradient(to bottom, transparent 35%, ${alpha(colors.ink, 0.75)})`,
+    experimental_backgroundImage: 'linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent 50%)',
   },
   badge: {
     position: 'absolute',
@@ -121,7 +123,12 @@ const styles = StyleSheet.create({
     gap: space.sm,
     padding: space.md,
   },
+  moreRight: {
+    alignSelf: 'flex-end',
+  },
   title: {
+    fontSize: 28,
+    lineHeight: 32,
     textShadowColor: alpha(colors.ink, 0.5),
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,

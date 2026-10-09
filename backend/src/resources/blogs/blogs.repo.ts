@@ -1,5 +1,5 @@
-import type { Blog, BlogCreate, BlogUpdate } from '@growme/shared'
-import { asc, desc, eq } from 'drizzle-orm'
+import type { Blog, BlogCreate, BlogFilter, BlogUpdate } from '@growme/shared'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import { blogComments, blogContentImages, blogImages, blogs } from '../../db/schema'
 import { hasChanges, type Ctx, type Repo } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
@@ -42,10 +42,10 @@ const toJson = (env: CloudflareBindings, b: Row): Blog => ({
 })
 
 /** Public read; admins write (enforced by the route's access mode) */
-export const blogsRepo: Repo<BlogCreate, BlogUpdate, Blog> = {
-  async list(ctx, page) {
+export const blogsRepo: Repo<BlogCreate, BlogUpdate, Blog, BlogFilter> = {
+  async list(ctx, page, { kind }) {
     const rows = await ctx.db.query.blogs.findMany({
-      where: beforeCursor(blogs.id, page),
+      where: and(kind ? eq(blogs.kind, kind) : undefined, beforeCursor(blogs.id, page)),
       orderBy: desc(blogs.id),
       limit: fetchLimit(page),
       with: withImages,

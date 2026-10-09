@@ -112,7 +112,8 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   const turn = useSharedValue(0);
   const clock = useSharedValue(0); // ms into the sweep, for the placeholder letters
   const scrim = useSharedValue(0);
-  const detail = isDetailPage(usePathname());
+  const pathname = usePathname();
+  const detail = isDetailPage(pathname);
   const toX = useSharedValue(detail ? 1 : 0);
 
   const clearTimers = useCallback(() => {
@@ -247,13 +248,11 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
     [close, fly],
   );
 
-  // Enter opens the first result, growing from the bar
+  // Enter opens the first result shown (an article first on the Encyclopedia's pages), growing from the bar
   const submit = () => {
-    const first: SearchResult | null = matches?.plants[0]
-      ? { type: 'plant', item: matches.plants[0] }
-      : matches?.blogs[0]
-        ? { type: 'blog', item: matches.blogs[0] }
-        : null;
+    const plant: SearchResult | null = matches?.plants[0] ? { type: 'plant', item: matches.plants[0] } : null;
+    const blog: SearchResult | null = matches?.blogs[0] ? { type: 'blog', item: matches.blogs[0] } : null;
+    const first = pathname.startsWith('/wiki') ? (blog ?? plant) : (plant ?? blog);
     if (first) pick(first, { left: screenWidth - space.md - openWidth, top, width: openWidth, height: CONTROL });
   };
 
@@ -310,6 +309,8 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
             onRetry={load}
             onPick={pick}
             maxHeight={screenHeight - panelTop - keyboard - space.md}
+            // On the Encyclopedia's pages the articles come first
+            blogsFirst={pathname.startsWith('/wiki')}
           />
         </View>
       )}

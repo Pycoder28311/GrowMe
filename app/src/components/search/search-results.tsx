@@ -86,7 +86,7 @@ function Group(props: {
 
 /**
  * The results under the search bar, each its own small card on the dimmed page: «Φυτά» first, then
- * «Άρθρα», each under a light-gray centred header. As tall as the results; `maxHeight` keeps it above
+ * «Άρθρα» (the other way round with `blogsFirst`), each under a light-gray centred header. As tall as the results; `maxHeight` keeps it above
  * the keyboard, and only then it scrolls.
  */
 export function SearchResults(props: {
@@ -96,6 +96,8 @@ export function SearchResults(props: {
   onRetry: () => void;
   onPick: (result: SearchResult, rect: Rect) => void;
   maxHeight: number;
+  /** «Άρθρα» above «Φυτά» (on the Encyclopedia's pages) */
+  blogsFirst?: boolean;
 }) {
   const { matches } = props;
   const plants: SearchResult[] = (matches?.plants ?? []).map((item) => ({ type: 'plant', item }));
@@ -117,8 +119,17 @@ export function SearchResults(props: {
           <ActivityIndicator color={colors.primary} style={styles.status} />
         ) : (
           <>
-            <Group label="Φυτά" empty="Κανένα φυτό" results={plants} onPick={props.onPick} />
-            <Group label="Άρθρα" empty="Κανένα άρθρο" results={blogs} onPick={props.onPick} later />
+            {props.blogsFirst ? (
+              <>
+                <Group label="Άρθρα" empty="Κανένα άρθρο" results={blogs} onPick={props.onPick} />
+                <Group label="Φυτά" empty="Κανένα φυτό" results={plants} onPick={props.onPick} later />
+              </>
+            ) : (
+              <>
+                <Group label="Φυτά" empty="Κανένα φυτό" results={plants} onPick={props.onPick} />
+                <Group label="Άρθρα" empty="Κανένα άρθρο" results={blogs} onPick={props.onPick} later />
+              </>
+            )}
           </>
         )}
       </ScrollView>

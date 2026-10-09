@@ -1,10 +1,13 @@
-// The Encyclopedia's tabs. The articles themselves come from the API's blogs (lib/blogs.ts);
-// the database has no categories yet, so the tabs don't filter.
+import type { BlogKind } from '@growme/shared';
 
-export type WikiCategory = 'tips' | 'glossary';
+// The Encyclopedia's tabs: all articles, or one kind (the API filters by kind). The «wiki» kind has
+// no tab of its own; those articles show under «Όλα».
 
-export const WIKI_TABS: { id: 'all' | WikiCategory; label: string }[] = [
+export const WIKI_TABS: { id: 'all' | Exclude<BlogKind, 'wiki'>; label: string }[] = [
   { id: 'all', label: 'Όλα' },
-  { id: 'tips', label: 'Συμβουλές' },
+  { id: 'article', label: 'Άρθρα' },
   { id: 'glossary', label: 'Γλωσσάρι' },
+  { id: 'balcony', label: 'Μπαλκόνια' },
 ];
+
+export type WikiTabId = (typeof WIKI_TABS)[number]['id'];
