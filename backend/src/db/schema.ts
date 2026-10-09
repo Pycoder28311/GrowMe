@@ -8,6 +8,7 @@ const id = () => integer('id').primaryKey({ autoIncrement: true })
 const createdAt = () => integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 const owner = () => text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' })
 const optionalOwner = () => text('user_id').references(() => user.id, { onDelete: 'cascade' })
+const flag = (name: string) => integer(name, { mode: 'boolean' }).notNull().default(false)
 
 /* ─────────────── Notes (existing) ─────────────── */
 
@@ -139,6 +140,12 @@ export const combinations = sqliteTable('combinations', {
     description: text('description'),
 })
 
+// A plant's choices; the same lists as @growme/shared's plant-fields.ts (repeated so drizzle-kit
+// reads this file on its own)
+export const WIND_LEVELS = ['strong', 'moderate', 'light', 'sheltered'] as const
+export const PLANT_KINDS = ['flowers', 'leaves', 'bush'] as const
+export const PLANT_SIZES = ['small', 'medium', 'large'] as const
+
 export const plants = sqliteTable(
     'plants',
     {
@@ -149,15 +156,32 @@ export const plants = sqliteTable(
         description: text('description'),
         priceMin: integer('price_min'), // in cents
         priceMax: integer('price_max'),
-        // Short texts, null = not shown (e.g. «Από σπόρο», «Ιθαγενές της Ελλάδας», «Τρώγεται ο καρπός»)
-        seeds: text('seeds'),
+        // A short text, null = not shown (e.g. «Ιθαγενές της Μεσογείου»)
         native: text('native'),
-        food: text('food'),
-        difficulty: integer('difficulty').notNull(), // 1 (easy) – 5 (hard)
-        sunlightHoursMin: integer('sunlight_hours_min'),
-        sunlightHoursMax: integer('sunlight_hours_max'),
-        monthStart: integer('month_start'), // 1–12
-        monthEnd: integer('month_end'), // 1–12 (may be smaller than start, e.g. Nov–Feb)
+        // Yes/no fields (PLANT_FLAGS in @growme/shared)
+        food: flag('food'),
+        aromatic: flag('aromatic'),
+        climbing: flag('climbing'),
+        ornamental: flag('ornamental'),
+        succulent: flag('succulent'),
+        smallTree: flag('small_tree'),
+        privacy: flag('privacy'),
+        nearSea: flag('near_sea'),
+        frostHardy: flag('frost_hardy'),
+        wind: text('wind', { enum: WIND_LEVELS }),
+        kind: text('kind', { enum: PLANT_KINDS }),
+        size: text('size', { enum: PLANT_SIZES }),
+        difficulty: integer('difficulty').notNull(), // 1 easy – 3 hard (the CHECK below still says 1–5, see 0013)
+        sunStart: integer('sun_start'), // clock hours 0–24: the sun window
+        sunEnd: integer('sun_end'),
+        // Up to 3 month ranges, 1–12 (an end may be smaller than its start, e.g. Nov–Feb); the API sends monthRanges
+        monthStart: integer('month_start'),
+        monthEnd: integer('month_end'),
+        monthStart2: integer('month_start_2'),
+        monthEnd2: integer('month_end_2'),
+        monthStart3: integer('month_start_3'),
+        monthEnd3: integer('month_end_3'),
+        lifespan: text('lifespan'), // e.g. «4-6 years» (parseDuration)
         createdAt: createdAt(),
     },
     (t) => [
@@ -175,6 +199,8 @@ export const lifecycles = sqliteTable(
         position: integer('position').notNull().default(0),
         title: text('title').notNull(),
         content: text('content').notNull(),
+        seed: flag('seed'), // a stage before the plant is sold ready to transplant
+        duration: text('duration'), // counted from sowing, e.g. «6-12 months»
     },
     (t) => [index('lifecycles_plant_id_idx').on(t.plantId, t.position)],
 )

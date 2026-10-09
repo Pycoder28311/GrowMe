@@ -6,6 +6,7 @@ import type { Child } from 'hono/jsx'
 //   text   → string ('' becomes null when data-nullable)   number → number or null
 //   money  → euros typed, cents sent (3.5 → 350)           bool   → checkbox checked
 //   id     → number, left out when empty (new list rows)
+// MonthRanges (data-month-ranges) sends its filled rows as [[from, to], …].
 // Pickers (search-select.tsx) add: a searchable single choice (number) and a checklist (array of ids).
 // `blogLinks` on a text field lets the admin turn selected words into a blog link (`[words](blog:12)`,
 // see blog-link-picker.tsx); the form must render a BlogLinkPicker.
@@ -202,8 +203,8 @@ export function Select(props: Base & { value?: number | null; options: Option[];
   )
 }
 
-/** One choice out of a few numbers, as round chips (e.g. difficulty 1–5) */
-export function Choices(props: Base & { value?: number | null; options: Option[] }) {
+/** One choice out of a few numbers, as round chips showing the number (or, with `labels`, pills with the label) */
+export function Choices(props: Base & { value?: number | null; options: Option[]; labels?: boolean }) {
   return (
     <div class="field" role="radiogroup" aria-label={props.label}>
       {props.label && <span class="caption">{props.label}</span>}
@@ -219,7 +220,7 @@ export function Choices(props: Base & { value?: number | null; options: Option[]
               checked={o.value === props.value}
               aria-label={o.label}
             />
-            <span>{o.value}</span>
+            <span>{props.labels ? o.label : o.value}</span>
           </label>
         ))}
       </div>
@@ -229,12 +230,32 @@ export function Choices(props: Base & { value?: number | null; options: Option[]
   )
 }
 
-/** One choice out of a few texts, as pills (e.g. a blog's kind); sends the chosen value */
-export function TextChoices(props: Base & { value?: string | null; options: { value: string; label: string }[] }) {
+/**
+ * One choice out of a few texts, as pills (e.g. a blog's kind); sends the chosen value. With `none`, a
+ * first pill that sends null (not set).
+ */
+export function TextChoices(
+  props: Base & { value?: string | null; options: readonly { value: string; label: string }[]; none?: string },
+) {
   return (
     <div class="field" role="radiogroup" aria-label={props.label}>
       {props.label && <span class="caption">{props.label}</span>}
       <div class="choices">
+        {props.none !== undefined && (
+          <label class="choice">
+            <input
+              type="radio"
+              name={props.field}
+              value=""
+              data-field={props.field}
+              data-type="text"
+              data-nullable
+              checked={props.value == null}
+              aria-label={props.none}
+            />
+            <span>{props.none}</span>
+          </label>
+        )}
         {props.options.map((o) => (
           <label class="choice">
             <input
@@ -308,6 +329,38 @@ export function MonthRange(props: {
         <span class="dash">–</span>
         <Select field={props.end.field} value={props.end.value} options={MONTHS} none="—" />
       </div>
+    </div>
+  )
+}
+
+/**
+ * Up to `count` seasons (MonthRange rows) sent together as `field`: [[from, to], …], in order, empty
+ * rows left out. The selects have no data-field of their own; admin.client.js reads the group.
+ */
+export function MonthRanges(props: { field: string; label: string; value: readonly (readonly [number, number])[]; count: number }) {
+  const monthSelect = (value: number | undefined, label: string) => (
+    <select data-range-month aria-label={label}>
+      <option value="" selected={value === undefined}>
+        —
+      </option>
+      {MONTHS.map((o) => (
+        <option value={String(o.value)} selected={o.value === value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
+  return (
+    <div class="field" data-month-ranges={props.field}>
+      <span class="caption">{props.label}</span>
+      {Array.from({ length: props.count }, (_, i) => (
+        <div class="row" data-month-range>
+          {monthSelect(props.value[i]?.[0], `Εποχή ${i + 1}: από`)}
+          <span class="dash">–</span>
+          {monthSelect(props.value[i]?.[1], `Εποχή ${i + 1}: έως`)}
+        </div>
+      ))}
+      <p class="error" aria-live="polite" />
     </div>
   )
 }

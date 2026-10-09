@@ -1,20 +1,18 @@
-import type { PlantSummary } from '@growme/shared';
-import { StyleSheet, View } from 'react-native';
+import { durationLabel, visibleFlags, type PlantSummary } from "@growme/shared";
+import { StyleSheet, View } from "react-native";
 
-import { AppText } from '@/components/ui/app-text';
-import { LinkedText } from '@/components/ui/linked-text';
-import { card } from '@/components/ui/styles';
+import { AppText } from "@/components/ui/app-text";
+import { LinkedText } from "@/components/ui/linked-text";
+import { card } from "@/components/ui/styles";
 import {
   effortTrait,
   originTrait,
-  propagationTrait,
   seasonTrait,
   sunlightHoursLabel,
   sunlightTrait,
-  useTrait,
   type Trait,
-} from '@/config/plant-traits';
-import { colors, radius, space } from '@/theme';
+} from "@/config/plant-traits";
+import { colors, radius, space } from "@/theme";
 
 function FactRow({ trait }: { trait: Trait }) {
   return (
@@ -42,26 +40,37 @@ export function PlantFacts({ plant }: { plant: PlantSummary }) {
   const sun = sunlightTrait(plant);
   const sunHours = sunlightHoursLabel(plant);
   const season = seasonTrait(plant);
+  const lifespan = durationLabel(plant.lifespan);
   const rows = [
     sun && { ...sun, label: sunHours ?? sun.label },
     effortTrait(plant),
-    useTrait(plant),
     season && { emoji: season.emoji, label: `Φύτεμα: ${season.label}` },
+    lifespan && { emoji: "⏳", label: `Ζει ${lifespan}` },
   ].filter((trait): trait is Trait => !!trait);
-  // How it grows and where it comes from, as sentences under the card
-  const pills = [propagationTrait(plant), originTrait(plant)].filter((trait): trait is Trait => !!trait);
+  // Where it comes from, as a sentence under the card
+  const origin = originTrait(plant);
+  const flags = visibleFlags(plant);
 
   return (
     <View style={styles.root}>
+      {flags.length > 0 && (
+        <View style={styles.chips}>
+          {flags.map((flag) => (
+            <View key={flag.key} style={styles.chip}>
+              <AppText size="small" color={colors.primary}>
+                {flag.emoji} {flag.label}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={styles.card}>
         {rows.map((trait) => (
           <FactRow key={trait.label} trait={trait} />
         ))}
       </View>
 
-      {pills.map((trait) => (
-        <InfoPill key={trait.label} emoji={trait.emoji} text={trait.label} />
-      ))}
+      {origin && <InfoPill emoji={origin.emoji} text={origin.label} />}
     </View>
   );
 }
@@ -75,18 +84,30 @@ const styles = StyleSheet.create({
     gap: space.sm,
     padding: space.md,
   },
+  // The yes/no characteristics (plan 09 moves them under the scientific name)
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: space.xs,
+  },
+  chip: {
+    borderRadius: radius.full,
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+  },
   factRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: space.sm,
   },
   emoji: {
     width: space.lg,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: space.sm,
     borderRadius: radius.md,
     backgroundColor: colors.primarySoft,

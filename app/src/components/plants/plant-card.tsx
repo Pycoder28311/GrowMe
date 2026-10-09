@@ -11,7 +11,6 @@ import {
   effortTrait,
   originTrait,
   priceLabel,
-  propagationTrait,
   seasonTrait,
   sunlightTrait,
   useTrait,
@@ -33,7 +32,6 @@ function TraitLabel({ trait }: { trait: Trait }) {
 /** One search result: photo with its planting months on the left, details on the right. Opens the plant's page. */
 export function PlantCard({ plant }: { plant: PlantSummary }) {
   const season = seasonTrait(plant);
-  const propagation = propagationTrait(plant);
   const price = priceLabel(plant);
   const cover = plant.images[0];
   // Only the labels this plant has values for
@@ -94,15 +92,6 @@ export function PlantCard({ plant }: { plant: PlantSummary }) {
         </View>
 
         <View style={styles.footer}>
-          {propagation ? (
-            <View style={styles.propagation}>
-              <AppText size="small" bold color={colors.primary} numberOfLines={1}>
-                {propagation.emoji} {stripBlogLinks(propagation.label)}
-              </AppText>
-            </View>
-          ) : (
-            <View />
-          )}
           {/* Looks like a link; the whole card is the tap target */}
           <View style={styles.more}>
             <AppText size="small" bold color={colors.primary}>
@@ -174,18 +163,11 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: space.xs,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: space.sm,
-  },
-  propagation: {
-    flexShrink: 1,
-    borderRadius: radius.full,
-    backgroundColor: colors.primarySoft,
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
   },
   more: {
     flexDirection: 'row',

@@ -1,4 +1,21 @@
-import { PLANT_TRAIT_SUGGESTIONS, plantSave, type Plant, type PlantSummary, type Tip } from '@growme/shared'
+import {
+  DIFFICULTIES,
+  DIFFICULTY_LABELS,
+  MAX_MONTH_RANGES,
+  PLANT_FLAGS,
+  PLANT_KIND_LABELS,
+  PLANT_KINDS,
+  PLANT_SIZE_LABELS,
+  PLANT_SIZES,
+  PLANT_TRAIT_SUGGESTIONS,
+  WIND_LABELS,
+  WIND_LEVELS,
+  plantSave,
+  type Lifecycle,
+  type Plant,
+  type PlantSummary,
+  type Tip,
+} from '@growme/shared'
 import { combinationsRepo } from '../../combinations/combinations.repo'
 import { plantsRepo } from '../../plants/plants.repo'
 import { blogLinkOptions } from '../../blogs/blog-links'
@@ -7,12 +24,14 @@ import { adminResource, numericId } from '../resource'
 import {
   Choices,
   MoneyField,
-  MonthRange,
+  MonthRanges,
   RangeField,
   Select,
   SuggestField,
   TextArea,
+  TextChoices,
   TextField,
+  Toggle,
   type Option,
 } from '../ui/fields'
 import { snippet } from '../ui/format'
@@ -23,13 +42,9 @@ import { RepeatableList } from '../ui/repeatable-list'
 import { SearchOptions, SearchSelect, type SearchOption } from '../ui/search-select'
 import { savePlant } from './plants.save'
 
-const DIFFICULTY: Option[] = [
-  { value: 1, label: 'Πολύ εύκολο' },
-  { value: 2, label: 'Εύκολο' },
-  { value: 3, label: 'Μέτριο' },
-  { value: 4, label: 'Δύσκολο' },
-  { value: 5, label: 'Πολύ δύσκολο' },
-]
+const DIFFICULTY: Option[] = DIFFICULTIES.map((value) => ({ value, label: DIFFICULTY_LABELS[value] }))
+const labelled = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
+  values.map((value) => ({ value, label: labels[value] }))
 
 const euros = (cents: number) => (cents / 100).toLocaleString('el-GR', { maximumFractionDigits: 2 })
 
@@ -47,7 +62,7 @@ function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: st
   return (
     <ItemCard
       title={item.name}
-      lines={[item.scientificName, [price, DIFFICULTY[item.difficulty - 1]?.label].filter(Boolean).join(' · ')]}
+      lines={[item.scientificName, [price, DIFFICULTY_LABELS[item.difficulty]].filter(Boolean).join(' · ')]}
       image={item.images[0]?.url}
       emoji="🪴"
       href={href}
@@ -84,6 +99,21 @@ const PickedTip = ({ tip }: { tip: Tip | null }) => (
     >
       Επεξεργασία ↗
     </a>
+  </>
+)
+
+/** A lifecycle stage: whether it is before the plant is sold (seed), its time from sowing, title and text */
+const StageFields = ({ stage }: { stage?: Lifecycle | null }) => (
+  <>
+    <div class="row">
+      {/* In a .field so the "seed stages first" error shows under it */}
+      <div class="field">
+        <Toggle field="seed" label="Στάδιο σπόρου" emoji="🌰" checked={stage?.seed ?? false} />
+        <p class="error" aria-live="polite" />
+      </div>
+      <TextField field="duration" value={stage?.duration} placeholder="Από τη σπορά, π.χ. 2-3 weeks" nullable />
+    </div>
+    <TitledText title={stage?.title} content={stage?.content} titleLabel="Στάδιο (π.χ. Πρώτα άνθη)" />
   </>
 )
 
@@ -124,6 +154,19 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         <TextField field="scientificName" value={p?.scientificName} size="small" placeholder="Επιστημονική ονομασία" required />
       </div>
 
+      {/* Yes/no characteristics (shown under the scientific name in the app), then wind, kind and size */}
+      <div class="card facts">
+        <span class="caption">Χαρακτηριστικά</span>
+        <div class="toggles">
+          {PLANT_FLAGS.map((f) => (
+            <Toggle field={f.key} label={f.label} emoji={f.emoji} checked={p?.[f.key] ?? false} />
+          ))}
+        </div>
+        <TextChoices field="wind" label="Αέρας" value={p?.wind} options={labelled(WIND_LEVELS, WIND_LABELS)} none="Δεν ορίστηκε" />
+        <TextChoices field="kind" label="Είδος" value={p?.kind} options={labelled(PLANT_KINDS, PLANT_KIND_LABELS)} none="Δεν ορίστηκε" />
+        <TextChoices field="size" label="Μέγεθος" value={p?.size} options={labelled(PLANT_SIZES, PLANT_SIZE_LABELS)} none="Δεν ορίστηκε" />
+      </div>
+
       {/* The facts card */}
       <div class="card facts">
         <div class="fact">
@@ -131,38 +174,44 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
             ☀️
           </span>
           <RangeField
-            label="Ώρες ήλιου τη μέρα"
-            min={{ field: 'sunlightHoursMin', value: p?.sunlightHoursMin }}
-            max={{ field: 'sunlightHoursMax', value: p?.sunlightHoursMax }}
+            label="Ήλιος: από – έως (ώρα της μέρας, 0–24)"
+            min={{ field: 'sunStart', value: p?.sunStart }}
+            max={{ field: 'sunEnd', value: p?.sunEnd }}
             lowest={0}
             highest={24}
-            unit="ώρες"
           />
         </div>
         <div class="fact">
           <span class="emoji" aria-hidden="true">
             🌱
           </span>
-          <Choices
-            field="difficulty"
-            label="Δυσκολία (1 εύκολο – 5 δύσκολο)"
-            value={p?.difficulty ?? 1}
-            options={DIFFICULTY}
-          />
+          <Choices field="difficulty" label="Δυσκολία" value={p?.difficulty ?? 1} options={DIFFICULTY} labels />
         </div>
         <div class="fact">
           <span class="emoji" aria-hidden="true">
             📅
           </span>
-          <MonthRange
-            label="Εποχή (από – έως μήνα)"
-            start={{ field: 'monthStart', value: p?.monthStart }}
-            end={{ field: 'monthEnd', value: p?.monthEnd }}
+          <MonthRanges
+            field="monthRanges"
+            label="Εποχές (από – έως μήνα· η 2η και η 3η αν χρειάζονται)"
+            value={p?.monthRanges ?? []}
+            count={MAX_MONTH_RANGES}
           />
         </div>
-        <TraitFact emoji="🍅" field="food" label="Φαγώσιμο" value={p?.food} />
-        <TraitFact emoji="🌰" field="seeds" label="Πώς ξεκινά" value={p?.seeds} />
         <TraitFact emoji="📍" field="native" label="Προέλευση" value={p?.native} />
+        <div class="fact">
+          <span class="emoji" aria-hidden="true">
+            ⏳
+          </span>
+          <TextField
+            field="lifespan"
+            label="Διάρκεια ζωής"
+            value={p?.lifespan}
+            placeholder="π.χ. 4-6 years ή 2 years"
+            hint="days, weeks, months ή years"
+            nullable
+          />
+        </div>
       </div>
 
       <RepeatableList
@@ -172,8 +221,8 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         items={p?.lifecycles ?? []}
         sortable
         soft
-        emptyText="Πρόσθεσε στάδια, π.χ. «Πρώτα άνθη» – «1 μήνας»."
-        renderItem={(l) => <TitledText title={l?.title} content={l?.content} titleLabel="Στάδιο (π.χ. Πρώτα άνθη)" />}
+        emptyText="Πρόσθεσε στάδια, π.χ. «Πρώτα άνθη». Τα στάδια σπόρου μπαίνουν πρώτα."
+        renderItem={(l) => <StageFields stage={l} />}
       />
 
       <RepeatableList

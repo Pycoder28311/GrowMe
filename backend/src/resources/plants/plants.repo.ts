@@ -9,6 +9,7 @@ import { toCombination } from '../combinations/combinations.repo'
 import { toDisease } from '../diseases/diseases.repo'
 import { toLifecycle } from '../lifecycles/lifecycles.repo'
 import { toTip } from '../tips/tips.repo'
+import { toColumns, toFilterFields } from './plants.columns'
 
 export const plantImageLinks: LinkTable<typeof plantImages> = {
   table: plantImages,
@@ -39,16 +40,9 @@ const toSummary = (env: CloudflareBindings, p: SummaryRow): PlantSummary => ({
   name: p.name,
   scientificName: p.scientificName,
   description: p.description,
-  priceMin: p.priceMin,
-  priceMax: p.priceMax,
-  seeds: p.seeds,
   native: p.native,
-  food: p.food,
-  difficulty: p.difficulty,
-  sunlightHoursMin: p.sunlightHoursMin,
-  sunlightHoursMax: p.sunlightHoursMax,
-  monthStart: p.monthStart,
-  monthEnd: p.monthEnd,
+  lifespan: p.lifespan,
+  ...toFilterFields(p),
   images: toImageRefs(env, p.images),
   createdAt: p.createdAt.toISOString(),
 })
@@ -87,7 +81,7 @@ export const plantsRepo: Repo<PlantCreate, PlantUpdate, Plant, PlantFilter, Plan
   async create(ctx, { imageIds, ...fields }) {
     await assertCombination(ctx, fields.combinationId)
     await assertCanLinkImages(ctx, imageIds)
-    const { id } = await ctx.db.insert(plants).values(fields).returning().get()
+    const { id } = await ctx.db.insert(plants).values(toColumns(fields)).returning().get()
     await runBatch(ctx.db, [...replaceLinks(ctx.db, plantImageLinks, id, imageIds)])
     return toJson(ctx.env, (await find(ctx, id))!)
   },
@@ -100,7 +94,7 @@ export const plantsRepo: Repo<PlantCreate, PlantUpdate, Plant, PlantFilter, Plan
     if (imageIds) await assertCanLinkImages(ctx, imageIds, before)
 
     await runBatch(ctx.db, [
-      ...(hasChanges(fields) ? [ctx.db.update(plants).set(fields).where(eq(plants.id, id))] : []),
+      ...(hasChanges(fields) ? [ctx.db.update(plants).set(toColumns(fields)).where(eq(plants.id, id))] : []),
       ...(imageIds ? replaceLinks(ctx.db, plantImageLinks, id, imageIds) : []),
     ])
     if (imageIds) await deleteImages(ctx, removedIds(before, imageIds))

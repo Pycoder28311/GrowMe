@@ -110,6 +110,9 @@ input.big { font-size: var(--text-big); font-weight: 700; }
 input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .row { display: flex; gap: var(--space-sm); align-items: flex-end; flex-wrap: wrap; }
 .row > .field { flex: 1 1 80px; }
+/* MonthRanges: bare selects (no .field each), one season per line */
+.row > select { flex: 1 1 80px; width: auto; min-width: 0; }
+[data-month-range] + [data-month-range] { margin-top: var(--space-xs); }
 .dash { padding-bottom: var(--space-sm); color: var(--ink-muted); }
 
 /* Title block: name (big) with the price on the right, like the app's plant page */

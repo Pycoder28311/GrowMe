@@ -66,8 +66,15 @@
     return raw === '' && input.hasAttribute('data-nullable') ? null : raw
   }
 
-  const KEYED = '[data-field], [data-list], [data-images], [data-checks]'
-  const keyOf = (el) => el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks
+  const KEYED = '[data-field], [data-list], [data-images], [data-checks], [data-month-ranges]'
+  const keyOf = (el) =>
+    el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks ?? el.dataset.monthRanges
+
+  /** A MonthRanges group's rows that have a month set: [[from, to], …] (a half-filled row sends its null) */
+  const monthRangesOf = (group) =>
+    [...group.querySelectorAll('[data-month-range]')]
+      .map((row) => [...row.querySelectorAll('[data-range-month]')].map((s) => (s.value === '' ? null : Number(s.value))))
+      .filter(([from, to]) => from !== null || to !== null)
 
   /** The JSON of a form or a list row: its own fields, lists, photo lists and checklists */
   function collect(scope) {
@@ -80,6 +87,8 @@
         data[el.dataset.images] = rowsOf(el).map((row) => Number(row.dataset.imageId))
       } else if (el.dataset.checks !== undefined) {
         data[el.dataset.checks] = [...el.querySelectorAll('input[type=checkbox]:checked')].map((c) => Number(c.value))
+      } else if (el.dataset.monthRanges !== undefined) {
+        data[el.dataset.monthRanges] = monthRangesOf(el)
       } else if (el.type === 'radio') {
         if (el.checked) data[el.dataset.field] = readValue(el)
         else if (!(el.dataset.field in data)) data[el.dataset.field] = null
@@ -119,7 +128,7 @@
         scope = row
         continue
       }
-      return el // a field, or a photo list / checklist (its error covers every item)
+      return el // a field, or a photo list / checklist / month ranges (its error covers every item)
     }
     return null
   }
@@ -130,11 +139,14 @@
     [/^Too big: expected string to have <=(\d+)/, 'Έως $1 χαρακτήρες'],
     [/^Too small: expected number to be >=(\d+)/, 'Τουλάχιστον $1'],
     [/^Too big: expected number to be <=(\d+)/, 'Έως $1'],
+    [/^Invalid input: expected number, received null$/, 'Διάλεξε και τους δύο μήνες'],
     [/^Invalid input: expected number/, 'Συμπλήρωσε έναν αριθμό'],
     [/^Invalid input: expected int/, 'Χωρίς δεκαδικά'],
     [/^Too big: expected array to have <=(\d+)/, 'Έως $1'],
-    [/^Minimum must not be larger than maximum$/, 'Το «από» δεν μπορεί να είναι μεγαλύτερο από το «έως» (τιμή ή ώρες ήλιου).'],
-    [/^Set both months or neither$/, 'Διάλεξε και τους δύο μήνες ή κανέναν'],
+    [/^Minimum must not be larger than maximum$/, 'Το «από» δεν μπορεί να είναι μεγαλύτερο από το «έως».'],
+    [/^Set both hours, the end after the start$/, 'Βάλε και τις δύο ώρες, το «έως» μετά το «από»'],
+    [/^Use e\.g\. /, 'Γράψε π.χ. «4-6 weeks» ή «2 years» (days, weeks, months, years)'],
+    [/^Seed stages go before the plant stages$/, 'Τα στάδια σπόρου μπαίνουν πριν από τα στάδια φυτού'],
     [/^Unknown image$/, 'Μια φωτογραφία δεν βρέθηκε. Ανέβασέ την ξανά.'],
     [/^Unknown combinationId$/, 'Ο συνδυασμός δεν βρέθηκε'],
     [/^Not found$/, 'Δεν βρέθηκε (ανανέωσε τη σελίδα)'],

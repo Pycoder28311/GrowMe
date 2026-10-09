@@ -98,6 +98,16 @@ npx wrangler d1 migrations apply <database-name> --remote
 Read the generated SQL in `drizzle/` before applying it remotely. Adding a required (`notNull`)
 column to a table that already has rows fails unless the column has a default.
 
+**Changing an existing table without losing rows.** When a column is dropped, renamed or changes
+type, drizzle-kit writes a table rebuild (`CREATE TABLE __new_…`, copy, `DROP TABLE`). On D1 foreign
+keys are always on, so dropping the old table **deletes every child row** (`ON DELETE cascade`).
+Replace that SQL by hand with `ALTER TABLE … ADD` / `UPDATE` / `DROP COLUMN` / `RENAME COLUMN`
+(a column used by an index, foreign key or CHECK can't be dropped; see 0010 and 0013). If
+drizzle-kit stops to ask whether a column was renamed (it needs a terminal), generate in two
+passes, the removals first and the additions second, then merge them into one migration: keep the
+second snapshot under the first one's name, id and prevId, and remove the second journal entry.
+Test the SQL on a copy of the local database (with a few rows and children) before applying it.
+
 ### 3. Add the contract to `packages/shared/src/tasks.ts`
 
 What clients may send (zod) and what they get back (types). Never include `userId`, `id` or other
@@ -350,6 +360,12 @@ adds lists, drag and drop, uploads and sending the form. Plants (`admin/plants/`
    under the input with the same path (e.g. `tips.2.title`).
 4. **Mount** it in `admin.app.tsx` (`.route('/', <name>Admin)`). For a new table, also add it to
    `TABLES` in `admin.repo.ts` (label + `path`) so the home page counts it and links to it.
+
+**Fixed choices and yes/no fields** belong in `packages/shared` as one list with their Greek words,
+like `PLANT_FLAGS`, `WIND_LEVELS` + `WIND_LABELS` (`plant-fields.ts`) or `BLOG_KINDS`. The zod
+schema, the dashboard inputs (`Toggle`, `TextChoices` with `none` for "not set", `Choices` with
+`labels`) and the app all read that list, so a new value or flag is added in one place. Drizzle's
+`schema.ts` repeats the value arrays (drizzle-kit reads it on its own).
 
 Admin pages send a strict Content-Security-Policy: no inline `<style>`, `style=""` or `<script>`.
 Put CSS in `ui/styles.ts` and behaviour in `admin.client.js`.

@@ -16,6 +16,7 @@ import {
 import { assertBlogLinks } from '../../blogs/blog-links'
 import { assertAdminImages, deleteImages } from '../../images/images.repo'
 import { plantImageLinks } from '../../plants/plants.repo'
+import { toColumns } from '../../plants/plants.columns'
 
 type Rows<K extends 'lifecycles' | 'diseases'> = PlantSave[K][number]
 type TipRow = PlantSave['tips'][number]
@@ -24,7 +25,7 @@ const lifecycleRows: ChildTable<typeof lifecycles, Rows<'lifecycles'>> = {
   table: lifecycles,
   id: lifecycles.id,
   parent: lifecycles.plantId,
-  toRow: (plantId, { title, content }, position) => ({ plantId, position, title, content }),
+  toRow: (plantId, { title, content, seed, duration }, position) => ({ plantId, position, title, content, seed, duration }),
 }
 
 const plantTipLinks: LinkTable<typeof plantTips> = {
@@ -93,7 +94,7 @@ const childStatements = (db: Db, plantId: number, input: PlantSave, tipIds: numb
 
 /** Every text of the form that may link to blogs, with its path for errors */
 const linkFields = (input: PlantSave) => [
-  ...(['description', 'food', 'seeds', 'native'] as const).map((key) => ({ path: key, ids: blogLinkIds(input[key]) })),
+  ...(['description', 'native'] as const).map((key) => ({ path: key, ids: blogLinkIds(input[key]) })),
   ...input.lifecycles.map((row, i) => ({ path: `lifecycles.${i}.content`, ids: blogLinkIds(row.content) })),
   ...input.tips.map((row, i) => ({ path: `tips.${i}.content`, ids: 'tipId' in row ? [] : blogLinkIds(row.content) })),
   ...input.diseases.map((row, i) => ({ path: `diseases.${i}.content`, ids: blogLinkIds(row.content) })),
@@ -113,7 +114,8 @@ export async function savePlant(
   id: number | null,
   input: PlantSave,
 ): Promise<{ id: number } | null> {
-  const { lifecycles: _lifecycles, tips: _tips, diseases: _diseases, imageIds, ...fields } = input
+  const { lifecycles: _lifecycles, tips: _tips, diseases: _diseases, imageIds, ...rest } = input
+  const fields = toColumns(rest)
   if (fields.combinationId) {
     await assertExists(db, combinations, combinations.id, fields.combinationId, 'combinationId')
   }
