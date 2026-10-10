@@ -17,6 +17,8 @@ export const THUMBS_CENTER = PHOTO_HEIGHT - 18;
 export const THUMB_SIZE = 64;
 /** Room under the photos for the thumbnails' lower half */
 const UNDER = THUMB_SIZE / 2 - 18;
+/** The whole header's height: the photos and the room under them (a page's content starts below) */
+export const PHOTO_HEADER_HEIGHT = PHOTO_HEIGHT + UNDER;
 
 type PhotoHeaderProps = {
   photos: string[];

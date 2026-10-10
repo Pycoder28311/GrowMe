@@ -119,3 +119,32 @@ export function flightTurnRect(card: Rect, screen: Rect, growth = FLIGHT_TURN_GR
   const y = lerp(cardCentre.y, screenCentre.y, 0.85);
   return { left: x - width / 2, top: y - height / 2, width, height };
 }
+
+/* ─────────────── A search result opening through the lens (Portfolio search-bar/config.js) ─────────────── */
+// The search glyph flies from the bar into the tapped result on an arc, then the result grows to the
+// whole screen while the page opens out of the glyph's lens (scene.js, effect 6). Copied from
+//   Personal/Portfolio/src/(pages)/search-bar/config.js   TIMING.zoom, EASING.fly/zoom, MOTION.fly*/lens*
+
+/** The whole opening: the glyph's flight, then the lens opening (TIMING.zoom) */
+export const LENS_ZOOM_MS = 1150;
+/** The share of it spent flying to the result (MOTION.flyShare) */
+export const LENS_FLY_SHARE = 0.38;
+/** Leaves the bar gently, then slows into the result so the arrival reads (EASING.fly) */
+export const LENS_FLY_EASING: Bezier = [0.5, 0, 0.08, 1];
+/** The result growing to the screen and the lens opening (EASING.zoom) */
+export const LENS_OPEN_EASING: Bezier = [0.62, 0, 0.2, 1];
+/** How far the flight bends out of a straight line: it carries on along the bar, then drops in (MOTION.flyArc) */
+export const LENS_FLY_ARC = 0.85;
+/** How much thicker the ring is once it fills the screen (MOTION.lensStrokeGrowth) */
+export const LENS_STROKE_GROWTH = 3.2;
+/** The glyph is gone by this share of the opening (MOTION.iconFadeShare) */
+export const LENS_ICON_FADE_SHARE = 0.45;
+
+/** A point on the flight: a quadratic curve whose control point is pulled towards the corner (flyPoint) */
+export function lensFlyPoint(from: { x: number; y: number }, to: { x: number; y: number }, t: number) {
+  'worklet';
+  const cpx = from.x + (to.x - from.x) * (0.5 + 0.5 * LENS_FLY_ARC);
+  const cpy = (from.y + to.y) / 2 + (from.y - (from.y + to.y) / 2) * LENS_FLY_ARC;
+  const u = 1 - t;
+  return { x: u * u * from.x + 2 * u * t * cpx + t * t * to.x, y: u * u * from.y + 2 * u * t * cpy + t * t * to.y };
+}

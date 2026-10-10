@@ -40,6 +40,9 @@ type Box = { left: number; top: number; width: number; height: number };
 /** A copy of what was sent (the text, or one photo) flying into the plane, in the card's coordinates */
 type Piece = { key: string; box: Box; text?: string; uri?: string };
 
+/** After React has drawn the latest state (two frames: the commit, then the layout) */
+const nextLayout = () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
 const measure = (view: View | null) =>
   new Promise<Box | null>((resolve) =>
     view ? view.measureInWindow((left, top, width, height) => resolve({ left, top, width, height })) : resolve(null),
@@ -104,21 +107,29 @@ export function AskCard() {
   const planeSpotRef = useRef<View>(null);
   const plane = useRef<PaperPlaneHandle>(null);
 
-  /** What was just sent flies into the plane, then the plane flies off and a new one comes */
-  const flyAway = async (text: string, uris: string[]) => {
-    const [cardBox, questionBox, planeBox, ...thumbBoxes] = await Promise.all([
+  /**
+   * What was just sent flies into the plane, then the plane flies off and a new one comes. The pieces
+   * start where the text and photos are now; `clear` then empties the form, which moves the plane up
+   * (the fields shrink), so the plane is measured only after that new layout, to aim at it exactly.
+   */
+  const flyAway = async (text: string, uris: string[], clear: () => void) => {
+    const [cardBox, questionBox, ...thumbBoxes] = await Promise.all([
       measure(cardRef.current),
       measure(questionRef.current),
-      measure(planeSpotRef.current),
       ...uris.map((_, i) => measure(thumbRefs.current[i])),
     ]);
-    if (!cardBox || !questionBox || !planeBox) return;
+    clear();
+    if (!cardBox || !questionBox) return;
+    await nextLayout();
+    const [cardNow, planeBox] = await Promise.all([measure(cardRef.current), measure(planeSpotRef.current)]);
+    if (!cardNow || !planeBox) return;
     const local = (b: Box): Box => ({ ...b, left: b.left - cardBox.left, top: b.top - cardBox.top });
     const pieces: Piece[] = [
       { key: 'text', box: local(questionBox), text },
       ...uris.flatMap((uri, i) => (thumbBoxes[i] ? [{ key: `photo-${i}`, box: local(thumbBoxes[i]!), uri }] : [])),
     ];
-    const target = { x: planeBox.left - cardBox.left + planeBox.width / 2, y: planeBox.top - cardBox.top + planeBox.height / 2 };
+    // The pieces live inside the card, so the plane's centre in the card as it is now
+    const target = { x: planeBox.left - cardNow.left + planeBox.width / 2, y: planeBox.top - cardNow.top + planeBox.height / 2 };
     setFlying({ pieces, target });
   };
 
@@ -149,13 +160,16 @@ export function AskCard() {
         imageIds: uploaded.map((image) => image.id),
       });
       // Copies of the text and photos take their place and fly into the plane; the fields empty under them
-      if (!reduced) await flyAway(content, photos.map((photo) => photo.uri));
-      setTitle('');
-      setQuestion('');
-      setPhotos([]);
-      setShowTitle(false);
-      setPlaceholder(NEXT_QUESTION);
-      setSent({ id: post.id });
+      const clear = () => {
+        setTitle('');
+        setQuestion('');
+        setPhotos([]);
+        setShowTitle(false);
+        setPlaceholder(NEXT_QUESTION);
+        setSent({ id: post.id });
+      };
+      if (reduced) clear();
+      else await flyAway(content, photos.map((photo) => photo.uri), clear);
     } catch {
       setError('Η ερώτηση δεν στάλθηκε. Δοκίμασε ξανά.');
     } finally {

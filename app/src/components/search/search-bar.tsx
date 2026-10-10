@@ -22,6 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useSetSearching } from '@/components/layout/page-header';
+import { LensPreview } from '@/components/search/lens-preview';
 import { ResultRowContent, type SearchResult } from '@/components/search/result-row';
 import { SearchResults } from '@/components/search/search-results';
 import { Icon } from '@/components/ui/icon';
@@ -38,7 +39,7 @@ import {
   placeholderRevealWindow,
   type Rect,
 } from '@/config/search-motion';
-import { useFlight } from '@/lib/flight';
+import { useLensFlight } from '@/lib/flight';
 import { useSearchIndex } from '@/lib/search';
 import { matchSearch } from '@/lib/search-match';
 import { alpha, colors, fontFamily, fontSize, iconSize, radius, size, space } from '@/theme';
@@ -96,7 +97,7 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   useEffect(() => setSearching(phase !== 'closed'), [phase, setSearching]);
   const [query, setQuery] = useState('');
   const [keyboard, setKeyboard] = useState(0);
-  const fly = useFlight();
+  const flyLens = useLensFlight();
   const [letterCenters, setLetterCenters] = useState<(number | null)[]>(() => [...PLACEHOLDER].map(() => null));
   const inputRef = useRef<TextInput>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -231,12 +232,19 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
 
   const matches = useMemo(() => (index && query.trim() ? matchSearch(index, query) : null), [index, query]);
 
-  // The tapped result grows into its page
+  // The glyph flies into the tapped result and the page opens out of its lens (LensFlight). Where its
+  // lens is now: the glyph sits at the open bar's left end, turned GLYPH_TURN_DEG, and the Material
+  // glyph's lens is 2.5 px up-left of its centre, its handle pointing down-right (45°) before the turn.
   const pick = useCallback(
     (result: SearchResult, rect: Rect) => {
-      fly({
+      const turn = (GLYPH_TURN_DEG * Math.PI) / 180;
+      const lensOffset = { x: -2.5 * Math.cos(turn) + 2.5 * Math.sin(turn), y: -2.5 * Math.sin(turn) - 2.5 * Math.cos(turn) };
+      flyLens({
+        glyph: { x: space.md + CONTROL / 2 + lensOffset.x, y: top + CONTROL / 2 + lensOffset.y },
+        handleAngle: 45 + GLYPH_TURN_DEG,
         rect,
         front: <ResultRowContent result={result} />,
+        preview: <LensPreview result={result} />,
         onLanded: () => {
           if (result.type === 'plant')
             router.push({ pathname: '/plants/[id]', params: { id: String(result.item.id), via: 'search' } });
@@ -245,7 +253,7 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
       });
       close(true);
     },
-    [close, fly],
+    [close, flyLens, top],
   );
 
   // Enter opens the first result shown (an article first on the Encyclopedia's pages), growing from the bar
