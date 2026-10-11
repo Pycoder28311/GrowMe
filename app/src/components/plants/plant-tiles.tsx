@@ -63,18 +63,18 @@ const styles = StyleSheet.create({
   wide: {
     flexBasis: '100%',
   },
+  // The words right under the icon
   tile: {
-    justifyContent: 'space-between',
-    gap: space.sm,
-    minHeight: 128,
+    gap: space.xs,
+    minHeight: 100,
     padding: space.sm + 2,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,
     boxShadow: shadow.tile,
   },
-  // Close to a square: a little wider than tall
+  // Wider than tall
   square: {
-    aspectRatio: 1.15,
+    aspectRatio: 1.45,
   },
   // The icon top left, the animation top right
   top: {

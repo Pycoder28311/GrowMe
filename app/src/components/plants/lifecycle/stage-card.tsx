@@ -4,12 +4,11 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
-import { Icon } from '@/components/ui/icon';
 import { LinkedText } from '@/components/ui/linked-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
 import type { Rect } from '@/config/search-motion';
-import { colors, iconSize, space } from '@/theme';
+import { colors, radius, space } from '@/theme';
 
 import { firstLine } from './stage-groups';
 
@@ -17,11 +16,11 @@ const TEASE_MS = 400;
 
 type StageCardProps = {
   stage: Lifecycle;
-  /** compact: title, the teaser line and «Δες περισσότερα»; full: the whole text */
+  /** compact: title and the teaser line (a tap opens the full life cycle); full: the whole text */
   mode: 'compact' | 'full';
   /** Compact: show the text's first line (the teaser) */
   teased?: boolean;
-  /** Compact: «Δες περισσότερα», with where the card is on screen (the full page grows from it) */
+  /** Compact: a tap on the card, with where it is on screen (the full page grows from it) */
   onOpen?: (rect: Rect) => void;
 };
 
@@ -33,7 +32,7 @@ export function StageCard({ stage, mode, teased = false, onOpen }: StageCardProp
   const open = () =>
     ref.current?.measureInWindow((left, top, width, height) => onOpen?.({ left, top, width, height }));
 
-  return (
+  const body = (
     <Animated.View
       ref={ref}
       collapsable={false}
@@ -51,40 +50,34 @@ export function StageCard({ stage, mode, teased = false, onOpen }: StageCardProp
               </AppText>
             </Animated.View>
           )}
-          {onOpen && (
-            <PressableScale
-              accessibilityRole="link"
-              accessibilityLabel={`${stage.title}: δες περισσότερα`}
-              onPress={open}
-              pressedScale={0.97}
-              hitSlop={space.sm}
-              style={styles.more}>
-              <AppText size="small" bold color={colors.primary}>
-                Δες περισσότερα
-              </AppText>
-              <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
-            </PressableScale>
-          )}
         </>
       )}
     </Animated.View>
   );
+
+  // Compact: the whole card opens the full life cycle (no «Δες περισσότερα» button)
+  if (!onOpen) return body;
+  return (
+    <PressableScale
+      accessibilityRole="link"
+      accessibilityLabel={`${stage.title}: όλος ο κύκλος ζωής`}
+      onPress={open}
+      pressedScale={0.98}>
+      {body}
+    </PressableScale>
+  );
 }
 
 const styles = StyleSheet.create({
+  // The same corners as the group buttons above the stages
   card: {
     ...card,
+    borderRadius: radius.sm,
     gap: space.xs,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
   },
   seed: {
     backgroundColor: colors.seedSoft,
-  },
-  more: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: space.xs,
   },
 });

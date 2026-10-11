@@ -5,9 +5,12 @@ import { AppText } from '@/components/ui/app-text';
 import { LinkedText } from '@/components/ui/linked-text';
 import { space } from '@/theme';
 
-/** The tips' look: light gray blocks, square, with a thick yellow-orange line below */
-const TIP_BACKGROUND = '#f3f4f6';
-const TIP_LINE = '#f5a524';
+/**
+ * The tips' look: light cream blocks, square, with a thick soft orange line on the left. Warm and light,
+ * like the page that fades from white to peach under them.
+ */
+const TIP_BACKGROUND = '#fff6ea';
+const TIP_LINE = '#f5b971';
 
 /** A plant's tips, one block each */
 export function TipsList({ tips }: { tips: Tip[] }) {
@@ -32,7 +35,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     backgroundColor: TIP_BACKGROUND,
-    borderBottomWidth: 4,
-    borderBottomColor: TIP_LINE,
+    borderLeftWidth: 4,
+    borderLeftColor: TIP_LINE,
   },
 });

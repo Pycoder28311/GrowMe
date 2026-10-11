@@ -16,7 +16,7 @@ import { LightUpText } from '@/components/motion/light-up-text';
 import { Reveal } from '@/components/motion/reveal';
 import { DESCRIPTION_BUTTON_HEIGHT, DescriptionButton } from '@/components/plants/description-button';
 import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
-import { PHOTO_HEIGHT, PhotoHeader } from '@/components/plants/photo-header';
+import { PHOTO_GONE_AT, PHOTO_HEIGHT, PHOTO_RISE, PhotoHeader } from '@/components/plants/photo-header';
 import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lightbox';
 import { PhotoStack } from '@/components/plants/photo-stack';
 import { cardFromIndex, PlantCard } from '@/components/plants/plant-card';
@@ -25,6 +25,7 @@ import { PlantTiles } from '@/components/plants/plant-tiles';
 import { SectionBar, type PageSection } from '@/components/plants/section-bar';
 import { SunBar } from '@/components/plants/sun-graph';
 import { TipsList } from '@/components/plants/tips-list';
+import { TopBlur } from '@/components/plants/top-blur';
 import { TraitRows } from '@/components/plants/trait-rows';
 import { WatchOutList } from '@/components/plants/watch-out-list';
 import { AppText } from '@/components/ui/app-text';
@@ -36,7 +37,7 @@ import { useCombinationPlants, usePlant, useRelatedPlants } from '@/lib/plants';
 import { colors, space } from '@/theme';
 
 /** The page turns from white at the top to this light orange at the bottom */
-const PAGE_BOTTOM = '#fff1e0';
+const PAGE_BOTTOM = '#fff1e5';
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
 function sectionsOf(plant: Plant | null, combinations: boolean, related: boolean): PageSection[] {
@@ -219,19 +220,18 @@ export default function PlantScreen() {
         )}
         {plant.diseases.length > 0 && (
           <Block onLayout={register('watch-out')}>
-            <Reveal from="behind" visible={seen.has('watch-out')}>
-              <WatchOutList items={plant.diseases} />
-            </Reveal>
+            <WatchOutList items={plant.diseases} />
           </Block>
         )}
         {plant.description && (
           <Block onLayout={register('description')}>
-            <Reveal from="pop" visible={seen.has('description')}>
+            {/* A white band across the whole width, square */}
+            <View style={styles.descriptionBand}>
               <Section title="Περιγραφή">
                 {/* The editor's formatted text (or an older plain one with blog links) */}
                 <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
               </Section>
-            </Reveal>
+            </View>
           </Block>
         )}
 
@@ -256,6 +256,15 @@ export default function PlantScreen() {
           </Block>
         )}
       </Animated.ScrollView>
+
+      {/* Behind the corner buttons and the section labels, once the photos have scrolled past */}
+      {/* (the photos rise at PHOTO_RISE of the page's speed: it starts when their bottom reaches the bar,
+          or once they have faded out, whichever comes first) */}
+      <TopBlur
+        scrollY={scroll}
+        height={topClearance}
+        from={hasPhotos ? Math.min((PHOTO_HEIGHT - topClearance) / PHOTO_RISE, PHOTO_GONE_AT) : 0}
+      />
 
       {/* The thumbnails over the page: on the photos' edge, then stacked at the top right */}
       {photos.length > 0 && (
@@ -286,6 +295,13 @@ const styles = StyleSheet.create({
     gap: space.lg,
     paddingHorizontal: space.md,
     paddingTop: space.lg,
+  },
+  // Out to the screen's edges (past the blocks' side padding), the text keeping its margins
+  descriptionBand: {
+    marginHorizontal: -space.md,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    backgroundColor: colors.surface,
   },
   titleRow: {
     flexDirection: 'row',

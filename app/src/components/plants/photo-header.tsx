@@ -20,11 +20,16 @@ const UNDER = THUMB_SIZE / 2 - 18;
 /** The whole header's height: the photos and the room under them (a page's content starts below) */
 export const PHOTO_HEADER_HEIGHT = PHOTO_HEIGHT + UNDER;
 
+/** How fast the photos move up while the page scrolls, as a share of the page's speed (0.5 = half) */
+export const PHOTO_RISE = 0.5;
+/** By this much scroll the photos have faded out completely */
+export const PHOTO_GONE_AT = PHOTO_HEIGHT * 0.85;
+
 type PhotoHeaderProps = {
   photos: string[];
   /** Read by screen readers, e.g. the plant's name */
   label: string;
-  /** The page's scroll: the photos are pushed back as it grows */
+  /** The page's scroll: the photos move up at half its speed, fading */
   scrollY: SharedValue<number>;
   index: number;
   onIndexChange: (index: number) => void;
@@ -33,7 +38,8 @@ type PhotoHeaderProps = {
 /**
  * The plant's photos across the top, swipeable with ‹ ›, fading into the page through a white
  * gradient (the thumbnails sit on that edge, drawn by PhotoStack over the page). Scrolling down
- * pushes them back: smaller, slower than the page, fading out, so the page's colour covers the screen.
+ * moves them up at half the page's speed (same size), so the page slides over them, fading out, until
+ * the page's colour covers the screen.
  */
 export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: PhotoHeaderProps) {
   const width = useWindowDimensions().width;
@@ -49,8 +55,9 @@ export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: Ph
   const pushedBack = useAnimatedStyle(() => {
     const y = Math.max(0, scrollY.get());
     return {
-      opacity: interpolate(y, [0, PHOTO_HEIGHT * 0.85], [1, 0], 'clamp'),
-      transform: [{ translateY: y * 0.45 }, { scale: interpolate(y, [0, PHOTO_HEIGHT], [1, 0.88], 'clamp') }],
+      opacity: interpolate(y, [0, PHOTO_GONE_AT], [1, 0], 'clamp'),
+      // Held back by half the scroll, so on screen they rise at PHOTO_RISE of the page's speed; same size
+      transform: [{ translateY: y * (1 - PHOTO_RISE) }],
     };
   });
 

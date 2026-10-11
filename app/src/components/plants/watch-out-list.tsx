@@ -1,14 +1,14 @@
 import type { Disease } from '@growme/shared';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
 import { TextPanel } from '@/components/ui/text-panel';
-import { colors, iconSize, space } from '@/theme';
+import { colors, iconSize, radius, space } from '@/theme';
 
 /**
  * «Τι να προσέχεις» (the plant's diseases and pests): closed by default; open, each item shows its
@@ -20,7 +20,8 @@ export function WatchOutList({ items }: { items: Disease[] }) {
   const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: withTiming(open ? '180deg' : '0deg') }] }));
 
   return (
-    <Animated.View layout={LinearTransition} style={styles.card}>
+    // Opens and closes at once (no growing or fading); only the chevron turns
+    <View style={styles.card}>
       {/* No shrink on press: only a light dim */}
       <Pressable
         accessibilityRole="button"
@@ -36,7 +37,7 @@ export function WatchOutList({ items }: { items: Disease[] }) {
       </Pressable>
 
       {open && (
-        <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.items}>
+        <View style={styles.items}>
           {items.map((item) => (
             <PressableScale
               key={item.id}
@@ -56,17 +57,18 @@ export function WatchOutList({ items }: { items: Disease[] }) {
               <Icon name="link" size={iconSize.normal} color={colors.link} bold />
             </PressableScale>
           ))}
-        </Animated.View>
+        </View>
       )}
 
       {shown && <TextPanel title={shown.title} label={shown.label} text={shown.content} onClose={() => setShown(null)} />}
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     ...card,
+    borderRadius: radius.sm,
     paddingHorizontal: space.md,
   },
   head: {
