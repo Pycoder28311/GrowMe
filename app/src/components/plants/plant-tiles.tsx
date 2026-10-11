@@ -88,12 +88,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 24,
   },
+  // Full rows fill the width exactly, so centring only moves a half tile left alone in its row
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: GAP,
   },
-  // Two per row, one left alone stays half wide: exactly half the grid less half the gap once
+  // Two per row, one left alone stays half wide (centred): exactly half the grid less half the gap once
   // measured, this until then
   cell: {
     width: '46%',

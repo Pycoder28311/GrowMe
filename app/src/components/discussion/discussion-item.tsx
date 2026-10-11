@@ -1,6 +1,9 @@
+import type { PostPlant } from '@growme/shared';
+import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { PlantBadge } from '@/components/plants/plant-badge';
 import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -15,6 +18,8 @@ type DiscussionItemProps = {
   date?: string;
   /** Bold line above the text (posts) */
   title?: string;
+  /** The plant the post is about: a small link to it above the title */
+  plant?: PostPlant | null;
   text: string;
   /** Shows only the first lines of the text (lists) */
   textLines?: number;
@@ -75,6 +80,7 @@ export function DiscussionItem({
   author,
   date,
   title,
+  plant,
   text,
   textLines,
   children,
@@ -105,6 +111,12 @@ export function DiscussionItem({
         )}
       </View>
 
+      {plant && (
+        <PlantBadge
+          plant={plant}
+          onPress={() => router.push({ pathname: '/plants/[id]', params: { id: String(plant.id) } })}
+        />
+      )}
       {title !== undefined && <AppText bold>{title}</AppText>}
       <AppText numberOfLines={textLines}>{text}</AppText>
       {children}

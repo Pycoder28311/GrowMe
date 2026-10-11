@@ -1,11 +1,11 @@
-import type { Post, PostCreate, PostUpdate } from '@growme/shared'
+import type { Post, PostCreate, PostFilter, PostUpdate } from '@growme/shared'
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
-import { postImages, postReplies, posts } from '../../db/schema'
+import { plantImages, plants, postImages, postReplies, posts } from '../../db/schema'
 import { hasChanges, ownedOrAdmin, userId, type Ctx, type Repo, type Store } from '../../lib/crud'
 import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
-import { removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/relations'
+import { assertExists, removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/relations'
 import { authorColumns, toAuthor } from '../authors'
-import { assertCanLinkImages, deleteImages, toImageRefs } from '../images/images.repo'
+import { assertCanLinkImages, deleteImages, imageUrl, toImageRefs } from '../images/images.repo'
 import { deleteLikesOf } from '../likes/likes.repo'
 
 const postImageLinks: LinkTable<typeof postImages> = {
@@ -17,6 +17,11 @@ const postImageLinks: LinkTable<typeof postImages> = {
 const withAll = {
   user: authorColumns,
   images: { orderBy: asc(postImages.position), with: { image: true } },
+  // The linked plant's name and first photo
+  plant: {
+    columns: { id: true, name: true },
+    with: { images: { orderBy: asc(plantImages.position), limit: 1, with: { image: { columns: { key: true } } } } },
+  },
 } as const
 
 const findWhere = (ctx: Ctx, where: ReturnType<typeof and>) =>
@@ -31,6 +36,9 @@ const toJson = (env: CloudflareBindings, p: Row): Post => ({
   content: p.content,
   author: toAuthor(p.user),
   images: toImageRefs(env, p.images),
+  plant: p.plant
+    ? { id: p.plant.id, name: p.plant.name, image: p.plant.images[0] ? imageUrl(env, p.plant.images[0].image.key) : null }
+    : null,
   likeCount: p.likeCount,
   replyCount: p.replyCount,
   createdAt: p.createdAt.toISOString(),
@@ -47,11 +55,16 @@ export async function postsByIds(ctx: Ctx, ids: number[]): Promise<Post[]> {
   })
 }
 
+/** Throws 400 UNKNOWN_REFERENCE when the post is linked to a plant that doesn't exist */
+const assertPlant = async (ctx: Ctx, plantId: number | null | undefined) => {
+  if (plantId) await assertExists(ctx.db, plants, plants.id, plantId, 'plantId')
+}
+
 /** Public read, signed-in create, owners edit, owners or admins delete */
-export const postsRepo: Repo<PostCreate, PostUpdate, Post> = {
-  async list(ctx, page) {
+export const postsRepo: Repo<PostCreate, PostUpdate, Post, PostFilter> = {
+  async list(ctx, page, { plantId }) {
     const rows = await ctx.db.query.posts.findMany({
-      where: beforeCursor(posts.id, page),
+      where: and(beforeCursor(posts.id, page), plantId ? eq(posts.plantId, plantId) : undefined),
       orderBy: desc(posts.id),
       limit: fetchLimit(page),
       with: withAll,
@@ -69,6 +82,7 @@ export const postsRepo: Repo<PostCreate, PostUpdate, Post> = {
 
   async create(ctx, { imageIds, ...fields }) {
     await assertCanLinkImages(ctx, imageIds)
+    await assertPlant(ctx, fields.plantId)
     const { id } = await ctx.db
       .insert(posts)
       .values({ ...fields, userId: userId(ctx) })
@@ -83,6 +97,7 @@ export const postsRepo: Repo<PostCreate, PostUpdate, Post> = {
     if (!existing) return null
     const before = existing.images.map((l) => l.imageId)
     if (imageIds) await assertCanLinkImages(ctx, imageIds, before)
+    await assertPlant(ctx, fields.plantId)
 
     if (!hasChanges(fields) && !imageIds) return toJson(ctx.env, existing)
     await runBatch(ctx.db, [

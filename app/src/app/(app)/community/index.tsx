@@ -27,7 +27,7 @@ export default function CommunityScreen() {
   const send = async (text: string) => {
     setSendError(false);
     try {
-      const post = await postsApi.create({ title: firstSentence(text), content: text, imageIds: [] });
+      const post = await postsApi.create({ title: firstSentence(text), content: text, imageIds: [], plantId: null });
       update((current) => [post, ...current]);
     } catch {
       setSendError(true);
@@ -57,6 +57,7 @@ export default function CommunityScreen() {
               author={item.author.name}
               date={timeAgo(item.createdAt)}
               title={item.title}
+              plant={item.plant}
               text={item.content}
               textLines={3}
               likeCount={likeCount}

@@ -1,3 +1,4 @@
+import type { PostPlant } from '@growme/shared';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -18,6 +19,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { uploadImages } from '@/api/images';
 import { postsApi } from '@/api/posts';
 import { PaperPlane, type PaperPlaneHandle } from '@/components/home/paper-plane';
+import { PlantBadge } from '@/components/plants/plant-badge';
+import { PlantPicker } from '@/components/plants/plant-picker';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -87,8 +90,10 @@ function FlyingPiece({ piece, target, delay, onDone }: { piece: Piece; target: {
 /**
  * "Ask us anything": the question becomes a community post (Messages tab). Tapping into the question
  * shows an optional title above it (empty = the question's first sentence); up to 4 photos.
+ * `plant` (a plant's page): the post is about that plant, said in a line. Otherwise «Σύνδεση με φυτό»
+ * picks one (optional) in the panel from below.
  */
-export function AskCard() {
+export function AskCard({ plant }: { plant?: PostPlant }) {
   const [showTitle, setShowTitle] = useState(false);
   const [title, setTitle] = useState('');
   const [question, setQuestion] = useState('');
@@ -98,6 +103,8 @@ export function AskCard() {
   const [error, setError] = useState<string | null>(null);
   const [placeholder, setPlaceholder] = useState(QUESTION);
   const [focus, setFocus] = useState<'title' | 'question' | null>(null);
+  const [linked, setLinked] = useState<PostPlant | null>(null);
+  const [picking, setPicking] = useState(false);
   // The copies flying into the plane after a send, and where the plane is
   const [flying, setFlying] = useState<{ pieces: Piece[]; target: { x: number; y: number } } | null>(null);
   const reduced = useReducedMotion();
@@ -158,12 +165,14 @@ export function AskCard() {
         title: title.trim() || firstSentence(content),
         content,
         imageIds: uploaded.map((image) => image.id),
+        plantId: plant?.id ?? linked?.id ?? null,
       });
       // Copies of the text and photos take their place and fly into the plane; the fields empty under them
       const clear = () => {
         setTitle('');
         setQuestion('');
         setPhotos([]);
+        setLinked(null);
         setShowTitle(false);
         setPlaceholder(NEXT_QUESTION);
         setSent({ id: post.id });
@@ -246,6 +255,35 @@ export function AskCard() {
           </View>
         )}
 
+        {/* The plant the post will be about: this page's, or one picked (optional) */}
+        <View style={styles.plantRow}>
+          {plant ? (
+            <View style={styles.plantNote}>
+              <Icon name="link" size={iconSize.normal} color={colors.primary} />
+              <AppText size="small" color={colors.inkMuted} style={styles.plantNoteText}>
+                Η ερώτησή σου θα συνδεθεί με το φυτό{' '}
+                <AppText size="small" bold color={colors.primary}>
+                  {plant.name}
+                </AppText>
+              </AppText>
+            </View>
+          ) : linked ? (
+            <View style={styles.plantBadge}>
+              <PlantBadge plant={linked} onRemove={() => setLinked(null)} />
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setPicking(true)}
+              style={({ pressed }) => [styles.addPhoto, pressed && styles.addPhotoPressed]}>
+              <Icon name="leaf" size={iconSize.big} color={formGray} />
+              <AppText bold color={formGray}>
+                Σύνδεση με φυτό
+              </AppText>
+            </Pressable>
+          )}
+        </View>
+
         <View style={styles.footer}>
           {photos.length < MAX_PHOTOS ? (
             <Pressable
@@ -318,6 +356,8 @@ export function AskCard() {
         </AppText>
         <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
       </PressableScale>
+
+      {picking && <PlantPicker onPick={setLinked} onClose={() => setPicking(false)} />}
     </View>
   );
 }
@@ -389,6 +429,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.full,
     backgroundColor: colors.ink,
+  },
+  // The plant line, lined up with the photo button under it
+  plantRow: {
+    flexDirection: 'row',
+    minHeight: size.touch,
+    alignItems: 'center',
+  },
+  plantNote: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingHorizontal: space.md,
+  },
+  plantNoteText: {
+    flex: 1,
+  },
+  // Its photo in line with the buttons' icons
+  plantBadge: {
+    flexShrink: 1,
+    paddingHorizontal: space.md - space.xs,
   },
   // Photo button left, the paper plane right, both centred on one line
   footer: {

@@ -1,16 +1,7 @@
-import {
-  PLANT_FLAG_KEYS,
-  parseRichContent,
-  plainTextOf,
-  sunPart,
-  type Plant,
-  type PlantSummary,
-  type SearchPlant,
-} from '@growme/shared';
+import { parseRichContent, plainTextOf, type Plant, type PlantSummary } from '@growme/shared';
 import { useEffect, useMemo, useState } from 'react';
 
 import { plantsApi } from '@/api/plants';
-import { useSearchIndex } from '@/lib/search';
 import { useApiItem, usePagedList } from '@/lib/use-api';
 
 /** The plants list from the API, newest first, a page at a time */
@@ -77,38 +68,4 @@ export function useCombinationPlants(combinationId: number | null, exceptId: num
         image: plant.images[0]?.url ?? null,
       }));
   }, [combinationId, exceptId, loaded]);
-}
-
-const RELATED_MAX = 6;
-
-/**
- * Plants like this one, from the search index: the same kind counts most, then each yes/no
- * characteristic both have, then the same part of the day for sun. Never the plant itself or `exclude`
- * (its combination's plants); only plants with something in common.
- */
-export function relatedPlants(plant: PlantSummary, all: SearchPlant[], exclude: ReadonlySet<number>): SearchPlant[] {
-  const part = plant.sunStart !== null && plant.sunEnd !== null ? sunPart(plant.sunStart, plant.sunEnd) : null;
-  const score = (other: SearchPlant) =>
-    (plant.kind && other.kind === plant.kind ? 3 : 0) +
-    PLANT_FLAG_KEYS.filter((key) => plant[key] && other[key]).length +
-    (part && other.sunStart !== null && other.sunEnd !== null && sunPart(other.sunStart, other.sunEnd) === part ? 1 : 0);
-  return all
-    .filter((other) => other.id !== plant.id && !exclude.has(other.id))
-    .map((other) => ({ other, points: score(other) }))
-    .filter(({ points }) => points > 0)
-    .sort((a, b) => b.points - a.points || a.other.name.localeCompare(b.other.name, 'el'))
-    .slice(0, RELATED_MAX)
-    .map(({ other }) => other);
-}
-
-/** Related plants (the search index loads once per session) */
-export function useRelatedPlants(plant: PlantSummary | null, exclude: readonly number[]): SearchPlant[] {
-  const { index, load } = useSearchIndex();
-  useEffect(() => load(), [load]);
-  const excluded = exclude.join(',');
-  return useMemo(() => {
-    if (!plant || !index) return [];
-    const skip = new Set(excluded ? excluded.split(',').map(Number) : []);
-    return relatedPlants(plant, index.plants, skip);
-  }, [plant, index, excluded]);
 }

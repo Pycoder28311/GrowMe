@@ -14,9 +14,9 @@ export const plainText = (text: string) =>
 /**
  * The best matches of one list: every typed word must be in the item's text. Names that start with
  * the typed text come first, then names that contain it, then the rest (e.g. a scientific name
- * match), each group alphabetical. At most 8.
+ * match), each group alphabetical. At most `max` (8).
  */
-function rank<T extends { name: string }>(items: T[], query: string, textOf: (item: T) => string): T[] {
+function rank<T extends { name: string }>(items: T[], query: string, textOf: (item: T) => string, max = MAX_PER_LIST): T[] {
   const typed = plainText(query.trim());
   const words = typed.split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
@@ -31,7 +31,7 @@ function rank<T extends { name: string }>(items: T[], query: string, textOf: (it
     })
     .map((item) => ({ item, group: group(item) }))
     .sort((a, b) => a.group - b.group || a.item.name.localeCompare(b.item.name, 'el'))
-    .slice(0, MAX_PER_LIST)
+    .slice(0, max)
     .map((entry) => entry.item);
 }
 
@@ -45,3 +45,7 @@ export function matchSearch(index: SearchIndex, query: string): SearchMatches {
   };
 }
 
+
+/** Every plant that matches (by name or scientific name), best first: the plant picker's list */
+export const matchPlants = (plants: SearchPlant[], query: string) =>
+  rank(plants, query, (p) => `${p.name} ${p.scientificName}`, Infinity);

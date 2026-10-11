@@ -11,6 +11,8 @@ export const postCreate = z.object({
   title,
   content,
   imageIds: imageIds.default([]),
+  /** The plant the post is about; omit (or null) for none */
+  plantId: entityId.nullable().default(null),
 })
 
 /** Send only what changes; imageIds replaces the whole list */
@@ -18,10 +20,24 @@ export const postUpdate = z.object({
   title: title.optional(),
   content: content.optional(),
   imageIds: imageIds.optional(),
+  /** null unlinks the plant */
+  plantId: entityId.nullable().optional(),
+})
+
+/**
+ * GET /api/posts                 every post
+ * GET /api/posts?plantId=3       the posts about plant 3
+ */
+export const postFilter = z.object({
+  plantId: queryId.optional(),
 })
 
 export type PostCreate = z.infer<typeof postCreate>
 export type PostUpdate = z.infer<typeof postUpdate>
+export type PostFilter = z.infer<typeof postFilter>
+
+/** The plant a post is about: enough for a small link to its page */
+export type PostPlant = { id: number; name: string; image: string | null }
 
 export type Post = {
   id: number
@@ -29,6 +45,8 @@ export type Post = {
   content: string
   author: Author
   images: ImageRef[]
+  /** null = not about one plant */
+  plant: PostPlant | null
   likeCount: number
   replyCount: number
   createdAt: string

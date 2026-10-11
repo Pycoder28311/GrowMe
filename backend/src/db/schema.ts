@@ -43,11 +43,13 @@ export const posts = sqliteTable(
         userId: owner(),
         title: text('title').notNull(),
         content: text('content').notNull(),
+        // The plant the post is about (optional); deleting the plant keeps the post, unlinked
+        plantId: integer('plant_id').references((): AnySQLiteColumn => plants.id, { onDelete: 'set null' }),
         likeCount: integer('like_count').notNull().default(0),
         replyCount: integer('reply_count').notNull().default(0),
         createdAt: createdAt(),
     },
-    (t) => [index('posts_user_id_idx').on(t.userId)],
+    (t) => [index('posts_user_id_idx').on(t.userId), index('posts_plant_id_idx').on(t.plantId)],
 )
 
 export const postReplies = sqliteTable(
@@ -273,6 +275,7 @@ export const plantImages = sqliteTable(
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
     user: one(user, { fields: [posts.userId], references: [user.id] }),
+    plant: one(plants, { fields: [posts.plantId], references: [plants.id] }),
     replies: many(postReplies),
     images: many(postImages),
 }))
@@ -315,6 +318,7 @@ export const plantsRelations = relations(plants, ({ one, many }) => ({
     tipLinks: many(plantTips),
     diseases: many(diseases),
     images: many(plantImages),
+    posts: many(posts),
 }))
 
 export const lifecyclesRelations = relations(lifecycles, ({ one }) => ({

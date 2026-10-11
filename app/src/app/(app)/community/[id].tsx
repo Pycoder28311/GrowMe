@@ -72,6 +72,7 @@ function CommunityPost() {
             author={post.author.name}
             date={timeAgo(post.createdAt)}
             title={post.title}
+            plant={post.plant}
             text={post.content}
             likeCount={likeCount}
             reaction={reaction}

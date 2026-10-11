@@ -12,6 +12,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { useTopClearance } from '@/components/layout/app-shell';
+import { AskCard } from '@/components/home/ask-card';
 import { usePageHeader } from '@/components/layout/page-header';
 import { LightUpText } from '@/components/motion/light-up-text';
 import { Reveal } from '@/components/motion/reveal';
@@ -20,7 +21,6 @@ import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
 import { PHOTO_GONE_AT, PHOTO_HEIGHT, PHOTO_RISE, PhotoHeader } from '@/components/plants/photo-header';
 import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lightbox';
 import { PhotoStack } from '@/components/plants/photo-stack';
-import { cardFromIndex, PlantCard } from '@/components/plants/plant-card';
 import { PlantCarousel } from '@/components/plants/plant-carousel';
 import { PlantingMonths, PlantTiles } from '@/components/plants/plant-tiles';
 import { SectionBar, type PageSection } from '@/components/plants/section-bar';
@@ -34,14 +34,14 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
 import { priceLabel } from '@/config/plant-traits';
 import { usePageSections } from '@/lib/page-sections';
-import { useCombinationPlants, usePlant, useRelatedPlants } from '@/lib/plants';
+import { useCombinationPlants, usePlant } from '@/lib/plants';
 import { colors, space } from '@/theme';
 
 /** The page turns from white at the top to this light orange at the bottom */
 const PAGE_BOTTOM = '#fff1e5';
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
-function sectionsOf(plant: Plant | null, combinations: boolean, related: boolean): PageSection[] {
+function sectionsOf(plant: Plant | null, combinations: boolean): PageSection[] {
   if (!plant) return [];
   return [
     plant.images.length > 0 && { id: 'images', label: 'Φωτογραφίες' },
@@ -51,7 +51,7 @@ function sectionsOf(plant: Plant | null, combinations: boolean, related: boolean
     plant.diseases.length > 0 && { id: 'watch-out', label: 'Τι να προσέχεις' },
     plant.description && { id: 'description', label: 'Περιγραφή' },
     combinations && { id: 'combinations', label: 'Συνδυασμοί' },
-    related && { id: 'related', label: 'Σχετικά φυτά' },
+    { id: 'ask', label: 'Ερώτηση' },
   ].filter((section): section is PageSection => !!section);
 }
 
@@ -94,14 +94,9 @@ export default function PlantScreen() {
   const topClearance = useTopClearance();
   const { plant, state, retry } = usePlant(Number(id));
   const combination = useCombinationPlants(plant?.combinationId ?? null, plant?.id ?? 0);
-  const related = useRelatedPlants(
-    plant,
-    combination.map((other) => other.id),
-  );
-
   const sections = useMemo(
-    () => sectionsOf(plant, combination.length > 0, related.length > 0),
-    [plant, combination.length, related.length],
+    () => sectionsOf(plant, combination.length > 0),
+    [plant, combination.length],
   );
   const order = useMemo(() => sections.map((section) => section.id), [sections]);
   const page = usePageSections(order, topClearance);
@@ -158,6 +153,7 @@ export default function PlantScreen() {
 
   const price = priceLabel(plant);
   const photos = plant.images.map((image) => image.url);
+  const askAbout = { id: plant.id, name: plant.name, image: photos[0] ?? null };
   // «Δες την περιγραφή» while the description is still below the screen
   const showDescriptionButton = !!plant.description && below.has('description');
   // The tiles' animations run while the top of the page is in view
@@ -257,7 +253,7 @@ export default function PlantScreen() {
           </Block>
         )}
 
-        {/* The other plants of its combination, then plants like it */}
+        {/* The other plants of its combination */}
         {combination.length > 0 && (
           <Block onLayout={register('combinations')}>
             <Section title="Συνδυασμοί με αυτό το φυτό">
@@ -265,18 +261,11 @@ export default function PlantScreen() {
             </Section>
           </Block>
         )}
-        {related.length > 0 && (
-          <Block onLayout={register('related')}>
-            {/* The same cards as the results page */}
-            <Section title="Σχετικά φυτά">
-              <View style={styles.related}>
-                {related.map((other) => (
-                  <PlantCard key={other.id} plant={cardFromIndex(other)} />
-                ))}
-              </View>
-            </Section>
-          </Block>
-        )}
+
+        {/* Last: a question about this plant, posted linked to it */}
+        <Block onLayout={register('ask')}>
+          <AskCard plant={askAbout} />
+        </Block>
       </Animated.ScrollView>
 
       {/* Behind the corner buttons and the section labels, once the photos have scrolled past */}
@@ -351,9 +340,6 @@ const styles = StyleSheet.create({
   scientific: {
     fontSize: 16,
     lineHeight: 22,
-  },
-  related: {
-    gap: space.sm,
   },
   notFound: {
     alignItems: 'center',

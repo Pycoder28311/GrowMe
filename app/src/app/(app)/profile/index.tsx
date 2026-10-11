@@ -183,7 +183,7 @@ function MyArea() {
   );
 }
 
-/** A liked post: title, author and when; opens the post */
+/** A liked post: title, author, when and its plant; opens the post */
 function LikedPost({ post }: { post: Post }) {
   return (
     <PressableScale
@@ -197,6 +197,7 @@ function LikedPost({ post }: { post: Post }) {
         </AppText>
         <AppText size="small" color={colors.inkMuted}>
           {post.author.name} · {timeAgo(post.createdAt)} · 👍 {post.likeCount}
+          {post.plant && ` · 🪴 ${post.plant.name}`}
         </AppText>
       </View>
       <Icon name="chevronRight" size={iconSize.small} color={colors.inkMuted} />

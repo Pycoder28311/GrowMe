@@ -5,8 +5,9 @@ const page = (cursor?: string | null) => (cursor ? `&cursor=${encodeURIComponent
 
 /** Users' questions (the Messages tab): read by everyone, written when signed in */
 export const postsApi = {
-  /** 20 posts per call, newest first */
-  list: (cursor?: string | null) => request<Page<Post>>(`/posts?limit=20${page(cursor)}`),
+  /** 20 posts per call, newest first; with a plant, only the posts about it */
+  list: (cursor?: string | null, plantId?: number) =>
+    request<Page<Post>>(`/posts?limit=20${plantId ? `&plantId=${plantId}` : ''}${page(cursor)}`),
   get: (id: number) => request<Post>(`/posts/${id}`),
   create: (input: PostCreate) => request<Post>('/posts', { method: 'POST', body: JSON.stringify(input) }),
 };
