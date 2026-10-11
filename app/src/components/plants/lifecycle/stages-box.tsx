@@ -1,6 +1,12 @@
 import { durationLabel, type Lifecycle } from '@growme/shared';
 import { StyleSheet, View } from 'react-native';
-import Animated, { interpolate, useAnimatedStyle, type AnimatedRef, type SharedValue } from 'react-native-reanimated';
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  type AnimatedRef,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
 import { colors, radius, shadow, space } from '@/theme';
@@ -79,19 +85,30 @@ export function StagesBox({ seed, plant, split, collapsed, seedHeight, seedRef, 
   });
   const shade = useAnimatedStyle(() => ({ opacity: interpolate(split.get(), [APART, 1], [0, 0.25], 'clamp') }));
 
+  /** Where the plant half is, against its place in the layout: down by the gap, then up over the seed half */
+  const plantOffset = (s: number) => {
+    'worklet';
+    if (collapsed.get()) return 0;
+    return s <= APART ? interpolate(s, [0, APART], [0, GAP]) : interpolate(s, [APART, 1], [GAP, -seedHeight.get()]);
+  };
+
   const plantStyle = useAnimatedStyle(() => {
     const s = split.get();
     const corner = interpolate(s, [0, APART], [both ? 0 : R, R], 'clamp');
-    const y = collapsed.get()
-      ? 0
-      : s <= APART
-        ? interpolate(s, [0, APART], [0, GAP])
-        : interpolate(s, [APART, 1], [GAP, -seedHeight.get()]);
-    return { borderTopLeftRadius: corner, borderTopRightRadius: corner, transform: [{ translateY: y }] };
+    return { borderTopLeftRadius: corner, borderTopRightRadius: corner, transform: [{ translateY: plantOffset(s) }] };
+  });
+
+  // The box's own height follows the halves frame by frame, so what is below it on the page moves up
+  // (and back down) smoothly with them instead of jumping when the seed half leaves the layout
+  const plantHeight = useSharedValue(0);
+  const boxStyle = useAnimatedStyle(() => {
+    if (!both || seedHeight.get() === 0 || plantHeight.get() === 0) return {};
+    const shownSeed = collapsed.get() ? 0 : seedHeight.get();
+    return { height: shownSeed + plantOffset(split.get()) + plantHeight.get() };
   });
 
   return (
-    <View>
+    <Animated.View style={boxStyle}>
       {seed.length > 0 && (
         <Animated.View
           ref={seedRef}
@@ -110,13 +127,17 @@ export function StagesBox({ seed, plant, split, collapsed, seedHeight, seedRef, 
         // Later in the tree, so it passes over the seed half
         <Animated.View
           ref={plantRef}
+          onLayout={(event) => {
+            const height = event.nativeEvent.layout.height;
+            if (height > 0) plantHeight.set(height);
+          }}
           style={[styles.half, styles.bottom, both && styles.joint, plantStyle]}>
           {plant.map(([, stage], i) => (
             <StageRow key={stage.id} stage={stage} first={i === 0} />
           ))}
         </Animated.View>
       )}
-    </View>
+    </Animated.View>
   );
 }
 

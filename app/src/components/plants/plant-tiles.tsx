@@ -64,10 +64,14 @@ export function PlantingMonths({ plant }: { plant: PlantSummary }) {
   if (!season) return null;
   return (
     <View style={styles.months}>
-      <Icon name="calendar" size={iconSize.normal} color={colors.ink} />
-      <AppText>
-        <AppText color={colors.inkMuted}>Φύτεμα: </AppText>
-        <AppText bold>{season.label}</AppText>
+      <Icon name="calendar" size={iconSize.big} color={colors.ink} />
+      <AppText style={styles.monthsText}>
+        <AppText color={colors.inkMuted} style={styles.monthsText}>
+          Φύτεμα:{' '}
+        </AppText>
+        <AppText bold style={styles.monthsText}>
+          {season.label}
+        </AppText>
       </AppText>
     </View>
   );
@@ -78,6 +82,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+  },
+  // A size up from the body text
+  monthsText: {
+    fontSize: 18,
+    lineHeight: 24,
   },
   grid: {
     flexDirection: 'row',

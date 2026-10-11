@@ -1,6 +1,6 @@
 import { parseRichContent, type Plant } from '@growme/shared';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useId, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   interpolateColor,
@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { useTopClearance } from '@/components/layout/app-shell';
@@ -52,6 +53,30 @@ function sectionsOf(plant: Plant | null, combinations: boolean, related: boolean
     combinations && { id: 'combinations', label: 'Συνδυασμοί' },
     related && { id: 'related', label: 'Σχετικά φυτά' },
   ].filter((section): section is PageSection => !!section);
+}
+
+/** How tall the soft edge between the page's colour and a white band is */
+const BAND_EDGE = 20;
+
+/** A short gradient at a white band's edge, from transparent to its white, so the two colours meet softly */
+function BandEdge({ side }: { side: 'top' | 'bottom' }) {
+  const id = `band-edge-${side}-${useId().replace(/:/g, '')}`;
+  const top = side === 'top';
+  return (
+    <Svg
+      pointerEvents="none"
+      width="100%"
+      height={BAND_EDGE}
+      style={[styles.bandEdge, top ? { top: -BAND_EDGE } : { bottom: -BAND_EDGE }]}>
+      <Defs>
+        <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={colors.surface} stopOpacity={top ? 0 : 1} />
+          <Stop offset="1" stopColor={colors.surface} stopOpacity={top ? 1 : 0} />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width="100%" height={BAND_EDGE} fill={`url(#${id})`} />
+    </Svg>
+  );
 }
 
 /** A section of the page: reports where it is (for the bar, the reveals and the description button) */
@@ -172,12 +197,12 @@ export default function PlantScreen() {
                 {plant.name}
               </AppText>
               {price && (
-                <AppText bold color={colors.accent}>
+                <AppText bold color={colors.accent} style={styles.price}>
                   {price}
                 </AppText>
               )}
             </View>
-            <AppText size="small" color={colors.inkMuted}>
+            <AppText color={colors.inkMuted} style={styles.scientific}>
               {plant.scientificName}
             </AppText>
           </View>
@@ -221,6 +246,9 @@ export default function PlantScreen() {
           <Block onLayout={register('description')}>
             {/* A white band across the whole width, square */}
             <View style={styles.descriptionBand}>
+              {/* A short fade from the page's colour into the white, above and below */}
+              <BandEdge side="top" />
+              <BandEdge side="bottom" />
               <Section title="Περιγραφή">
                 {/* The editor's formatted text (or an older plain one with blog links) */}
                 <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
@@ -266,13 +294,15 @@ export default function PlantScreen() {
           photos={photos}
           index={photoIndex}
           scrollY={scroll}
-          onOpen={(i, from) => setLightbox({ uri: photos[i], from })}
+          // In the row: that photo at the top; in the pile: it opens over the page
+          onPick={setPhotoIndex}
+          onOpen={(i, from) => setLightbox({ index: i, from })}
         />
       )}
 
       <DescriptionButton visible={showDescriptionButton} onPress={() => scrollTo('description')} />
 
-      {lightbox && <PhotoLightbox photo={lightbox} label={plant.name} onClose={() => setLightbox(null)} />}
+      {lightbox && <PhotoLightbox photos={photos} photo={lightbox} label={plant.name} onClose={() => setLightbox(null)} />}
     </View>
   );
 }
@@ -297,14 +327,30 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     backgroundColor: colors.surface,
   },
+  bandEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: space.md,
   },
+  // The plant's name, price and scientific name: a size up from the usual title, body and small text
   name: {
     flexShrink: 1,
+    fontSize: 30,
+    lineHeight: 36,
+  },
+  price: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  scientific: {
+    fontSize: 16,
+    lineHeight: 22,
   },
   related: {
     gap: space.sm,

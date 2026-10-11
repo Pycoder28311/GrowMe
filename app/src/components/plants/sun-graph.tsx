@@ -38,8 +38,10 @@ export function SunBar({ start, end }: { start: number | null; end: number | nul
         <SunSky part={part} />
         <View style={styles.labels}>
           <SunIcon part={part} />
-          <AppText style={styles.length}>{length}</AppText>
-          <AppText size="small" color={colors.inkMuted}>
+          <AppText bold style={styles.length}>
+            {length}
+          </AppText>
+          <AppText bold style={styles.range}>
             {clock(start)} – {clock(end)}
           </AppText>
         </View>
@@ -56,7 +58,7 @@ export function SunBar({ start, end }: { start: number | null; end: number | nul
             </AppText>
           ))}
         </View>
-        <AppText size="small" color={colors.inkMuted} style={styles.center}>
+        <AppText color={colors.inkMuted} style={styles.note}>
           Οι ιδανικές ώρες του φυτού για έκθεση στο φως μέσα στη μέρα
         </AppText>
       </View>
@@ -135,10 +137,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: space.md,
     paddingTop: space.md,
-    paddingBottom: space.lg + space.sm,
+    // About 30% taller than before, the extra room at the bottom (more sky above the trees)
+    paddingBottom: space.lg + space.sm + 40,
     borderRadius: radius.md,
   },
-  center: {
+  // The line under the bar, a size up and a little lower, away from the hours
+  note: {
+    marginTop: space.md,
+    fontSize: 14,
+    lineHeight: 19,
     textAlign: 'center',
   },
   cloud: {
@@ -161,8 +168,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  // «6 ώρες ήλιου», next to the sun: the box's title
   length: {
     flex: 1,
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  // «08:00 – 16:00»
+  range: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.ink,
   },
   track: {
     height: TRACK,

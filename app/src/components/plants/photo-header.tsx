@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useId, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -46,11 +46,12 @@ export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: Ph
   const scrollRef = useRef<ScrollView>(null);
   const fadeId = `fade-${useId().replace(/:/g, '')}`;
 
-  const show = (next: number) => {
-    const target = Math.min(photos.length - 1, Math.max(0, next));
-    scrollRef.current?.scrollTo({ x: target * width, animated: true });
-    onIndexChange(target);
-  };
+  const show = (next: number) => onIndexChange(Math.min(photos.length - 1, Math.max(0, next)));
+
+  // Whoever changes the photo (the arrows, a thumbnail in the row), the strip slides to it
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ x: index * width, animated: true });
+  }, [index, width]);
 
   const pushedBack = useAnimatedStyle(() => {
     const y = Math.max(0, scrollY.get());

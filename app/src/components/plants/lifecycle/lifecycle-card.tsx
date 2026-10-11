@@ -16,7 +16,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { IconCircle } from '@/components/plants/icon-circle';
 import { AppText } from '@/components/ui/app-text';
 import { FACT_ICONS } from '@/config/plant-icons';
-import { space } from '@/theme';
+import { colors, radius, shadow, space } from '@/theme';
 
 import { GroupButtons } from './group-buttons';
 import type { StageGroup } from './stage-groups';
@@ -115,8 +115,10 @@ export function LifecycleCard({
         </AppText>
         {lifespanLabel && (
           <View style={styles.lifespan}>
-            <AppText size="small">{lifespanLabel}</AppText>
-            <IconCircle icon={FACT_ICONS.lifespan} size={24} />
+            <AppText bold style={styles.lifespanText}>
+              {lifespanLabel}
+            </AppText>
+            <IconCircle icon={FACT_ICONS.lifespan} size={28} />
           </View>
         )}
       </View>
@@ -143,12 +145,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  // A size up from the page's section titles
   title: {
     flex: 1,
+    fontSize: 22,
+    lineHeight: 28,
   },
+  // How long it lives: a white pill with a shadow, so it stands out from the page's colour
   lifespan: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.xs,
+    paddingLeft: space.md,
+    paddingRight: space.xs,
+    paddingVertical: space.xs,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
+  },
+  lifespanText: {
+    fontSize: 16,
+    lineHeight: 22,
   },
 });

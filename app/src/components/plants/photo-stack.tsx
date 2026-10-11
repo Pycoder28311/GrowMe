@@ -1,8 +1,17 @@
 import { Image } from 'expo-image';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
-import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { PHOTO_HEIGHT, THUMB_SIZE, THUMBS_CENTER } from '@/components/plants/photo-header';
 import type { Rect } from '@/config/search-motion';
@@ -18,9 +27,13 @@ const TILTS = [-3, 5, -7, 8, -9, 6];
 /** Their size in the row under the photos, and in the pile at the top right (1 = the thumbnail size) */
 const ROW_SCALE = 0.85;
 const PILE_SCALE = 1.6;
-/** The scroll over which they fly from the photos' edge to the stack */
-const FLY_FROM = PHOTO_HEIGHT * 0.3;
-const FLY_TO = PHOTO_HEIGHT * 0.9;
+/**
+ * Past this scroll they fly to the pile (a whole flight, never stopping halfway with the scroll); back
+ * above it, they fly back to the row. HYSTERESIS keeps them from flickering right at the line.
+ */
+const DOCK_AT = PHOTO_HEIGHT * 0.55;
+const HYSTERESIS = 8;
+const FLY_MS = 650;
 
 const clamp01 = (value: number) => {
   'worklet';
@@ -33,20 +46,25 @@ type ThumbProps = {
   count: number;
   active: boolean;
   scrollY: SharedValue<number>;
+  /** 0 in the row → 1 in the pile (the flight's progress) */
+  docked: SharedValue<number>;
   rest: { x: number; y: number };
   stack: { x: number; y: number };
   size: number;
+  /** Where the tap lands: in the row it picks the photo, in the pile it opens it */
+  inPile: boolean;
+  onPick: () => void;
   onOpen: (rect: Rect) => void;
 };
 
-function Thumb({ uri, i, count, active, scrollY, rest, stack, size, onOpen }: ThumbProps) {
+function Thumb({ uri, i, count, active, scrollY, docked, rest, stack, size, inPile, onPick, onOpen }: ThumbProps) {
   const ref = useRef<View>(null);
   // One after the other: each starts a little later than the one before
   const lag = count > 1 ? Math.min(0.12, 0.5 / (count - 1)) : 0;
 
   const style = useAnimatedStyle(() => {
     const s = scrollY.get();
-    const p = clamp01((s - FLY_FROM) / (FLY_TO - FLY_FROM));
+    const p = docked.get();
     const own = clamp01((p - i * lag) / (1 - (count - 1) * lag));
     const e = own * own * (3 - 2 * own); // ease in and out
     const restY = rest.y - s;
@@ -66,8 +84,13 @@ function Thumb({ uri, i, count, active, scrollY, rest, stack, size, onOpen }: Th
       <Pressable
         ref={ref}
         accessibilityRole="imagebutton"
-        accessibilityLabel={`Φωτογραφία ${i + 1}, άνοιγμα`}
-        onPress={() => ref.current?.measureInWindow((left, top, width, height) => onOpen({ left, top, width, height }))}
+        accessibilityLabel={inPile ? `Φωτογραφία ${i + 1}, άνοιγμα` : `Φωτογραφία ${i + 1}`}
+        accessibilityState={{ selected: active }}
+        onPress={() =>
+          inPile
+            ? ref.current?.measureInWindow((left, top, width, height) => onOpen({ left, top, width, height }))
+            : onPick()
+        }
         style={[styles.thumb, { width: size, height: size }, active && styles.thumbActive]}>
         <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
       </Pressable>
@@ -76,22 +99,42 @@ function Thumb({ uri, i, count, active, scrollY, rest, stack, size, onOpen }: Th
 }
 
 /**
- * The photos' thumbnails, over the page: first in a row centred on the photos' faded edge, then, as
- * the page scrolls, they fly one by one to the top right under the search button and pile up there,
- * bigger and half off the screen's edge, one behind the other, tilted, so only the edges of those
- * behind show. A tap opens that photo.
+ * The photos' thumbnails, over the page: first in a row centred on the photos' faded edge; once the
+ * page scrolls past DOCK_AT they fly one by one to the top right under the search button and pile up
+ * there, bigger and half off the screen's edge, one behind the other, tilted, so only the edges of
+ * those behind show. Scrolling back above it flies them back to the row. In the row a tap shows that
+ * photo at the top (`onPick`); in the pile it opens it over the page (`onOpen`).
  */
 export function PhotoStack({
   photos,
   index,
   scrollY,
+  onPick,
   onOpen,
 }: {
   photos: string[];
   index: number;
   scrollY: SharedValue<number>;
+  onPick: (photo: number) => void;
   onOpen: (photo: number, rect: Rect) => void;
 }) {
+  const reduced = useReducedMotion();
+  const docked = useSharedValue(0);
+  const [inPile, setInPile] = useState(false);
+
+  // Crossing the line starts the whole flight one way or the other
+  useAnimatedReaction(
+    () => {
+      const s = scrollY.get();
+      return s > DOCK_AT + HYSTERESIS ? 1 : s < DOCK_AT - HYSTERESIS ? 0 : -1;
+    },
+    (target, previous) => {
+      if (target === -1 || target === previous) return;
+      const going = target === 1;
+      docked.set(reduced ? target : withTiming(target, { duration: FLY_MS, easing: Easing.inOut(Easing.cubic) }));
+      scheduleOnRN(setInPile, going);
+    },
+  );
   const width = useWindowDimensions().width;
   const insets = useSafeAreaInsets();
   const thumbs = photos.slice(0, MAX_THUMBS);
@@ -114,7 +157,10 @@ export function PhotoStack({
           count={count}
           active={i === index}
           scrollY={scrollY}
+          docked={docked}
           size={thumb}
+          inPile={inPile}
+          onPick={() => onPick(i)}
           rest={{ x: (width - rowWidth) / 2 + i * (thumb + GAP), y: THUMBS_CENTER - thumb / 2 }}
           // The pile: right-aligned with the search button, each one just behind the one before
           // Centred on the screen's right edge, so half of it is off screen
