@@ -1,13 +1,19 @@
 import type { PlantSummary } from '@growme/shared';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { IconCircle } from '@/components/plants/icon-circle';
 import { TileArtView } from '@/components/plants/tile-art';
 import { AppText } from '@/components/ui/app-text';
+import { Icon } from '@/components/ui/icon';
 import { ShakeOnTap } from '@/components/ui/shake-on-tap';
 import { infoTiles } from '@/config/plant-tiles';
-import { colors, radius, shadow, space } from '@/theme';
+import { seasonTrait } from '@/config/plant-traits';
+import { alpha, colors, iconSize, radius, shadow, space } from '@/theme';
+
+/** The same gap across and down between tiles */
+const GAP = space.md;
 
 /**
  * The plant's info as almost square white tiles in two columns: the icon top left, a small animation
@@ -17,14 +23,17 @@ import { colors, radius, shadow, space } from '@/theme';
  */
 export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: boolean }) {
   const reduced = useReducedMotion();
+  // The grid's width: two half tiles and one GAP fill it exactly, so the gap is the same across and down
+  const [width, setWidth] = useState(0);
+  const half = width > 0 ? (width - GAP) / 2 : undefined;
   // Tiles with several animations take a whole row: first, so the half-width ones pair up below
   const all = infoTiles(plant);
   const tiles = [...all.filter((tile) => tile.arts.length > 1), ...all.filter((tile) => tile.arts.length <= 1)];
   if (tiles.length === 0) return null;
   return (
-    <View accessibilityRole="list" style={styles.grid}>
+    <View accessibilityRole="list" style={styles.grid} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       {tiles.map((tile) => (
-        <ShakeOnTap key={tile.key} style={tile.arts.length > 1 ? styles.wide : styles.cell}>
+        <ShakeOnTap key={tile.key} style={tile.arts.length > 1 ? styles.wide : [styles.cell, half !== undefined && { width: half }]}>
           <View style={[styles.tile, tile.arts.length === 1 && styles.square]}>
             <View style={styles.top}>
               <IconCircle icon={tile.icon} />
@@ -49,16 +58,36 @@ export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: b
   );
 }
 
+/** The planting months as a plain line above the tiles: a calendar icon and «Φύτεμα: ΜΑΡ – ΜΑΪ, …» */
+export function PlantingMonths({ plant }: { plant: PlantSummary }) {
+  const season = seasonTrait(plant);
+  if (!season) return null;
+  return (
+    <View style={styles.months}>
+      <Icon name="calendar" size={iconSize.normal} color={colors.ink} />
+      <AppText>
+        <AppText color={colors.inkMuted}>Φύτεμα: </AppText>
+        <AppText bold>{season.label}</AppText>
+      </AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  months: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: space.sm,
+    gap: GAP,
   },
-  // Two per row; one left alone stays half wide
+  // Two per row, one left alone stays half wide: exactly half the grid less half the gap once
+  // measured, this until then
   cell: {
-    width: '48.6%',
+    width: '46%',
   },
   wide: {
     flexBasis: '100%',
@@ -70,7 +99,12 @@ const styles = StyleSheet.create({
     padding: space.sm + 2,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,
-    boxShadow: shadow.tile,
+    // Stands out from the page: a deeper shadow, a faint edge, and a thicker darker one at the bottom
+    borderWidth: 1,
+    borderColor: alpha(colors.ink, 0.06),
+    borderBottomWidth: 3,
+    borderBottomColor: alpha(colors.ink, 0.14),
+    boxShadow: shadow.raised,
   },
   // Wider than tall
   square: {

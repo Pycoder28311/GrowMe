@@ -1,5 +1,4 @@
 import { durationLabel, type Lifecycle } from '@growme/shared';
-import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, {
@@ -17,11 +16,9 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { IconCircle } from '@/components/plants/icon-circle';
 import { AppText } from '@/components/ui/app-text';
 import { FACT_ICONS } from '@/config/plant-icons';
-import { useFlight } from '@/lib/flight';
 import { space } from '@/theme';
 
 import { GroupButtons } from './group-buttons';
-import { StageCard } from './stage-card';
 import type { StageGroup } from './stage-groups';
 import { StagesBox } from './stages-box';
 
@@ -30,18 +27,15 @@ const SPLIT_MS = 650;
 /**
  * The plant page's life cycle: «Κύκλος ζωής» with the lifespan, the two group buttons (the group more
  * on screen is lit) and the stages in one box. «Μεταμφύτευση» separates the seed stages and pushes them
- * behind, the plant's own stages move up; «Από σπόρο» brings them back. Each stage's «Δες περισσότερα»
- * grows into the full life cycle page.
+ * behind, the plant's own stages move up; «Από σπόρο» brings them back.
  */
 export function LifecycleCard({
-  plantId,
   stages,
   lifespan,
   scrollY,
   visibleTop,
   onReveal,
 }: {
-  plantId: number;
   stages: Lifecycle[];
   lifespan: string | null;
   /** The page's scroll (for which group is lit) */
@@ -51,7 +45,6 @@ export function LifecycleCard({
   /** Scroll the page so this y on screen comes just under the corner buttons */
   onReveal: (windowY: number) => void;
 }) {
-  const fly = useFlight();
   const reduced = useReducedMotion();
   const screenHeight = useWindowDimensions().height;
   const head = useRef<View>(null);
@@ -112,14 +105,6 @@ export function LifecycleCard({
     reveal();
   };
 
-  const open = (index: number, rect: Parameters<typeof fly>[0]['rect']) =>
-    fly({
-      rect,
-      front: <StageCard stage={stages[index]} mode="compact" />,
-      onLanded: () =>
-        router.push({ pathname: '/plants/[id]/lifecycle', params: { id: String(plantId), focus: String(index) } }),
-    });
-
   const lifespanLabel = durationLabel(lifespan);
 
   return (
@@ -139,7 +124,6 @@ export function LifecycleCard({
       <StagesBox
         seed={seed}
         plant={plant}
-        onOpen={open}
         split={split}
         collapsed={collapsed}
         seedHeight={seedHeight}

@@ -9,6 +9,10 @@ import { colors, radius, shadow, space } from '@/theme';
 
 type Row = { key: string; icon: PlantIcon; text: string };
 
+/** The rows' text: bigger than the body text (16) and black */
+const ROW_TEXT_SIZE = 18;
+const ROW_TEXT_COLOR = '#000000';
+
 /**
  * The plant's rows under the sun bar, each one short sentence: small tree, origin, near the sea,
  * privacy (only when true or set), and the lifespan when the plant has no life cycle to show it
@@ -33,7 +37,7 @@ export function TraitRows({ plant, withLifespan }: { plant: PlantSummary; withLi
       {rows.map((row) => (
         <ShakeOnTap key={row.key}>
           <View style={styles.row}>
-            <IconCircle icon={row.icon} size={24} />
+            <IconCircle icon={row.icon} size={28} />
             <LinkedText numberOfLines={1} style={styles.text}>
               {row.text}
             </LinkedText>
@@ -58,8 +62,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     boxShadow: shadow.tile,
   },
+  // A size up from the body text, in black
   text: {
     flex: 1,
-    color: colors.ink,
+    fontSize: ROW_TEXT_SIZE,
+    lineHeight: ROW_TEXT_SIZE * 1.3,
+    color: ROW_TEXT_COLOR,
   },
 });

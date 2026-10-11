@@ -2,7 +2,6 @@
 // both move the same way. Source (read only, never changed from here):
 //   Personal/Portfolio/src/shared/zoom/navbar/navbarGeometry.js   timings, curves, helpers
 //   Personal/Portfolio/src/shared/zoom/navbar/navbarSearch.css    the icon's sweep and turn
-//   Personal/Portfolio/src/shared/zoom/reelCard/reelCardMotion.js the tapped result's flight
 // All durations are milliseconds; curves are cubic-bezier control points.
 
 export type Bezier = [number, number, number, number];
@@ -37,19 +36,12 @@ export const RESULT_EXIT_DROP = 16;
 export const RESULT_MOVE_MS = 440;
 export const RESULT_MOVE_EASING: Bezier = [0.32, 0.9, 0.26, 1];
 
-/** A tapped result: turns over while growing most of the way, then settles to full screen (FLIGHT_*) */
-export const FLIGHT_TURN_MS = 560;
-export const FLIGHT_TURN_EASING: Bezier = [0.5, 0, 0.3, 1];
-export const FLIGHT_SETTLE_MS = 420;
-export const FLIGHT_SETTLE_EASING: Bezier = [0.22, 1, 0.36, 1];
-export const FLIGHT_PERSPECTIVE = 1600;
-export const FLIGHT_TURN_GROWTH = 0.7;
 /** With Reduce Motion on, a tapped result only fades (FLIGHT_REDUCED_MS) */
 export const FLIGHT_REDUCED_MS = 180;
 /** The overlay fades away once the page under it has mounted */
 export const FLIGHT_FADE_MS = 150;
 
-/* ─────────────── Helpers (ported from navbarGeometry.js / reelCardMotion.js) ─────────────── */
+/* ─────────────── Helpers (ported from navbarGeometry.js) ─────────────── */
 
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
 
@@ -98,27 +90,6 @@ export function placeholderRevealWindow(characterCenter: number, openWidth: numb
 }
 
 export type Rect = { left: number; top: number; width: number; height: number };
-
-const centreOf = (rect: Rect) => ({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
-
-/**
- * Where the flight is when its turn completes: the row's own shape, grown `growth` of the way (in
- * scale) to the screen, and most of the way to its centre. The settle then only reshapes it.
- */
-export function flightTurnRect(card: Rect, screen: Rect, growth = FLIGHT_TURN_GROWTH): Rect {
-  const cardSize = Math.sqrt(card.width * card.height);
-  const screenSize = Math.sqrt(screen.width * screen.height);
-  if (!(cardSize > 0) || !(screenSize > 0)) return { ...screen };
-  const scale = 2 ** (Math.log2(screenSize / cardSize) * growth);
-  const width = card.width * scale;
-  const height = card.height * scale;
-  const cardCentre = centreOf(card);
-  const screenCentre = centreOf(screen);
-  const x = lerp(cardCentre.x, screenCentre.x, 0.85);
-  const y = lerp(cardCentre.y, screenCentre.y, 0.85);
-  return { left: x - width / 2, top: y - height / 2, width, height };
-}
 
 /* ─────────────── A search result opening through the lens (Portfolio search-bar/config.js) ─────────────── */
 // The search glyph flies from the bar into the tapped result on an arc, then the result grows to the

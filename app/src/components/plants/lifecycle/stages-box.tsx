@@ -1,13 +1,9 @@
 import { durationLabel, type Lifecycle } from '@growme/shared';
-import { useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type AnimatedRef, type SharedValue } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
-import { Icon } from '@/components/ui/icon';
-import { PressableScale } from '@/components/ui/pressable-scale';
-import type { Rect } from '@/config/search-motion';
-import { colors, iconSize, radius, shadow, space } from '@/theme';
+import { colors, radius, shadow, space } from '@/theme';
 
 import { firstLine } from './stage-groups';
 
@@ -17,15 +13,13 @@ const GAP = 12;
 const APART = 0.3;
 const R = radius.md;
 
-/** One stage: title and its time on one line, the start of its text, «Δες περισσότερα» */
-function StageRow({ stage, first, onOpen }: { stage: Lifecycle; first: boolean; onOpen: (rect: Rect) => void }) {
-  const ref = useRef<View>(null);
+/** One stage: title and its time on one line, then the start of its text */
+function StageRow({ stage, first }: { stage: Lifecycle; first: boolean }) {
   const duration = durationLabel(stage.duration);
   const line = firstLine(stage.content);
-  const open = () => ref.current?.measureInWindow((left, top, width, height) => onOpen({ left, top, width, height }));
 
   return (
-    <View ref={ref} collapsable={false} style={[styles.row, !first && styles.divider]}>
+    <View style={[styles.row, !first && styles.divider]}>
       <View style={styles.titleRow}>
         <AppText bold style={styles.title}>
           {stage.title}
@@ -41,18 +35,6 @@ function StageRow({ stage, first, onOpen }: { stage: Lifecycle; first: boolean; 
           {line}
         </AppText>
       )}
-      <PressableScale
-        accessibilityRole="link"
-        accessibilityLabel={`${stage.title}: δες περισσότερα`}
-        onPress={open}
-        pressedScale={0.97}
-        hitSlop={space.sm}
-        style={styles.more}>
-        <AppText size="small" bold color={colors.primary}>
-          Δες περισσότερα
-        </AppText>
-        <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
-      </PressableScale>
     </View>
   );
 }
@@ -61,7 +43,6 @@ type StagesBoxProps = {
   /** [index in the life cycle, stage] of each group */
   seed: [number, Lifecycle][];
   plant: [number, Lifecycle][];
-  onOpen: (index: number, rect: Rect) => void;
   /** 0 joined → 1 the seed half pushed behind and the plant half in its place */
   split: SharedValue<number>;
   /** 1 once the seed half is out of the layout (the end of the split) */
@@ -79,7 +60,7 @@ type StagesBoxProps = {
  * to where the seed half started; then the seed half leaves the layout in the same frame as the plant
  * half's offset is reset, so nothing jumps. The reverse brings it back.
  */
-export function StagesBox({ seed, plant, onOpen, split, collapsed, seedHeight, seedRef, plantRef }: StagesBoxProps) {
+export function StagesBox({ seed, plant, split, collapsed, seedHeight, seedRef, plantRef }: StagesBoxProps) {
   const both = seed.length > 0 && plant.length > 0;
 
   const seedStyle = useAnimatedStyle(() => {
@@ -119,8 +100,8 @@ export function StagesBox({ seed, plant, onOpen, split, collapsed, seedHeight, s
             if (height > 0) seedHeight.set(height);
           }}
           style={[styles.half, styles.top, seedStyle]}>
-          {seed.map(([index, stage], i) => (
-            <StageRow key={stage.id} stage={stage} first={i === 0} onOpen={(rect) => onOpen(index, rect)} />
+          {seed.map(([, stage], i) => (
+            <StageRow key={stage.id} stage={stage} first={i === 0} />
           ))}
           <Animated.View pointerEvents="none" style={[styles.shade, shade]} />
         </Animated.View>
@@ -130,8 +111,8 @@ export function StagesBox({ seed, plant, onOpen, split, collapsed, seedHeight, s
         <Animated.View
           ref={plantRef}
           style={[styles.half, styles.bottom, both && styles.joint, plantStyle]}>
-          {plant.map(([index, stage], i) => (
-            <StageRow key={stage.id} stage={stage} first={i === 0} onOpen={(rect) => onOpen(index, rect)} />
+          {plant.map(([, stage], i) => (
+            <StageRow key={stage.id} stage={stage} first={i === 0} />
           ))}
         </Animated.View>
       )}
@@ -179,11 +160,5 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-  },
-  more: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: space.xs,
   },
 });

@@ -14,7 +14,7 @@ import {
 } from '@growme/shared';
 
 import { FACT_ICONS, FLAG_ICONS, KIND_ICONS, SIZE_ICON, WIND_ICON, type PlantIcon } from '@/config/plant-icons';
-import { rangeSeason, seasonTrait, type Season } from '@/config/plant-traits';
+import { type Season } from '@/config/plant-traits';
 
 // The plant page's info tiles (plan 11): which ones a plant shows, their words, and the small
 // animation (or animations, one per value) on each. The other flags are rows under the sun bar.
@@ -48,18 +48,9 @@ function flagTile(plant: PlantSummary, key: PlantFlag, art: (value: boolean) => 
 
 /** The tiles a plant shows, in the page's order */
 export function infoTiles(plant: PlantSummary): InfoTile[] {
-  const season = seasonTrait(plant);
-  // One drawing per range's season, the same season once
-  const seasons = [...new Set(plant.monthRanges.map(rangeSeason))];
+  // (The planting months are not a tile: PlantingMonths shows them above the tiles)
   return [
     plant.wind && { key: 'wind', icon: WIND_ICON, label: 'Αέρας', value: WIND_LABELS[plant.wind], arts: [{ kind: 'wind', level: plant.wind }] },
-    season && {
-      key: 'months',
-      icon: FACT_ICONS.season,
-      label: 'Φύτεμα',
-      value: season.label,
-      arts: seasons.map((s) => ({ kind: 'season', season: s })),
-    },
     flagTile(plant, 'climbing', () => ({ kind: 'climbing' })),
     flagTile(plant, 'ornamental', () => ({ kind: 'ornamental' })),
     flagTile(plant, 'succulent', (value) => ({ kind: 'succulent', value }), true),

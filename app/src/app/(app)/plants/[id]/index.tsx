@@ -21,7 +21,7 @@ import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lig
 import { PhotoStack } from '@/components/plants/photo-stack';
 import { cardFromIndex, PlantCard } from '@/components/plants/plant-card';
 import { PlantCarousel } from '@/components/plants/plant-carousel';
-import { PlantTiles } from '@/components/plants/plant-tiles';
+import { PlantingMonths, PlantTiles } from '@/components/plants/plant-tiles';
 import { SectionBar, type PageSection } from '@/components/plants/section-bar';
 import { SunBar } from '@/components/plants/sun-graph';
 import { TipsList } from '@/components/plants/tips-list';
@@ -84,17 +84,15 @@ export default function PlantScreen() {
 
   // The scroll on the UI thread: the photos pushed back, the thumbnails, the page's colour, the life cycle
   const scroll = useSharedValue(0);
-  const contentHeight = useSharedValue(0);
-  const viewport = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((event) => {
     scroll.set(event.contentOffset.y);
     scheduleOnRN(onScrollY, event.contentOffset.y);
   });
   const hasPhotos = (plant?.images.length ?? 0) > 0;
   const tint = useAnimatedStyle(() => {
-    // White while the photos are there, then towards light orange down to the page's end
-    const start = hasPhotos ? PHOTO_HEIGHT * 0.6 : 0;
-    const end = Math.max(start + 1, contentHeight.get() - viewport.get());
+    // White under the photos, reaching the light orange as they finish fading out at the top
+    const start = hasPhotos ? PHOTO_HEIGHT * 0.2 : 0;
+    const end = hasPhotos ? PHOTO_GONE_AT : PHOTO_HEIGHT * 0.5;
     return { backgroundColor: interpolateColor(scroll.get(), [start, end], [colors.surface, PAGE_BOTTOM]) };
   });
 
@@ -147,13 +145,9 @@ export default function PlantScreen() {
       {/* The photos start at the very top, under the corner buttons; without photos the title clears them */}
       <Animated.ScrollView
         ref={scrollRef as never}
-        onLayout={(event) => {
-          page.scrollProps.onLayout(event);
-          viewport.set(event.nativeEvent.layout.height);
-        }}
+        onLayout={page.scrollProps.onLayout}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        onContentSizeChange={(_, height) => contentHeight.set(height)}
         contentContainerStyle={[
           styles.page,
           photos.length === 0 && { paddingTop: topClearance - space.lg },
@@ -187,6 +181,7 @@ export default function PlantScreen() {
               {plant.scientificName}
             </AppText>
           </View>
+          <PlantingMonths plant={plant} />
           <PlantTiles plant={plant} playing={tilesPlaying} />
           <SunBar start={plant.sunStart} end={plant.sunEnd} />
           <TraitRows plant={plant} withLifespan={plant.lifecycles.length === 0} />
@@ -195,7 +190,6 @@ export default function PlantScreen() {
         {plant.lifecycles.length > 0 && (
           <Block onLayout={register('lifecycle')}>
             <LifecycleCard
-              plantId={plant.id}
               stages={plant.lifecycles}
               lifespan={plant.lifespan}
               scrollY={scroll}
