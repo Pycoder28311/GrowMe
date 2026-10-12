@@ -124,7 +124,7 @@ export function BottomNav({ activeId, onNavigate, signedIn }: BottomNavProps) {
   };
 
   return (
-    <View accessibilityRole="tabbar" style={[styles.nav, { paddingBottom: insets.bottom }]}>
+    <View accessibilityRole="tablist" style={[styles.nav, { paddingBottom: insets.bottom }]}>
       {/* Above the profile tab: only once its place is known */}
       {!signedIn && positions.profile !== undefined && (
         <SignInNote centre={space.xs + positions.profile + size.touch / 2} onPress={() => handleTap('profile')} />
