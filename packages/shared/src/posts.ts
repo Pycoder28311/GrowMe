@@ -24,12 +24,18 @@ export const postUpdate = z.object({
   plantId: entityId.nullable().optional(),
 })
 
+/** The orders of the posts list: newest first (default), oldest first, most liked first */
+export const POST_SORTS = ['newest', 'oldest', 'liked'] as const
+export type PostSort = (typeof POST_SORTS)[number]
+
 /**
- * GET /api/posts                 every post
+ * GET /api/posts                 every post, newest first
  * GET /api/posts?plantId=3       the posts about plant 3
+ * GET /api/posts?sort=liked      newest | oldest | liked (most likes first, newer first among equals)
  */
 export const postFilter = z.object({
   plantId: queryId.optional(),
+  sort: z.enum(POST_SORTS).optional(),
 })
 
 export type PostCreate = z.infer<typeof postCreate>

@@ -1,5 +1,5 @@
 import { parseRichContent, type Plant } from '@growme/shared';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
@@ -90,7 +90,7 @@ function Block({ onLayout, children }: { onLayout: (event: LayoutChangeEvent) =>
 
 /** One plant's page, opened from a result: photos, characteristics, care, from the database */
 export default function PlantScreen() {
-  const { id, via } = useLocalSearchParams<{ id: string; via?: string }>();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
   const { plant, state, retry } = usePlant(Number(id));
   const combination = useCombinationPlants(plant?.combinationId ?? null, plant?.id ?? 0);
@@ -129,13 +129,10 @@ export default function PlantScreen() {
   );
   usePageHeader(header);
 
-  // A plant slides up from a card; from the search its result grows into it, so it only fades
-  const screen = <Stack.Screen options={{ animation: via === 'search' ? 'fade' : 'slide_from_bottom' }} />;
 
   if (state === 'loading') {
     return (
       <>
-        {screen}
         <ActivityIndicator color={colors.primary} style={{ marginTop: topClearance }} />
       </>
     );
@@ -161,7 +158,6 @@ export default function PlantScreen() {
 
   return (
     <View style={styles.root}>
-      {screen}
       <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, tint]} />
       {/* The photos start at the very top, under the corner buttons; without photos the title clears them */}
       <Animated.ScrollView
@@ -203,7 +199,10 @@ export default function PlantScreen() {
             </AppText>
           </View>
           <PlantingMonths plant={plant} />
-          <PlantTiles plant={plant} playing={tilesPlaying} />
+          {/* Over the sun box's sky, which rises behind the last row */}
+          <View style={styles.overSky}>
+            <PlantTiles plant={plant} playing={tilesPlaying} />
+          </View>
           <SunBar start={plant.sunStart} end={plant.sunEnd} />
           <TraitRows plant={plant} withLifespan={plant.lifecycles.length === 0} />
         </Block>
@@ -340,6 +339,9 @@ const styles = StyleSheet.create({
   scientific: {
     fontSize: 16,
     lineHeight: 22,
+  },
+  overSky: {
+    zIndex: 1,
   },
   notFound: {
     alignItems: 'center',

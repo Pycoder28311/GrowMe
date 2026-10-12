@@ -58,17 +58,3 @@ export function toggleLinked(filters: Filters, link: LinkedOption): Filters {
     : [...chosen, ...link.values.filter((value) => !chosen.includes(value))];
   return { ...filters, [link.filter]: next };
 }
-
-/* ─────────────── The price chart ─────────────── */
-
-/** How many plants are sold at each whole euro, up to the dearest (for the price histogram) */
-export function priceCounts(plants: readonly FilterPlant[]) {
-  const ranges = plants.flatMap((plant) => {
-    const low = plant.priceMin ?? plant.priceMax;
-    const high = plant.priceMax ?? plant.priceMin;
-    return low === null || high === null ? [] : [[low / 100, high / 100] as const];
-  });
-  const max = Math.max(1, Math.ceil(Math.max(0, ...ranges.map(([, high]) => high))));
-  const counts = Array.from({ length: max }, (_, euro) => ranges.filter(([low, high]) => low < euro + 1 && high >= euro).length);
-  return { counts, max };
-}

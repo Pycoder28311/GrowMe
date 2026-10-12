@@ -1,19 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 
 import { MessageInput } from '@/components/ui/message-input';
 import { alpha, colors, space } from '@/theme';
 
-type BottomComposerProps = {
-  placeholder: string;
-  onSend: (text: string) => void;
-};
-
 /**
- * A message field pinned to the bottom of a page. When the keyboard opens it moves up just enough
- * to stay above it (measured, so it also works where the system already resizes the screen).
+ * Something pinned to the bottom of a page (a message field, the post form). When the keyboard opens
+ * it moves up just enough to stay above it (measured, so it also works where the system already
+ * resizes the screen).
  */
-export function BottomComposer({ placeholder, onSend }: BottomComposerProps) {
+export function BottomBar({
+  children,
+  floating,
+  onHeight,
+}: {
+  children: ReactNode;
+  /** Over the page's content (which scrolls behind it), with no line or background of its own */
+  floating?: boolean;
+  /** Its height as it changes (a floating bar leaves room for it under the content) */
+  onHeight?: (height: number) => void;
+}) {
   const ref = useRef<View>(null);
   const [lift, setLift] = useState(0);
 
@@ -30,13 +36,40 @@ export function BottomComposer({ placeholder, onSend }: BottomComposerProps) {
   }, []);
 
   return (
-    <View ref={ref} collapsable={false} style={[styles.bar, { marginBottom: lift }]}>
-      <MessageInput placeholder={placeholder} onSend={onSend} />
+    <View
+      ref={ref}
+      collapsable={false}
+      onLayout={onHeight ? (event) => onHeight(event.nativeEvent.layout.height) : undefined}
+      style={[styles.bar, floating && styles.floating, { marginBottom: lift }]}>
+      {children}
     </View>
   );
 }
 
+type BottomComposerProps = {
+  placeholder: string;
+  onSend: (text: string) => void;
+};
+
+/** A message field pinned to the bottom of a page (replies) */
+export function BottomComposer({ placeholder, onSend }: BottomComposerProps) {
+  return (
+    <BottomBar>
+      <MessageInput placeholder={placeholder} onSend={onSend} />
+    </BottomBar>
+  );
+}
+
 const styles = StyleSheet.create({
+  // No line or background: what is in it floats over the page's content
+  floating: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopWidth: 0,
+    backgroundColor: 'transparent',
+  },
   bar: {
     borderTopWidth: 1,
     borderTopColor: colors.border,

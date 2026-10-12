@@ -1,6 +1,6 @@
 import { parseRichContent } from '@growme/shared';
 import { Image } from 'expo-image';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTopClearance } from '@/components/layout/app-shell';
@@ -18,22 +18,8 @@ import { colors, size, space } from '@/theme';
 // Photo height at the top of the post
 const PHOTO_HEIGHT = size.touch * 4;
 
-/**
- * One article: it slides up from the bottom over the list and back down when closed; opened from the
- * search it only fades, as its result already grew over the screen
- */
-export default function PostScreen() {
-  const { via } = useLocalSearchParams<{ via?: string }>();
-  return (
-    <>
-      <Stack.Screen options={{ animation: via === 'search' ? 'fade' : 'slide_from_bottom' }} />
-      <Article />
-    </>
-  );
-}
-
 /** One Encyclopedia article from the database: photo, text, sharing, comments and the other articles */
-function Article() {
+export default function Article() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
   const { blog: post, state, retry } = useBlog(Number(id));

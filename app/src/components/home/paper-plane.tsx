@@ -12,15 +12,16 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { PressableScale } from '@/components/ui/pressable-scale';
+import { sendButtonStyle } from '@/components/ui/send-button';
 import { SendIcon } from '@/components/ui/send-icon';
-import { colors, iconSize, radius, shadow, size } from '@/theme';
+import { colors, iconSize } from '@/theme';
 
 /**
  * The flight, a smooth glide on a gentle curve (a quadratic Bézier, in screen widths): off to the
  * right, climbing a little. Its speed eases in and out, the nose gently follows the curve,
  * and it shrinks a little and fades at the very end, as if flying away.
  */
-const FLY_MS = 1500;
+const FLY_MS = 900;
 const FLY_EASING = Easing.bezier(0.45, 0.05, 0.3, 1);
 /**
  * The curve's control point and end, as fractions of the screen width (y down is positive): mostly to
@@ -102,14 +103,9 @@ export function PaperPlane({ onPress, busy, ref }: { onPress: () => void; busy?:
 }
 
 const styles = StyleSheet.create({
+  // The look every send button has
   button: {
-    width: size.touch,
-    height: size.touch,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-    boxShadow: shadow.button,
+    ...sendButtonStyle,
     overflow: 'visible',
   },
   busy: {

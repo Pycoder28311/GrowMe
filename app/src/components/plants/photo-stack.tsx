@@ -20,13 +20,22 @@ import { colors, radius, shadow, size, space } from '@/theme';
 /** At most this many thumbnails */
 const MAX_THUMBS = 6;
 const GAP = space.sm;
-/** In the pile, each photo behind sits this much lower and to the left: only its edges show */
-const PILE_STEP = { x: -1.5, y: 2.5 };
+/**
+ * Where each photo sits in the pile, from the first's place (px): the second is behind it, higher and a
+ * little to the left, so its top edge shows above the first. (Only the first PILE_VISIBLE show.)
+ */
+const PILE_OFFSETS = [
+  { x: 0, y: 0 },
+  { x: -9, y: -2 },
+];
+const pileOffset = (i: number) => PILE_OFFSETS[i] ?? PILE_OFFSETS[PILE_OFFSETS.length - 1];
 /** Each one's tilt in the pile, like Instagram's «Instants»: the top one almost straight */
-const TILTS = [-3, 5, -7, 8, -9, 6];
+const TILTS = [-3, -15, -7, 8, -9, 6];
 /** Their size in the row under the photos, and in the pile at the top right (1 = the thumbnail size) */
 const ROW_SCALE = 0.85;
 const PILE_SCALE = 1.6;
+/** Only this many show in the pile (the others fade away as they arrive); the photo view has them all */
+const PILE_VISIBLE = 2;
 /**
  * Past this scroll they fly to the pile (a whole flight, never stopping halfway with the scroll); back
  * above it, they fly back to the row. HYSTERESIS keeps them from flickering right at the line.
@@ -69,6 +78,8 @@ function Thumb({ uri, i, count, active, scrollY, docked, rest, stack, size, inPi
     const e = own * own * (3 - 2 * own); // ease in and out
     const restY = rest.y - s;
     return {
+      // The photos beyond the pile's two melt away on the way
+      opacity: i >= PILE_VISIBLE ? 1 - e : 1,
       transform: [
         { translateX: rest.x + (stack.x - rest.x) * e },
         { translateY: restY + (stack.y - restY) * e },
@@ -80,7 +91,9 @@ function Thumb({ uri, i, count, active, scrollY, docked, rest, stack, size, inPi
   });
 
   return (
-    <Animated.View style={[styles.thumbPlace, { zIndex: count - i }, style]}>
+    <Animated.View
+      pointerEvents={inPile && i >= PILE_VISIBLE ? 'none' : 'auto'}
+      style={[styles.thumbPlace, { zIndex: count - i }, style]}>
       <Pressable
         ref={ref}
         accessibilityRole="imagebutton"
@@ -91,7 +104,7 @@ function Thumb({ uri, i, count, active, scrollY, docked, rest, stack, size, inPi
             ? ref.current?.measureInWindow((left, top, width, height) => onOpen({ left, top, width, height }))
             : onPick()
         }
-        style={[styles.thumb, { width: size, height: size }, active && styles.thumbActive]}>
+        style={[styles.thumb, { width: size, height: size }, (active || (inPile && i < PILE_VISIBLE)) && styles.thumbActive]}>
         <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
       </Pressable>
     </Animated.View>
@@ -102,7 +115,7 @@ function Thumb({ uri, i, count, active, scrollY, docked, rest, stack, size, inPi
  * The photos' thumbnails, over the page: first in a row centred on the photos' faded edge; once the
  * page scrolls past DOCK_AT they fly one by one to the top right under the search button and pile up
  * there, bigger and half off the screen's edge, one behind the other, tilted, so only the edges of
- * those behind show. Scrolling back above it flies them back to the row. In the row a tap shows that
+ * those behind show (only the first PILE_VISIBLE; the rest fade away). Scrolling back above it flies them back to the row. In the row a tap shows that
  * photo at the top (`onPick`); in the pile it opens it over the page (`onOpen`).
  */
 export function PhotoStack({
@@ -145,7 +158,8 @@ export function PhotoStack({
   // Under the search button (top right corner), with the corners' gap. The pile is scaled about each
   // thumbnail's centre, so it moves down by the growth to keep its top there.
   const grow = ((PILE_SCALE - 1) * thumb) / 2;
-  const stackTop = insets.top + space.md + size.touch + space.sm + grow;
+  // (the second photo sits higher than the first: everything starts that much lower, to keep it clear of the button)
+  const stackTop = insets.top + space.md + size.touch + space.sm + grow + Math.abs(Math.min(0, ...PILE_OFFSETS.map((o) => o.y)));
 
   return (
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
@@ -164,7 +178,7 @@ export function PhotoStack({
           rest={{ x: (width - rowWidth) / 2 + i * (thumb + GAP), y: THUMBS_CENTER - thumb / 2 }}
           // The pile: right-aligned with the search button, each one just behind the one before
           // Centred on the screen's right edge, so half of it is off screen
-          stack={{ x: width - thumb / 2 + i * PILE_STEP.x, y: stackTop + i * PILE_STEP.y }}
+          stack={{ x: width - thumb / 2 + pileOffset(i).x, y: stackTop + pileOffset(i).y }}
           onOpen={(rect) => onOpen(i, rect)}
         />
       ))}

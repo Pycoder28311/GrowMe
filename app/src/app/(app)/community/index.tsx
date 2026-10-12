@@ -1,42 +1,36 @@
+import type { PostSort } from '@growme/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
-import { postsApi } from '@/api/posts';
-import { BottomComposer } from '@/components/discussion/bottom-composer';
+import { BottomBar } from '@/components/discussion/bottom-composer';
 import { DiscussionItem } from '@/components/discussion/discussion-item';
 import { PostPhotos } from '@/components/discussion/post-photos';
+import { SortMenu } from '@/components/discussion/sort-menu';
+import { AskCard } from '@/components/home/ask-card';
 import { useTopClearance } from '@/components/layout/app-shell';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
 import { timeAgo } from '@/lib/format';
-import { firstSentence, usePosts } from '@/lib/posts';
+import { usePosts } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
-import { colors, space } from '@/theme';
+import { colors, quietGray, space } from '@/theme';
 
 const openPost = (id: number) => router.push({ pathname: '/community/[id]', params: { id: String(id) } });
 
 /** Users' questions, newest first (more load while scrolling), with a field to write a new one */
 export default function CommunityScreen() {
   const topClearance = useTopClearance();
-  const { posts, loading, error, loadMore, refresh, update } = usePosts();
+  const [sort, setSort] = useState<PostSort>('newest');
+  // The form floats over the list: the list leaves room for it at the end
+  const [formHeight, setFormHeight] = useState(0);
+  const { posts, loading, error, loadMore, refresh, update } = usePosts(sort);
   const reactions = useReactions('post', posts);
-  const [sendError, setSendError] = useState(false);
-
-  // A text-only post: its title is the first sentence
-  const send = async (text: string) => {
-    setSendError(false);
-    try {
-      const post = await postsApi.create({ title: firstSentence(text), content: text, imageIds: [], plantId: null });
-      update((current) => [post, ...current]);
-    } catch {
-      setSendError(true);
-    }
-  };
 
   return (
     <View style={styles.page}>
       <FlatList
+        style={styles.grayList}
         data={posts}
         keyExtractor={(post) => String(post.id)}
         keyboardShouldPersistTaps="handled"
@@ -48,6 +42,8 @@ export default function CommunityScreen() {
             <AppText size="big" bold accessibilityRole="header">
               Αναρτήσεις
             </AppText>
+            {/* The order: a list opens right below the button */}
+            <SortMenu value={sort} onChange={setSort} />
           </View>
         }
         renderItem={({ item }) => {
@@ -88,17 +84,20 @@ export default function CommunityScreen() {
                 <PillButton label="Δοκίμασε ξανά" onPress={posts.length ? loadMore : refresh} />
               </View>
             )}
-            {(reactions.error || sendError) && (
+            {reactions.error && (
               <AppText size="small" color={colors.accent} style={styles.status} accessibilityLiveRegion="polite">
-                {sendError ? 'Η ανάρτηση δεν στάλθηκε. Δοκίμασε ξανά.' : 'Η αντίδρασή σου δεν αποθηκεύτηκε. Δοκίμασε ξανά.'}
+                Η αντίδρασή σου δεν αποθηκεύτηκε. Δοκίμασε ξανά.
               </AppText>
             )}
           </>
         }
-        contentContainerStyle={[styles.list, { paddingTop: topClearance }]}
+        contentContainerStyle={[styles.list, { paddingTop: topClearance, paddingBottom: space.md + formHeight }]}
       />
-      {/* The new post goes to the top of the list */}
-      <BottomComposer placeholder="Η ανάρτησή σου..." onSend={send} />
+      {/* The same form as the home page's: a field, and on a tap its title, photo and plant buttons.
+          The new post goes to the top of the list */}
+      <BottomBar floating onHeight={setFormHeight}>
+        <AskCard composer onPosted={(post) => update((current) => [post, ...current])} />
+      </BottomBar>
     </View>
   );
 }
@@ -106,6 +105,10 @@ export default function CommunityScreen() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
+  },
+  // Gray behind the posts: it shows between them
+  grayList: {
+    backgroundColor: quietGray,
   },
   // Posts run the screen's full width; only the title keeps the side margin
   list: {
@@ -118,13 +121,16 @@ const styles = StyleSheet.create({
     marginBottom: space.md,
     paddingHorizontal: space.md,
   },
+  // Less room under the actions than around the rest
   post: {
     padding: space.md,
+    paddingBottom: space.xs,
     backgroundColor: colors.surface,
   },
+  // Between two posts: the list's gray shows through, so each post is its own white block
   gap: {
-    height: 1,
-    backgroundColor: colors.border,
+    // 30% less than before (24)
+    height: Math.round(space.lg * 0.7),
   },
   empty: {
     marginTop: space.lg,

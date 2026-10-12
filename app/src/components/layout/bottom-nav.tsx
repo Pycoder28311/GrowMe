@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
+  FadeInDown,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -13,7 +14,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { raisedTile, tileIcon } from '@/components/ui/styles';
 import { NAV_ITEMS, type NavId, type TapAnimation } from '@/config/app';
-import { alpha, colors, iconSize, size, space } from '@/theme';
+import { AppText } from '@/components/ui/app-text';
+import { alpha, colors, iconSize, radius, shadow, size, space } from '@/theme';
 
 // Springy ease with a small overshoot, so the indicator settles like a drop of liquid
 const SLIDE = { duration: 350, easing: Easing.bezier(0.34, 1.2, 0.64, 1) };
@@ -53,10 +55,33 @@ function NavIcon({ icon, active, animation, taps }: { icon: IconName; active: bo
 type BottomNavProps = {
   activeId: NavId;
   onNavigate: (id: NavId) => void;
+  /** False: a «Σύνδεση» note floats above the profile tab */
+  signedIn: boolean;
 };
 
+/** How far the note's right side reaches past the profile tab's middle, and the tail's width */
+const NOTE_REACH = 24;
+const TAIL = 14;
+
+/** A small floating note above the profile tab for signed-out users; a tap opens the sign-in page */
+function SignInNote({ centre, onPress }: { centre: number; onPress: () => void }) {
+  return (
+    // A zero-width anchor over the profile tab's middle; the note hangs off it to the left
+    <View pointerEvents="box-none" style={[styles.noteAnchor, { left: centre }]}>
+      <Animated.View entering={FadeInDown.delay(600).duration(350)} style={styles.note}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Σύνδεση" onPress={onPress} style={styles.noteBody}>
+          <AppText bold color={colors.primary}>
+            Σύνδεση
+          </AppText>
+        </Pressable>
+        <View pointerEvents="none" style={styles.tail} />
+      </Animated.View>
+    </View>
+  );
+}
+
 /** The bottom bar: five icon tabs and a raised tile that slides to the active one */
-export function BottomNav({ activeId, onNavigate }: BottomNavProps) {
+export function BottomNav({ activeId, onNavigate, signedIn }: BottomNavProps) {
   const insets = useSafeAreaInsets();
   const [positions, setPositions] = useState<Partial<Record<NavId, number>>>({});
   // The last tapped tab; `count` replays its icon animation on every tap
@@ -100,6 +125,10 @@ export function BottomNav({ activeId, onNavigate }: BottomNavProps) {
 
   return (
     <View accessibilityRole="tabbar" style={[styles.nav, { paddingBottom: insets.bottom }]}>
+      {/* Above the profile tab: only once its place is known */}
+      {!signedIn && positions.profile !== undefined && (
+        <SignInNote centre={space.xs + positions.profile + size.touch / 2} onPress={() => handleTap('profile')} />
+      )}
       <View style={styles.row}>
         {activeX !== undefined && (
           <Animated.View pointerEvents="none" style={[raisedTile, styles.indicator, indicatorStyle]} />
@@ -129,6 +158,41 @@ export function BottomNav({ activeId, onNavigate }: BottomNavProps) {
 }
 
 const styles = StyleSheet.create({
+  noteAnchor: {
+    position: 'absolute',
+    bottom: '100%',
+    width: 0,
+    height: 0,
+    zIndex: 5,
+  },
+  // Right edge NOTE_REACH past the anchor, its bottom a little above the bar, with the tail under it
+  note: {
+    position: 'absolute',
+    right: -NOTE_REACH,
+    bottom: space.sm + TAIL / 2,
+  },
+  noteBody: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: alpha(colors.ink, 0.12),
+    boxShadow: shadow.raised,
+  },
+  // A small square turned to a diamond, half hidden behind the note, pointing at the tab
+  tail: {
+    position: 'absolute',
+    right: NOTE_REACH - TAIL / 2,
+    bottom: -TAIL / 2 + 1,
+    width: TAIL,
+    height: TAIL,
+    backgroundColor: colors.surface,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: alpha(colors.ink, 0.12),
+    transform: [{ rotate: '45deg' }],
+  },
   nav: {
     borderTopWidth: 1,
     borderTopColor: alpha(colors.surface, 0.8),

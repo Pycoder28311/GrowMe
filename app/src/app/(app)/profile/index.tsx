@@ -108,6 +108,9 @@ const LOCATION_ERRORS: Record<LocationError | 'failed', string> = {
   failed: 'Η περιοχή δεν αποθηκεύτηκε. Δοκίμασε ξανά.',
 };
 
+/** The area section is hidden for now: plant advice doesn't use the area yet */
+const SHOW_AREA = false;
+
 /** «Η περιοχή μου»: the phone's approximate position (about 1 km), for advice by climate */
 function MyArea() {
   const [location, setLocation] = useState<UserLocation | null | undefined>(undefined);
@@ -205,7 +208,7 @@ function LikedPost({ post }: { post: Post }) {
   );
 }
 
-/** The profile: name, password, area, the posts I liked, and the account rows */
+/** The profile: name, password, (area, hidden for now), the posts I liked, and the account rows */
 export default function ProfileScreen() {
   const topClearance = useTopClearance();
   const { data: session } = authClient.useSession();
@@ -273,9 +276,11 @@ export default function ProfileScreen() {
         )}
       </View>
 
-      <View style={styles.card}>
-        <MyArea />
-      </View>
+      {SHOW_AREA && (
+        <View style={styles.card}>
+          <MyArea />
+        </View>
+      )}
 
       <Section title="Αναρτήσεις που μου άρεσαν">
         <View style={styles.card}>

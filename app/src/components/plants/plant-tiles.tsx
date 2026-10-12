@@ -13,7 +13,7 @@ import { seasonTrait } from '@/config/plant-traits';
 import { alpha, colors, iconSize, radius, shadow, space } from '@/theme';
 
 /** The same gap across and down between tiles */
-const GAP = space.md;
+const GAP = space.md + space.xs;
 
 /**
  * The plant's info as almost square white tiles in two columns: the icon top left, a small animation
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     // Stands out from the page: a deeper shadow, a faint edge, and a thicker darker one at the bottom
     borderWidth: 1,
     borderColor: alpha(colors.ink, 0.06),
-    borderBottomWidth: 3,
+    borderBottomWidth: 5,
     borderBottomColor: alpha(colors.ink, 0.14),
     boxShadow: shadow.raised,
   },

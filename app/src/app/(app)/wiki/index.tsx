@@ -57,7 +57,8 @@ export default function WikiScreen() {
           </View>
         ) : null
       }
-      contentContainerStyle={[styles.list, { paddingTop: topClearance }]}
+      // The tabs sit as far under the corner buttons as the first article is under them
+      contentContainerStyle={[styles.list, { paddingTop: topClearance + space.md - space.sm }]}
     />
   );
 }

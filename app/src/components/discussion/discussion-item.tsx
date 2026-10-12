@@ -62,9 +62,9 @@ function ReactionButton({ icon, label, active, count, onPress, size: actionSize 
   const color = active ? colors.primary : colors.inkMuted;
   return (
     <ItemAction label={label} selected={active} onPress={onPress}>
-      <Icon name={icon} size={actionSize === 'normal' ? iconSize.normal : iconSize.small} color={color} bold={active} />
+      <Icon name={icon} size={actionSize === 'normal' ? iconSize.big : iconSize.normal} color={color} bold={active} />
       {count !== undefined && (
-        <AppText size={actionSize} bold={active} color={color}>
+        <AppText bold={active} color={color}>
           {count}
         </AppText>
       )}
@@ -127,15 +127,16 @@ export function DiscussionItem({
             label={onToggleReplies && (repliesOpen ? 'Απόκρυψη απαντήσεων' : 'Εμφάνιση απαντήσεων')}
             selected={onToggleReplies ? !!repliesOpen : undefined}
             onPress={onToggleReplies ?? onPress}>
-            <AppText size={actionSize} bold color={colors.primary}>
-              {onToggleReplies && repliesOpen ? 'Απόκρυψη' : 'Απαντήσεις'}
+            <AppText bold color={colors.primary}>
+              {/* No replies yet: an invitation to be the first */}
+              {onToggleReplies && repliesOpen ? 'Απόκρυψη' : replyCount === 0 ? 'Απάντησε' : 'Απαντήσεις'}
               {replyCount > 0 ? ` (${replyCount})` : ''}
             </AppText>
           </ItemAction>
         )}
         {onReply && (
           <ItemAction onPress={onReply}>
-            <AppText size={actionSize} bold color={colors.primary}>
+            <AppText bold color={colors.primary}>
               Απάντηση
             </AppText>
           </ItemAction>

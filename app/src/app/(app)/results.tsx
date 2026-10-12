@@ -43,6 +43,7 @@ export default function ResultsScreen() {
   const tabs = (
     <View style={styles.tabs}>
       <CategoryTabs
+        variant="scroll"
         tabs={KIND_TABS}
         activeId={kindTab}
         onChange={(id) => setFilters({ ...filters, kind: id === 'all' ? [] : [id] })}
@@ -52,7 +53,8 @@ export default function ResultsScreen() {
 
   const clearButton = <PillButton label="Καθαρισμός φίλτρων" onPress={() => setFilters({})} />;
   // Top clears the corner buttons; bottom leaves room for the floating filters button
-  const listStyle = [styles.list, { paddingTop: topClearance }];
+  // (the tabs sit as far under the corner buttons as the first plant is under them)
+  const listStyle = [styles.list, { paddingTop: topClearance + space.md - space.sm }];
 
   return (
     <View style={styles.page}>
@@ -143,7 +145,8 @@ export default function ResultsScreen() {
       )}
 
       {/* Stays in view at the bottom while the list scrolls; becomes Submit while the sheet is open */}
-      <View ref={filtersButtonRef} collapsable={false} style={styles.filtersBar}>
+      {/* Hidden while the sheet's copy of it, in the same place, turns over */}
+      <View ref={filtersButtonRef} collapsable={false} style={[styles.filtersBar, filtersFrame && styles.hidden]}>
         <FiltersButton onPress={openFilters} count={chosenCount({ ...filters, kind: [] })} />
       </View>
 
@@ -153,6 +156,9 @@ export default function ResultsScreen() {
 }
 
 const styles = StyleSheet.create({
+  hidden: {
+    opacity: 0,
+  },
   page: {
     flex: 1,
   },

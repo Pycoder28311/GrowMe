@@ -1,14 +1,24 @@
 import { StyleSheet } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
-import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { colors, iconSize, radius, space } from '@/theme';
+import { SendIcon } from '@/components/ui/send-icon';
+import { colors, iconSize, radius, shadow, size } from '@/theme';
 
 /** Its height, so a field can line its last row up with it */
-export const SEND_BUTTON_HEIGHT = 36;
+export const SEND_BUTTON_HEIGHT = size.touch;
 
-/** «Αποστολή ›»: the send button of every message field (replies, comments, posts) */
+/** The look of every send button: a green rounded square */
+export const sendButtonStyle = {
+  width: size.touch,
+  height: size.touch,
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: radius.xs,
+  backgroundColor: colors.primary,
+  boxShadow: shadow.button,
+} as const;
+
+/** The paper-plane button of every message field (replies, comments, posts); the question form's one flies */
 export function SendButton({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) {
   return (
     <PressableScale
@@ -17,27 +27,14 @@ export function SendButton({ onPress, disabled }: { onPress: () => void; disable
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      pressedScale={0.96}
-      style={[styles.button, disabled && styles.disabled]}>
-      <AppText size="small" bold color={colors.surface}>
-        Αποστολή
-      </AppText>
-      <Icon name="chevronRight" size={iconSize.small} color={colors.surface} bold />
+      pressedScale={0.94}
+      style={[sendButtonStyle, disabled && styles.disabled]}>
+      <SendIcon size={iconSize.big} color={colors.surface} />
     </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  button: {
-    height: SEND_BUTTON_HEIGHT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingLeft: space.md,
-    paddingRight: space.sm,
-    borderRadius: radius.xs,
-    backgroundColor: colors.primary,
-  },
   disabled: {
     opacity: 0.4,
   },

@@ -22,9 +22,8 @@ export default function RootLayout() {
       {!isPending && (fontsLoaded || fontError) && <AnimatedSplashOverlay />}
       {/* Always rendered, so a link like growme://reset-password?token=… is never lost */}
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!!session}>
-          <Stack.Screen name="(app)" />
-        </Stack.Protected>
+        {/* Open to everyone: the profile and writing ask for an account when used (lib/sign-in-gate) */}
+        <Stack.Screen name="(app)" />
         <Stack.Protected guard={!session}>
           <Stack.Screen name="sign-in" />
           <Stack.Screen name="sign-up" />

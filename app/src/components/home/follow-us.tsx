@@ -1,9 +1,18 @@
-import { Linking, StyleSheet, View } from 'react-native';
+import type { ReactElement } from "react";
+import { Linking, StyleSheet, View } from "react-native";
 
+import { FacebookIcon, InstagramIcon } from '@/components/home/social-icons';
 import { AppText } from '@/components/ui/app-text';
-import { PillButton } from '@/components/ui/pill-button';
+import { Icon } from '@/components/ui/icon';
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { SOCIAL_LINKS } from '@/config/app';
-import { colors, space } from '@/theme';
+import { colors, iconSize, radius, space } from '@/theme';
+
+/** The mark of each network, by the link's label */
+const MARKS: Record<string, () => ReactElement> = {
+  Facebook: () => <FacebookIcon />,
+  Instagram: () => <InstagramIcon />,
+};
 
 /** "Follow us": buttons that open the app's social pages */
 export function FollowUs() {
@@ -14,7 +23,18 @@ export function FollowUs() {
       </AppText>
       <View style={styles.row}>
         {SOCIAL_LINKS.map((link) => (
-          <PillButton key={link.label} label={link.label} onPress={() => Linking.openURL(link.url).catch(() => {})} />
+          <PressableScale
+            key={link.label}
+            accessibilityRole="link"
+            accessibilityLabel={link.label}
+            onPress={() => Linking.openURL(link.url).catch(() => {})}
+            pressedScale={0.97}
+            style={styles.button}>
+            {MARKS[link.label]?.()}
+            <AppText>{link.label}</AppText>
+            {/* A forward arrow: it leaves the app for that page */}
+            <Icon name="send" size={iconSize.small} color={colors.inkMuted} bold />
+          </PressableScale>
         ))}
       </View>
     </View>
@@ -34,5 +54,18 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: space.sm,
+  },
+  // The network's mark, its name, a forward arrow on the right
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingVertical: space.xs + 2,
+    paddingLeft: space.sm,
+    paddingRight: space.md,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
 });

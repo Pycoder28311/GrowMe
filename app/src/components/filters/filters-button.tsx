@@ -22,19 +22,22 @@ type FiltersButtonProps = {
   style?: StyleProp<ViewStyle>;
   /** How many filter options are chosen (a badge when more than 0) */
   count?: number;
+  /** Appears showing the other side and turns over at once (the sheet's Submit, over the page's Filters) */
+  flipIn?: boolean;
 };
 
-/** Half a flip: the label turns away (to 90°), then the other one turns in (from −90°) */
-const HALF_FLIP_MS = 150;
+/** Half a flip: the button turns away edge-on (to 90°), then its other side turns in (from −90°) */
+const HALF_FLIP_MS = 180;
 
 /**
- * The results page's floating button: "Φίλτρα", or "Υποβολή" while the filters sheet is open. The
- * label flips over vertically to change (with Reduce Motion it just changes).
+ * The results page's floating green button: "Φίλτρα", or "Υποβολή" while the filters sheet is open.
+ * The whole button turns over sideways, like a card, to show the other word (with Reduce Motion the
+ * word just changes).
  */
-export function FiltersButton({ submit = false, onPress, style, count = 0 }: FiltersButtonProps) {
+export function FiltersButton({ submit = false, onPress, style, count = 0, flipIn = false }: FiltersButtonProps) {
   const reduced = useReducedMotion();
-  // The label on show lags behind `submit` until the flip is half way
-  const [shown, setShown] = useState(submit);
+  // The side on show lags behind `submit` until the turn is half way
+  const [shown, setShown] = useState(flipIn ? !submit : submit);
   const turn = useSharedValue(0);
 
   useEffect(() => {
@@ -55,12 +58,14 @@ export function FiltersButton({ submit = false, onPress, style, count = 0 }: Fil
     );
   }, [submit, shown, reduced, turn]);
 
-  const flip = useAnimatedStyle(() => ({ transform: [{ perspective: 400 }, { rotateX: `${turn.get()}deg` }] }));
+  const flip = useAnimatedStyle(() => ({ transform: [{ perspective: 600 }, { rotateY: `${turn.get()}deg` }] }));
 
   return (
-    <ActionButton size="md" edge={false} glow="soft" onPress={onPress} style={style}>
-      <Animated.View style={flip}>{shown ? <SubmitLabel /> : <FiltersLabel count={count} />}</Animated.View>
-    </ActionButton>
+    <Animated.View style={[style, flip]}>
+      <ActionButton size="md" color="green" edge={false} glow="soft" onPress={onPress}>
+        {shown ? <SubmitLabel /> : <FiltersLabel count={count} />}
+      </ActionButton>
+    </Animated.View>
   );
 }
 
@@ -80,7 +85,7 @@ function FiltersLabel({ count }: { count: number }) {
       <ActionButtonText>Φίλτρα</ActionButtonText>
       {count > 0 && (
         <View style={styles.badge} accessibilityLabel={`${count} επιλεγμένα`}>
-          <AppText size="small" bold color={colors.accent}>
+          <AppText size="small" bold color={colors.primary}>
             {count}
           </AppText>
         </View>

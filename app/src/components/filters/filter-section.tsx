@@ -13,15 +13,12 @@ type FilterSectionProps = {
   onChange: (filters: Filters) => void;
   /** Also the filter's linked checkboxes (the short set's «Αντέχει αέρα») */
   withLinked?: boolean;
-  /** The price chart's data (priceCounts); without it the price filter shows only its ranges */
-  prices?: { counts: number[]; max: number };
 };
 
 /**
  * One filter of config/plant-filters.ts with its title, as chips (single choice: tap again to clear).
- * The price filter adds its chart.
  */
-export function FilterSection({ id, filters, onChange, withLinked = false, prices }: FilterSectionProps) {
+export function FilterSection({ id, filters, onChange, withLinked = false }: FilterSectionProps) {
   const def = FILTERS[id];
   const chosen = filters[id] ?? [];
 
@@ -32,8 +29,6 @@ export function FilterSection({ id, filters, onChange, withLinked = false, price
           options={PRICE_OPTIONS}
           selected={chosen}
           onToggle={(optionId) => onChange(toggleOption(filters, id, optionId))}
-          counts={prices?.counts ?? []}
-          max={prices?.max ?? 0}
         />
       ) : (
         <View style={styles.options} accessibilityRole={def.select === 'one' ? 'radiogroup' : undefined}>

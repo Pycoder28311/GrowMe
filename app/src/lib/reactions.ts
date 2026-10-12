@@ -2,6 +2,7 @@ import type { LikedType } from '@growme/shared';
 import { useEffect, useRef, useState } from 'react';
 
 import { likesApi } from '@/api/likes';
+import { goToSignIn, useSignedInId } from '@/lib/sign-in-gate';
 
 export type Reaction = 'like' | 'dislike' | null;
 
@@ -26,8 +27,11 @@ export function useReactions(type: LikedType, items: { id: number; likeCount: nu
   const asked = useRef(new Set<number>());
   const pending = useRef(new Set<number>());
   const ids = items.map((item) => item.id).join(',');
+  // Signed out there are no reactions to load (signing in loads them)
+  const userId = useSignedInId();
 
   useEffect(() => {
+    if (!userId) return;
     const fresh = ids
       .split(',')
       .filter(Boolean)
@@ -43,7 +47,7 @@ export function useReactions(type: LikedType, items: { id: number; likeCount: nu
         )
         .catch(() => {});
     }
-  }, [type, ids]);
+  }, [type, ids, userId]);
 
   const stateOf = (item: { id: number; likeCount: number }) => ({
     reaction: mine[item.id] ?? null,
@@ -51,6 +55,10 @@ export function useReactions(type: LikedType, items: { id: number; likeCount: nu
   });
 
   async function toggle(item: { id: number; likeCount: number }, pressed: Exclude<Reaction, null>) {
+    if (!userId) {
+      goToSignIn();
+      return;
+    }
     if (pending.current.has(item.id)) return; // one change at a time per item
     pending.current.add(item.id);
     const before = stateOf(item);

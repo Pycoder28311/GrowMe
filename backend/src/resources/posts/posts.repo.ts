@@ -1,8 +1,8 @@
 import type { Post, PostCreate, PostFilter, PostUpdate } from '@growme/shared'
-import { and, asc, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray } from 'drizzle-orm'
 import { plantImages, plants, postImages, postReplies, posts } from '../../db/schema'
 import { hasChanges, ownedOrAdmin, userId, type Ctx, type Repo, type Store } from '../../lib/crud'
-import { beforeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
+import { beforeCursor, encodeCursor, fetchLimit, mapPage, toPage } from '../../lib/pagination'
 import { assertExists, removedIds, replaceLinks, runBatch, type LinkTable } from '../../lib/relations'
 import { authorColumns, toAuthor } from '../authors'
 import { assertCanLinkImages, deleteImages, imageUrl, toImageRefs } from '../images/images.repo'
@@ -62,12 +62,30 @@ const assertPlant = async (ctx: Ctx, plantId: number | null | undefined) => {
 
 /** Public read, signed-in create, owners edit, owners or admins delete */
 export const postsRepo: Repo<PostCreate, PostUpdate, Post, PostFilter> = {
-  async list(ctx, page, { plantId }) {
+  async list(ctx, page, { plantId, sort = 'newest' }) {
+    const aboutPlant = plantId ? eq(posts.plantId, plantId) : undefined
+    const query = { limit: fetchLimit(page), with: withAll } as const
+
+    // Most liked first: the cursor is how many posts the client already has (likes change while it
+    // reads, so an id can't mark the place), newer first among equal likes
+    if (sort === 'liked') {
+      const offset = page?.cursor ?? 0
+      const rows = await ctx.db.query.posts.findMany({
+        ...query,
+        where: aboutPlant,
+        orderBy: [desc(posts.likeCount), desc(posts.id)],
+        offset,
+      })
+      if (!page || rows.length <= page.limit) return mapPage({ items: rows, nextCursor: null }, (p) => toJson(ctx.env, p))
+      return mapPage({ items: rows.slice(0, page.limit), nextCursor: encodeCursor(offset + page.limit) }, (p) => toJson(ctx.env, p))
+    }
+
+    // Oldest first: ids go up, so the cursor is the last id and the next page is above it
+    const oldest = sort === 'oldest'
     const rows = await ctx.db.query.posts.findMany({
-      where: and(beforeCursor(posts.id, page), plantId ? eq(posts.plantId, plantId) : undefined),
-      orderBy: desc(posts.id),
-      limit: fetchLimit(page),
-      with: withAll,
+      ...query,
+      where: and(oldest ? (page?.cursor ? gt(posts.id, page.cursor) : undefined) : beforeCursor(posts.id, page), aboutPlant),
+      orderBy: oldest ? asc(posts.id) : desc(posts.id),
     })
     return mapPage(
       toPage(rows, page, (p) => p.id),

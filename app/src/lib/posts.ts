@@ -1,13 +1,14 @@
-import type { PostReply } from '@growme/shared';
-import { useMemo } from 'react';
+import type { PostReply, PostSort } from '@growme/shared';
+import { useCallback, useMemo } from 'react';
 
 import { postRepliesApi, postsApi } from '@/api/posts';
 import type { ThreadSource } from '@/components/discussion/reply-thread';
 import { useApiItem, usePagedList } from '@/lib/use-api';
 
-/** The community's posts, newest first, a page at a time */
-export function usePosts() {
-  const { items, ...rest } = usePagedList(postsApi.list);
+/** The community's posts in an order (newest first by default), a page at a time; a new order loads again from the start */
+export function usePosts(sort: PostSort = 'newest') {
+  const fetchPage = useCallback((cursor: string | null) => postsApi.list(cursor, { sort }), [sort]);
+  const { items, ...rest } = usePagedList(fetchPage);
   return { posts: items, ...rest };
 }
 

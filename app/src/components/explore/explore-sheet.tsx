@@ -7,7 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { BottomSheet, type BottomSheetHandle } from '@/components/ui/bottom-sheet';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SHORT_FILTERS, type Filters } from '@/config/plant-filters';
-import { activeFilters, matchPlantFilters, priceCounts } from '@/lib/plant-filter-match';
+import { activeFilters, matchPlantFilters } from '@/lib/plant-filter-match';
 import { useSearchIndex } from '@/lib/search';
 import { colors, space } from '@/theme';
 
@@ -30,7 +30,6 @@ export function ExploreSheet({ initialFilters, onClose }: ExploreSheetProps) {
   const { index, load } = useSearchIndex();
   useEffect(load, [load]);
   const plants = useMemo(() => index?.plants ?? [], [index]);
-  const prices = useMemo(() => priceCounts(plants), [plants]);
   const matching = index && activeFilters(draft).length > 0 ? matchPlantFilters(plants, draft).matches.length : null;
 
   const closeSheet = () => sheetRef.current?.close();
@@ -60,7 +59,7 @@ export function ExploreSheet({ initialFilters, onClose }: ExploreSheetProps) {
       }>
       <View style={styles.groups}>
         {SHORT_FILTERS.map((id) => (
-          <FilterSection key={id} id={id} filters={draft} onChange={setDraft} withLinked prices={prices} />
+          <FilterSection key={id} id={id} filters={draft} onChange={setDraft} withLinked />
         ))}
       </View>
     </BottomSheet>

@@ -2,15 +2,16 @@ import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { alpha, colors, outline, quietGray, radius, shadow, space } from '@/theme';
+import { alpha, colors, outline, radius, shadow, space } from '@/theme';
 
 type CategoryTabsProps = {
   tabs: { id: string; label: string }[];
   activeId: string;
   onChange: (id: string) => void;
   /**
-   * `equal` (default): equal pills in one row. `scroll`: light-gray pills sized to their words in a
-   * row that scrolls sideways, its scrollbar hidden (e.g. the Encyclopedia's kinds)
+   * `equal` (default): equal pills in one row. `scroll`: white buttons with a black border sized to
+   * their words in a row that scrolls sideways, its scrollbar hidden (the plants' and Encyclopedia's
+   * kinds), spread across the width when they fit (never closer than a small gap); the chosen one has an orange border and a light orange fill
    */
   variant?: 'equal' | 'scroll';
 };
@@ -19,7 +20,7 @@ type CategoryTabsProps = {
 export function CategoryTabs({ tabs, activeId, onChange, variant = 'equal' }: CategoryTabsProps) {
   if (variant === 'scroll') {
     return (
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hiddenBar} contentContainerStyle={styles.row}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hiddenBar} contentContainerStyle={styles.spread}>
         {tabs.map(({ id, label }) => {
           const isActive = id === activeId;
           return (
@@ -30,7 +31,7 @@ export function CategoryTabs({ tabs, activeId, onChange, variant = 'equal' }: Ca
               onPress={() => onChange(id)}
               pressedScale={0.96}
               style={[styles.light, isActive && styles.lightActive]}>
-              <AppText bold={isActive} color={isActive ? colors.ink : colors.inkMuted}>
+              <AppText bold={isActive} color={colors.ink}>
                 {label}
               </AppText>
             </PressableScale>
@@ -65,6 +66,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: space.sm,
   },
+  // The scroll variant: spread across the width when they fit; when they don't, the minimum gap and a sideways scroll
+  spread: {
+    minWidth: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
   tab: {
     flex: 1,
     alignItems: 'center',
@@ -83,14 +91,18 @@ const styles = StyleSheet.create({
   },
   // The scroll variant: no scrollbar on web either
   hiddenBar: Platform.OS === 'web' ? ({ scrollbarWidth: 'none' } as object) : {},
+  // The same border width in both states, so choosing one never moves the others
   light: {
     alignItems: 'center',
     borderRadius: radius.xs,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
-    backgroundColor: quietGray,
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    backgroundColor: colors.surface,
   },
   lightActive: {
-    backgroundColor: '#d9dde2',
+    borderColor: colors.accent,
+    backgroundColor: alpha(colors.accent, 0.15),
   },
 });

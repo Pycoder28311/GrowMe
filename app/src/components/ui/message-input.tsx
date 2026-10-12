@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Platform, StyleSheet, TextInput, View, type NativeSyntheticEvent, type TextInputKeyPressEventData } from 'react-native';
 
 import { SEND_BUTTON_HEIGHT, SendButton } from '@/components/ui/send-button';
+import { goToSignIn, useSignedInId } from '@/lib/sign-in-gate';
 import { alpha, colors, fontFamily, fontSize, formGray, radius, space } from '@/theme';
 
 const LINE = 22;
@@ -25,9 +26,15 @@ export function MessageInput({ placeholder, onSend, autoFocus }: MessageInputPro
   const [height, setHeight] = useState(LINE);
   const [focused, setFocused] = useState(false);
   const canSend = text.trim().length > 0;
+  const signedIn = useSignedInId() !== null;
 
+  // Signed out: the sign-in page first
   const send = () => {
     if (!canSend) return;
+    if (!signedIn) {
+      goToSignIn();
+      return;
+    }
     onSend(text.trim());
     setText('');
     setHeight(LINE);
@@ -70,6 +77,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: space.sm,
+    // The corners of the send button inside it
     borderRadius: radius.xs,
     borderWidth: 1,
     borderColor: colors.border,

@@ -56,7 +56,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-    paddingHorizontal: space.md,
+    // The icon is as far from the left edge as from the top and bottom
+    paddingHorizontal: space.sm,
     paddingVertical: space.sm,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,

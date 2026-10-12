@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { MessageInput } from '@/components/ui/message-input';
 import { PillButton } from '@/components/ui/pill-button';
 import { useReactions, type Reaction } from '@/lib/reactions';
+import { goToSignIn, useSignedInId } from '@/lib/sign-in-gate';
 import { usePagedList } from '@/lib/use-api';
 import { colors, space } from '@/theme';
 
@@ -60,6 +61,7 @@ function ReplyNode<T extends ThreadItem>(props: {
   const { source, reply, depth } = props;
   const [open, setOpen] = useState(false);
   const [answering, setAnswering] = useState(false);
+  const signedIn = useSignedInId() !== null;
   const [answers, setAnswers] = useState<T[]>([]);
   const [error, setError] = useState(false);
 
@@ -87,7 +89,8 @@ function ReplyNode<T extends ThreadItem>(props: {
         replyCount={reply.replyCount + answers.length}
         repliesOpen={open}
         onToggleReplies={() => setOpen((v) => !v)}
-        onReply={() => setAnswering((v) => !v)}
+        // Signed out: the sign-in page instead of the answer field
+        onReply={() => (signedIn ? setAnswering((v) => !v) : goToSignIn())}
         style={styles.item}
       />
       {answering && (

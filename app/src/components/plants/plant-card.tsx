@@ -27,7 +27,7 @@ function TraitLabel({ trait, icon }: { trait: Trait; icon: PlantIcon }) {
   return (
     <View style={styles.trait}>
       <Icon name={icon.icon} size={14} color={colors.inkMuted} bold />
-      <AppText size="small" numberOfLines={1} style={styles.traitText}>
+      <AppText size="small" style={styles.traitText}>
         {stripBlogLinks(trait.label)}
       </AppText>
     </View>
@@ -88,6 +88,7 @@ export function PlantCard({ plant }: { plant: PlantCardData }) {
         )}
         {plant.monthRanges.length > 0 && (
           <View style={styles.season}>
+            <View style={styles.seasonDot} />
             <MonthsPill ranges={plant.monthRanges} />
           </View>
         )}
@@ -95,7 +96,7 @@ export function PlantCard({ plant }: { plant: PlantCardData }) {
 
       <View style={styles.details}>
         <View style={styles.titleRow}>
-          <AppText bold numberOfLines={1} style={styles.name}>
+          <AppText bold style={styles.name}>
             {plant.name}
           </AppText>
           {price && (
@@ -135,18 +136,26 @@ const styles = StyleSheet.create({
     width: PHOTO_SIZE,
     minHeight: PHOTO_SIZE,
   },
+  // The pill floats on the photo, at the left, only as wide as its label (and a green dot before it), with
+  // the same distance from the photo's left and bottom edges and as much room above the label as below it
   season: {
     position: 'absolute',
-    left: space.xs,
-    right: space.xs,
-    bottom: space.xs,
+    left: space.sm - 2,
+    bottom: space.sm - 2,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.xs,
+    gap: space.xs + 2,
     borderRadius: radius.full,
-    backgroundColor: alpha(colors.surface, 0.9),
-    paddingHorizontal: space.xs,
+    backgroundColor: alpha(colors.surface, 0.95),
+    paddingVertical: space.xs + 1,
+    paddingLeft: space.sm,
+    paddingRight: space.sm,
+  },
+  seasonDot: {
+    width: 8,
+    height: 8,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
   },
   noPhoto: {
     position: 'absolute',
