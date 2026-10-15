@@ -1,4 +1,5 @@
 import { createMiddleware } from 'hono/factory'
+import { PUBLIC_READ_CACHE } from '../lib/crud'
 import type { AppEnv } from './auth'
 
 /**
@@ -17,8 +18,14 @@ export const edgeCache = createMiddleware<AppEnv>(async (c, next) => {
   const key = new Request(c.req.url, { method: 'GET' })
 
   const hit = await cache.match(key)
-  // A copy, so the CORS middleware can still set its headers on it
-  if (hit) return new Response(hit.body, hit)
+  if (hit) {
+    // A copy, so the CORS middleware can still set its headers on it. Cloudflare's zone-wide «Browser Cache TTL»
+    // (4 hours by default) rewrites max-age on cached answers: put the intended value back, so the app keeps
+    // asking after 60 seconds
+    const copy = new Response(hit.body, hit)
+    copy.headers.set('Cache-Control', PUBLIC_READ_CACHE)
+    return copy
+  }
 
   await next()
   const res = c.res

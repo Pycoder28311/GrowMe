@@ -61,7 +61,7 @@ export type Repo<TCreate, TUpdate, TOut, TFilter = unknown, TListItem = TOut> = 
  * Reads of resources everyone sees the same (public-admin: plants, blogs, tips...) may be reused: by the app
  * for 1 minute, by a shared cache (Cloudflare) for 1 hour, and served stale for a day while it refreshes
  */
-const PUBLIC_READ_CACHE = 'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400'
+export const PUBLIC_READ_CACHE = 'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400'
 
 const idParam = z.object({ id: z.coerce.number().int().positive() })
 const noFilter = z.object({})
