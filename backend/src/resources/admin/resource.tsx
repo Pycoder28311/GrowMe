@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { getDb } from '../../db'
 import type { Ctx } from '../../lib/crud'
 import { notFound } from '../../lib/errors'
+import { purgeApiCache } from '../../lib/purge'
 import { toPageParams, type PageParams } from '../../lib/pagination'
 import { parseOrThrow, validate } from '../../lib/validate'
 import type { AdminEnv } from '../../middleware/access'
@@ -94,6 +95,7 @@ export function adminResource<
     })
     .delete(`${api}/:id`, validate('param', anyIdParam), async (c) => {
       if (!(await r.remove(adminCtx(c.env), c.req.valid('param').id))) throw notFound()
+      c.executionCtx.waitUntil(purgeApiCache(c.env))
       return c.body(null, 204)
     })
 
@@ -127,11 +129,13 @@ export function adminResource<
     })
     .post(api, validate('json', edit.schema), async (c) => {
       const saved = await edit.save(adminCtx(c.env), null, c.req.valid('json') as TSave)
+      c.executionCtx.waitUntil(purgeApiCache(c.env))
       return c.json(saved, 201)
     })
     .put(`${api}/:id`, validate('param', idParam), validate('json', edit.schema), async (c) => {
       const saved = await edit.save(adminCtx(c.env), c.req.valid('param').id, c.req.valid('json') as TSave)
       if (!saved) throw notFound()
+      c.executionCtx.waitUntil(purgeApiCache(c.env))
       return c.json(saved)
     })
 }

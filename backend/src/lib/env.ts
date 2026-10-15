@@ -31,6 +31,10 @@ const envSchema = z.object({
   ADMIN_EMAILS: z.string().default(''),
   ACCESS_TEAM_DOMAIN: z.preprocess(emptyAsUndefined, z.url().optional()),
   ACCESS_AUD: optionalText,
+  // clearing the API's edge cache when the admin saves (optional: without them nothing is cleared)
+  API_HOST: optionalText,
+  CF_ZONE_ID: optionalText,
+  CF_PURGE_TOKEN: optionalText,
   // bindings
   DB: binding,
   BUCKET: binding,

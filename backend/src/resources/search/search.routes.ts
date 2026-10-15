@@ -11,7 +11,7 @@ import { toFilterFields } from '../plants/plants.columns'
  * GET / → SearchIndex: every plant (name, scientific name and the fields the plant filters read) and
  * blog (title, kind), each with its first cover. Public and small (a few hundred bytes per item): the
  * app loads it once and searches and filters on the phone, so nothing waits for the network. Cached
- * for 5 minutes.
+ * for 1 minute in the app and 1 hour at the edge (the admin's saves clear it).
  */
 const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
   const db = getDb(c.env)
@@ -39,7 +39,7 @@ const searchRoutes = new Hono<AppEnv>().get('/', async (c) => {
     })),
     blogs: blogRows.map((b) => ({ id: b.id, name: b.name, kind: b.kind, image: cover(b.images) })),
   }
-  c.header('Cache-Control', 'public, max-age=300')
+  c.header('Cache-Control', 'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400')
   return c.json(index)
 })
 

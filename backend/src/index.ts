@@ -6,6 +6,7 @@ import { getConfig } from './lib/config'
 import { codeForStatus, errorBody, HttpError } from './lib/errors'
 import type { AppEnv } from './middleware/auth'
 import { csrfProtection } from './middleware/csrf'
+import { edgeCache } from './middleware/edge-cache'
 import { checkEnv } from './middleware/env'
 import { rateLimit } from './middleware/rate-limit'
 import adminApp from './resources/admin/admin.app'
@@ -47,6 +48,10 @@ app.use(
     maxAge: 600, // browsers reuse the OPTIONS answer for 10 minutes
   }),
 )
+
+// Public reads answered from the data center's cache: after CORS (which adds its headers to them), before
+// the rate limit (hits don't count)
+app.use('/api/*', edgeCache)
 
 // After CORS, so blocked answers can still be read by the browser
 app.use('/api/*', csrfProtection)

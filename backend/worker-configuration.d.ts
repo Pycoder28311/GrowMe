@@ -21,6 +21,9 @@ interface __BaseEnv_CloudflareBindings {
 	GOOGLE_CLIENT_SECRET: string;
 	GOOGLE_CLIENT_ID: string;
 	WEB_ORIGINS: string;
+	API_HOST?: string;
+	CF_ZONE_ID?: string;
+	CF_PURGE_TOKEN?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
