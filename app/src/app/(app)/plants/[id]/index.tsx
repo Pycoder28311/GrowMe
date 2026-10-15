@@ -1,11 +1,9 @@
 import { parseRichContent, type Plant } from '@growme/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useId, useMemo, useState, type ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
-  interpolateColor,
   useAnimatedScrollHandler,
-  useAnimatedStyle,
   useSharedValue,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
@@ -20,6 +18,8 @@ import { DESCRIPTION_BUTTON_HEIGHT, DescriptionButton } from '@/components/plant
 import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
 import { PHOTO_GONE_AT, PHOTO_HEIGHT, PHOTO_RISE, PhotoHeader } from '@/components/plants/photo-header';
 import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lightbox';
+import { PlantSkeleton } from '@/components/search/page-skeleton';
+import { PlantBackground } from '@/components/plants/plant-background';
 import { PhotoStack } from '@/components/plants/photo-stack';
 import { PlantCarousel } from '@/components/plants/plant-carousel';
 import { PlantingMonths, PlantTiles } from '@/components/plants/plant-tiles';
@@ -35,10 +35,8 @@ import { Section } from '@/components/ui/section';
 import { priceLabel } from '@/config/plant-traits';
 import { usePageSections } from '@/lib/page-sections';
 import { useCombinationPlants, usePlant } from '@/lib/plants';
-import { colors, space } from '@/theme';
-
-/** The page turns from white at the top to this light orange at the bottom */
-const PAGE_BOTTOM = '#fff1e5';
+import { previewOf } from '@/lib/result-preview';
+import { colors, radius, shadow, size, space } from '@/theme';
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
 function sectionsOf(plant: Plant | null, combinations: boolean): PageSection[] {
@@ -56,7 +54,13 @@ function sectionsOf(plant: Plant | null, combinations: boolean): PageSection[] {
 }
 
 /** How tall the soft edge between the page's colour and a white band is */
-const BAND_EDGE = 20;
+const BAND_EDGE = 56;
+
+/** The fade's opacity from start to end: a smoothstep curve, slow at both ends */
+const EDGE_EASE = Array.from({ length: 9 }, (_, i) => {
+  const t = i / 8;
+  return t * t * (3 - 2 * t);
+});
 
 /** A short gradient at a white band's edge, from transparent to its white, so the two colours meet softly */
 function BandEdge({ side }: { side: 'top' | 'bottom' }) {
@@ -70,8 +74,15 @@ function BandEdge({ side }: { side: 'top' | 'bottom' }) {
       style={[styles.bandEdge, top ? { top: -BAND_EDGE } : { bottom: -BAND_EDGE }]}>
       <Defs>
         <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.surface} stopOpacity={top ? 0 : 1} />
-          <Stop offset="1" stopColor={colors.surface} stopOpacity={top ? 1 : 0} />
+          {/* Eased (not a straight line), so there is no visible start or end to the fade */}
+          {EDGE_EASE.map((opacity, i) => (
+            <Stop
+              key={i}
+              offset={i / (EDGE_EASE.length - 1)}
+              stopColor={colors.surface}
+              stopOpacity={top ? opacity : 1 - opacity}
+            />
+          ))}
         </LinearGradient>
       </Defs>
       <Rect x={0} y={0} width="100%" height={BAND_EDGE} fill={`url(#${id})`} />
@@ -109,12 +120,6 @@ export default function PlantScreen() {
     scheduleOnRN(onScrollY, event.contentOffset.y);
   });
   const hasPhotos = (plant?.images.length ?? 0) > 0;
-  const tint = useAnimatedStyle(() => {
-    // White under the photos, reaching the light orange as they finish fading out at the top
-    const start = hasPhotos ? PHOTO_HEIGHT * 0.2 : 0;
-    const end = hasPhotos ? PHOTO_GONE_AT : PHOTO_HEIGHT * 0.5;
-    return { backgroundColor: interpolateColor(scroll.get(), [start, end], [colors.surface, PAGE_BOTTOM]) };
-  });
 
   const [photoIndex, setPhotoIndex] = useState(0);
   const [lightbox, setLightbox] = useState<LightboxPhoto | null>(null);
@@ -131,10 +136,11 @@ export default function PlantScreen() {
 
 
   if (state === 'loading') {
+    // The same as the zoom from a search result opened onto: its photo and name, gray bars for the rest
     return (
-      <>
-        <ActivityIndicator color={colors.primary} style={{ marginTop: topClearance }} />
-      </>
+      <View style={styles.root}>
+        <PlantSkeleton plant={previewOf('plant', Number(id))} topClearance={topClearance} />
+      </View>
     );
   }
   if (state === 'error' || !plant) {
@@ -158,7 +164,7 @@ export default function PlantScreen() {
 
   return (
     <View style={styles.root}>
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, tint]} />
+      <PlantBackground />
       {/* The photos start at the very top, under the corner buttons; without photos the title clears them */}
       <Animated.ScrollView
         ref={scrollRef as never}
@@ -189,9 +195,11 @@ export default function PlantScreen() {
                 {plant.name}
               </AppText>
               {price && (
-                <AppText bold color={colors.accent} style={styles.price}>
-                  {price}
-                </AppText>
+                <View style={styles.pricePill}>
+                  <AppText bold color={colors.accent} style={styles.price}>
+                    {price}
+                  </AppText>
+                </View>
               )}
             </View>
             <AppText color={colors.inkMuted} style={styles.scientific}>
@@ -212,8 +220,6 @@ export default function PlantScreen() {
             <LifecycleCard
               stages={plant.lifecycles}
               lifespan={plant.lifespan}
-              scrollY={scroll}
-              visibleTop={topClearance}
               // The buttons just under the corner buttons
               onReveal={(y) =>
                 scrollRef.current?.scrollTo({ y: Math.max(0, page.scrollY.current + y - topClearance - space.sm) })
@@ -272,7 +278,8 @@ export default function PlantScreen() {
           or once they have faded out, whichever comes first) */}
       <TopBlur
         scrollY={scroll}
-        height={topClearance}
+        // As far from the band's top to the corner buttons as from them to its bottom
+        height={2 * topClearance - size.touch - 2 * space.sm}
         from={hasPhotos ? Math.min((PHOTO_HEIGHT - topClearance) / PHOTO_RISE, PHOTO_GONE_AT) : 0}
       />
 
@@ -298,6 +305,7 @@ export default function PlantScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: colors.page,
   },
   page: {
     paddingBottom: space.lg,
@@ -310,6 +318,8 @@ const styles = StyleSheet.create({
   },
   // Out to the screen's edges (past the blocks' side padding), the text keeping its margins
   descriptionBand: {
+    // Extra room above, from the section before it (the fade reaches into it)
+    marginTop: space.lg,
     marginHorizontal: -space.md,
     paddingHorizontal: space.md,
     paddingVertical: space.md,
@@ -322,7 +332,7 @@ const styles = StyleSheet.create({
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: space.md,
   },
@@ -332,9 +342,17 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 36,
   },
+  // A white pill with a shadow, like the life cycle's years, so it stands out from the page's colour
+  pricePill: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
+  },
   price: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 20,
+    lineHeight: 26,
   },
   scientific: {
     fontSize: 16,

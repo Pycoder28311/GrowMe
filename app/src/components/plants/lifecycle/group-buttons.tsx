@@ -11,8 +11,7 @@ const BUTTONS: { group: StageGroup; label: string; color: string }[] = [
 ];
 
 /**
- * The life cycle's two big buttons, «Από σπόρο» | «Μεταμφύτευση»: the group whose stages take more
- * of the screen is lit (its colour on the outline and the words), the other one is plain white
+ * The life cycle's two big buttons, «Από σπόρο» | «Μεταμφύτευση»: the group picked is lit (its colour on the outline and the words), the other one is plain white
  */
 export function GroupButtons({ lit, onPick }: { lit: StageGroup; onPick: (group: StageGroup) => void }) {
   return (

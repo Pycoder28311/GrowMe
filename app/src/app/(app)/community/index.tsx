@@ -9,6 +9,7 @@ import { PostPhotos } from '@/components/discussion/post-photos';
 import { SortMenu } from '@/components/discussion/sort-menu';
 import { AskCard } from '@/components/home/ask-card';
 import { useTopClearance } from '@/components/layout/app-shell';
+import { TopGradient } from '@/components/layout/top-gradient';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
 import { timeAgo } from '@/lib/format';
@@ -29,6 +30,8 @@ export default function CommunityScreen() {
 
   return (
     <View style={styles.page}>
+      {/* Behind the posts: it shows through the gray list's gaps and header */}
+      <TopGradient />
       <FlatList
         style={styles.grayList}
         data={posts}
@@ -103,12 +106,13 @@ export default function CommunityScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Gray behind the posts: it shows between them (the list itself is see-through, for the gradient)
   page: {
     flex: 1,
-  },
-  // Gray behind the posts: it shows between them
-  grayList: {
     backgroundColor: quietGray,
+  },
+  grayList: {
+    backgroundColor: 'transparent',
   },
   // Posts run the screen's full width; only the title keeps the side margin
   list: {

@@ -31,7 +31,7 @@ const HALF_FLIP_MS = 180;
 
 /**
  * The results page's floating green button: "Φίλτρα", or "Υποβολή" while the filters sheet is open.
- * The whole button turns over sideways, like a card, to show the other word (with Reduce Motion the
+ * The whole button turns over vertically, like a card, to show the other word (with Reduce Motion the
  * word just changes).
  */
 export function FiltersButton({ submit = false, onPress, style, count = 0, flipIn = false }: FiltersButtonProps) {
@@ -58,7 +58,7 @@ export function FiltersButton({ submit = false, onPress, style, count = 0, flipI
     );
   }, [submit, shown, reduced, turn]);
 
-  const flip = useAnimatedStyle(() => ({ transform: [{ perspective: 600 }, { rotateY: `${turn.get()}deg` }] }));
+  const flip = useAnimatedStyle(() => ({ transform: [{ perspective: 600 }, { rotateX: `${turn.get()}deg` }] }));
 
   return (
     <Animated.View style={[style, flip]}>

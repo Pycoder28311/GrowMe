@@ -1,17 +1,13 @@
 import { durationLabel, type Lifecycle } from '@growme/shared';
 import { useRef, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  measure,
-  useAnimatedReaction,
   useAnimatedRef,
   useReducedMotion,
   useSharedValue,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { IconCircle } from '@/components/plants/icon-circle';
 import { AppText } from '@/components/ui/app-text';
@@ -25,28 +21,21 @@ import { StagesBox } from './stages-box';
 const SPLIT_MS = 650;
 
 /**
- * The plant page's life cycle: «Κύκλος ζωής» with the lifespan, the two group buttons (the group more
- * on screen is lit) and the stages in one box. «Μεταμφύτευση» separates the seed stages and pushes them
+ * The plant page's life cycle: «Κύκλος ζωής» with the lifespan, the two group buttons (the one picked is lit,
+ * «Από σπόρο» at first; scrolling doesn't change it) and the stages in one box. «Μεταμφύτευση» separates the seed stages and pushes them
  * behind, the plant's own stages move up; «Από σπόρο» brings them back.
  */
 export function LifecycleCard({
   stages,
   lifespan,
-  scrollY,
-  visibleTop,
   onReveal,
 }: {
   stages: Lifecycle[];
   lifespan: string | null;
-  /** The page's scroll (for which group is lit) */
-  scrollY: SharedValue<number>;
-  /** Where the page's content starts on screen (under the corner buttons) */
-  visibleTop: number;
   /** Scroll the page so this y on screen comes just under the corner buttons */
   onReveal: (windowY: number) => void;
 }) {
   const reduced = useReducedMotion();
-  const screenHeight = useWindowDimensions().height;
   const head = useRef<View>(null);
 
   const seed = stages.flatMap((stage, index): [number, Lifecycle][] => (stage.seed ? [[index, stage]] : []));
@@ -59,26 +48,6 @@ export function LifecycleCard({
   const [isSplit, setIsSplit] = useState(false);
   const seedRef = useAnimatedRef<Animated.View>();
   const plantRef = useAnimatedRef<Animated.View>();
-
-  // The lit button: the group whose stages take more of the screen (measured on the UI thread)
-  const [lit, setLit] = useState<StageGroup>(seed.length > 0 ? 'seed' : 'plant');
-  const litNow = useSharedValue<StageGroup>(lit);
-  useAnimatedReaction(
-    () => [scrollY.get(), split.get()],
-    () => {
-      if (!both) return;
-      const a = measure(seedRef);
-      const b = measure(plantRef);
-      if (!a || !b) return;
-      const shown = (m: { pageY: number; height: number }) =>
-        Math.max(0, Math.min(m.pageY + m.height, screenHeight) - Math.max(m.pageY, visibleTop));
-      const next: StageGroup = collapsed.get() || shown(a) * (1 - split.get()) <= shown(b) ? 'plant' : 'seed';
-      if (next !== litNow.get()) {
-        litNow.set(next);
-        scheduleOnRN(setLit, next);
-      }
-    },
-  );
 
   // The page scrolls so the buttons sit under the corner buttons, the picked group's stages below them
   const reveal = () => head.current?.measureInWindow((_, y) => onReveal(y));
@@ -122,7 +91,7 @@ export function LifecycleCard({
           </View>
         )}
       </View>
-      {both && <GroupButtons lit={isSplit ? 'plant' : lit} onPick={pick} />}
+      {both && <GroupButtons lit={isSplit ? 'plant' : 'seed'} onPick={pick} />}
       <StagesBox
         seed={seed}
         plant={plant}

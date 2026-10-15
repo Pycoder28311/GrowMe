@@ -66,7 +66,7 @@ function Group(props: {
   return (
     <View style={[styles.group, props.later && styles.later]}>
       <Animated.View layout={move} style={styles.header}>
-        <AppText size="small" bold color={colors.inkMuted} accessibilityRole="header" style={styles.center}>
+        <AppText size="small" bold color={colors.inkMuted} accessibilityRole="header">
           {props.label} ({props.results.length})
         </AppText>
       </Animated.View>
@@ -86,7 +86,7 @@ function Group(props: {
 
 /**
  * The results under the search bar, each its own small card on the dimmed page: «Φυτά» first, then
- * «Άρθρα» (the other way round with `blogsFirst`), each under a light-gray centred header. As tall as the results; `maxHeight` keeps it above
+ * «Άρθρα» (the other way round with `blogsFirst`), each under a white, left-aligned pill header. As tall as the results; `maxHeight` keeps it above
  * the keyboard, and only then it scrolls.
  */
 export function SearchResults(props: {
@@ -157,15 +157,18 @@ const styles = StyleSheet.create({
   group: {
     gap: space.sm,
   },
-  // More room above a list's header (after the last plant) than below it
+  // The same room above a list's header (after the last card) as below it
   later: {
-    marginTop: space.lg,
+    marginTop: space.sm,
   },
+  // A white pill, half the width and centred; the same room above (the group's gap) as below it (its gap to the first card)
   header: {
-    marginBottom: -space.xs,
+    alignSelf: 'center',
+    width: '50%',
     paddingVertical: space.xs,
-    borderRadius: radius.xs,
-    backgroundColor: '#eceef0',
+    paddingHorizontal: space.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface,
   },
   center: {
     textAlign: 'center',

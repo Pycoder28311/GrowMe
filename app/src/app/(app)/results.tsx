@@ -4,16 +4,22 @@ import { ActivityIndicator, FlatList, SectionList, StyleSheet, View } from 'reac
 import { FilterSheet, type ButtonFrame } from '@/components/filters/filter-sheet';
 import { FiltersButton } from '@/components/filters/filters-button';
 import { useTopClearance } from '@/components/layout/app-shell';
+import { TopGradient } from '@/components/layout/top-gradient';
 import { cardFromIndex, cardFromSummary, PlantCard, type PlantCardData } from '@/components/plants/plant-card';
 import { AppText } from '@/components/ui/app-text';
 import { CategoryTabs } from '@/components/ui/category-tabs';
+import { PageSearchBar } from '@/components/search/page-search-bar';
 import { PillButton } from '@/components/ui/pill-button';
-import { KIND_TABS } from '@/config/plant-filters';
+import { PLACE_TABS } from '@/config/plant-filters';
 import { useExploreFilters } from '@/lib/explore-filters';
+import { matchPlants } from '@/lib/search-match';
 import { activeFilters, chosenCount, matchPlantFilters } from '@/lib/plant-filter-match';
 import { usePlants } from '@/lib/plants';
 import { useSearchIndex } from '@/lib/search';
 import { colors, size, space } from '@/theme';
+
+/** Extra room between the corner buttons and the search bar */
+const BAR_GAP = space.sm;
 
 type Row = { card: PlantCardData; key: string };
 
@@ -26,13 +32,21 @@ export default function ResultsScreen() {
   const topClearance = useTopClearance();
   const { filters, setFilters } = useExploreFilters();
   const filtering = activeFilters(filters).length > 0;
-  const kindTab = filters.kind?.[0] ?? 'all';
+  const placeTab = filters.place?.[0] ?? 'all';
 
   const paged = usePlants();
   const { index, error: indexError, load } = useSearchIndex();
   useEffect(load, [load]);
   const plants = useMemo(() => index?.plants ?? [], [index]);
   const result = useMemo(() => (filtering ? matchPlantFilters(plants, filters) : null), [filtering, plants, filters]);
+
+  // The search bar's text: the list below shows the plants matching it (inside the chosen filters)
+  const [query, setQuery] = useState('');
+  const searching = query.trim().length > 0;
+  const searched = useMemo(
+    () => (searching ? matchPlants(result ? result.matches : plants, query) : []),
+    [searching, result, plants, query],
+  );
 
   const filtersButtonRef = useRef<View>(null);
   // Set while the filters sheet is open: where the button is, so the sheet's Submit button covers it exactly
@@ -44,9 +58,9 @@ export default function ResultsScreen() {
     <View style={styles.tabs}>
       <CategoryTabs
         variant="scroll"
-        tabs={KIND_TABS}
-        activeId={kindTab}
-        onChange={(id) => setFilters({ ...filters, kind: id === 'all' ? [] : [id] })}
+        tabs={PLACE_TABS}
+        activeId={placeTab}
+        onChange={(id) => setFilters({ ...filters, place: id === 'all' ? [] : [id] })}
       />
     </View>
   );
@@ -54,11 +68,38 @@ export default function ResultsScreen() {
   const clearButton = <PillButton label="Καθαρισμός φίλτρων" onPress={() => setFilters({})} />;
   // Top clears the corner buttons; bottom leaves room for the floating filters button
   // (the tabs sit as far under the corner buttons as the first plant is under them)
-  const listStyle = [styles.list, { paddingTop: topClearance + space.md - space.sm }];
+  const listStyle = [styles.list, { paddingTop: topClearance + space.md - space.sm + BAR_GAP + size.touch + space.sm }];
 
   return (
     <View style={styles.page}>
-      {!filtering ? (
+      <TopGradient />
+      {searching ? (
+        <FlatList
+          data={searched}
+          keyExtractor={(plant) => String(plant.id)}
+          renderItem={({ item }) => <PlantCard plant={cardFromIndex(item)} />}
+          ItemSeparatorComponent={() => <View style={styles.gap} />}
+          ListHeaderComponent={tabs}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
+            index ? (
+              <AppText color={colors.inkMuted} style={styles.empty}>
+                Κανένα φυτό με αυτό το όνομα.
+              </AppText>
+            ) : indexError ? (
+              <View style={styles.footer}>
+                <AppText color={colors.inkMuted} style={styles.empty}>
+                  Η αναζήτηση δεν είναι διαθέσιμη τώρα.
+                </AppText>
+                <PillButton label="Δοκίμασε ξανά" onPress={load} />
+              </View>
+            ) : (
+              <ActivityIndicator color={colors.primary} style={styles.footer} />
+            )
+          }
+          contentContainerStyle={listStyle}
+        />
+      ) : !filtering ? (
         <FlatList
           data={paged.plants}
           keyExtractor={(plant) => String(plant.id)}
@@ -144,10 +185,12 @@ export default function ResultsScreen() {
         />
       )}
 
+      <PageSearchBar top={topClearance + BAR_GAP} value={query} onChangeText={setQuery} />
+
       {/* Stays in view at the bottom while the list scrolls; becomes Submit while the sheet is open */}
       {/* Hidden while the sheet's copy of it, in the same place, turns over */}
       <View ref={filtersButtonRef} collapsable={false} style={[styles.filtersBar, filtersFrame && styles.hidden]}>
-        <FiltersButton onPress={openFilters} count={chosenCount({ ...filters, kind: [] })} />
+        <FiltersButton onPress={openFilters} count={chosenCount({ ...filters, place: [] })} />
       </View>
 
       {filtersFrame && <FilterSheet buttonFrame={filtersFrame} plants={plants} onClose={() => setFiltersFrame(null)} />}
@@ -166,8 +209,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingBottom: size.touch + space.md * 2,
   },
+  // Plus the tabs' own bottom padding: as far below them as they are under the corner buttons
   tabs: {
-    marginBottom: space.md,
+    marginBottom: space.sm,
   },
   gap: {
     height: space.sm,

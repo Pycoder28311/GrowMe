@@ -36,7 +36,7 @@ export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: b
         <ShakeOnTap key={tile.key} style={tile.arts.length > 1 ? styles.wide : [styles.cell, half !== undefined && { width: half }]}>
           <View style={[styles.tile, tile.arts.length === 1 && styles.square]}>
             <View style={styles.top}>
-              <IconCircle icon={tile.icon} />
+              <IconCircle icon={tile.icon} green />
               <View style={styles.arts}>
                 {tile.arts.map((art, i) => (
                   <TileArtView key={i} art={art} playing={playing && !reduced} />
@@ -44,10 +44,10 @@ export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: b
               </View>
             </View>
             <View style={styles.words}>
-              <AppText size="small" color={colors.inkMuted}>
+              <AppText color={colors.ink} style={styles.label}>
                 {tile.label}
               </AppText>
-              <AppText bold color={colors.ink}>
+              <AppText bold color={colors.ink} style={styles.value}>
                 {tile.value}
               </AppText>
             </View>
@@ -130,8 +130,21 @@ const styles = StyleSheet.create({
   // The title above, the plant's value in bold below it
   words: {
     gap: 2,
+    marginTop: -space.xs,
   },
+  // A size up from before, with tight line heights so the tile keeps its height
+  label: {
+    fontSize: 16,
+    lineHeight: 18,
+  },
+  value: {
+    fontSize: 19,
+    lineHeight: 22,
+  },
+  // Drawn bigger than the room it takes (a scale grows nothing around it): grown around its right edge's middle
   arts: {
     flexDirection: 'row',
+    transform: [{ scale: 1.3 }],
+    transformOrigin: 'right center',
   },
 });

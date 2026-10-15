@@ -5,6 +5,7 @@ import { optionalRichText, richTextNoImages } from './rich-text'
 import {
   DIFFICULTIES,
   MAX_MONTH_RANGES,
+  flagDefault,
   PLANT_FLAG_KEYS,
   PLANT_KINDS,
   PLANT_SIZES,
@@ -66,7 +67,7 @@ const flagFields = Object.fromEntries(PLANT_FLAG_KEYS.map((key) => [key, z.boole
   PlantFlag,
   z.ZodBoolean
 >
-const flagDefaults = Object.fromEntries(PLANT_FLAG_KEYS.map((key) => [key, z.boolean().default(false)])) as Record<
+const flagDefaults = Object.fromEntries(PLANT_FLAG_KEYS.map((key) => [key, z.boolean().default(flagDefault(key))])) as Record<
   PlantFlag,
   z.ZodDefault<z.ZodBoolean>
 >

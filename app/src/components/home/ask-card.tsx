@@ -243,7 +243,7 @@ export function AskCard({ plant, composer, onPosted }: { plant?: PostPlant; comp
         }}
         style={styles.form}>
 
-      <View ref={cardRef} collapsable={false} style={[floating ? styles.floatingCard : styles.card, compact && styles.compactCard]}>
+      <View ref={cardRef} collapsable={false} style={[floating ? styles.floatingCard : styles.card, compact && floating && styles.compactCard, compact && !floating && styles.compactCard]}>
         {showTitle && (
           <Animated.View entering={FadeIn.duration(200)}>
             <TextInput
@@ -292,6 +292,7 @@ export function AskCard({ plant, composer, onPosted }: { plant?: PostPlant; comp
               !compact && !showTitle && styles.questionAlone,
               focus === 'question' && styles.focused,
               floating && styles.blackBorder,
+              compact && floating && styles.compactBare,
             ]}
           />
         </View>
@@ -458,13 +459,25 @@ const styles = StyleSheet.create({
   form: {
     gap: space.sm,
   },
-  // The composer before a tap: the question and the plane in one row
+  // The composer before a tap: one field like the article's comment field, the plane inside at its right
   compactCard: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: space.xs,
+    gap: space.sm,
     padding: space.xs,
+    paddingLeft: space.md,
+    borderRadius: radius.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
+  },
+  // The text sits in the field itself: no border of its own
+  compactBare: {
+    paddingHorizontal: 0,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
   },
   // One line as tall as the plane, so the plane is as far from the top and bottom as from the right
   compactInput: {
@@ -490,7 +503,7 @@ const styles = StyleSheet.create({
   blackBorder: {
     // The text and placeholder start further in from the border
     paddingHorizontal: space.md,
-    borderColor: '#000000',
+    borderColor: colors.border,
     backgroundColor: colors.surface,
   },
   // A gray border appears on focus (no browser outline); roomy inside
@@ -554,6 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
     paddingHorizontal: space.sm,
+    marginBottom: -space.sm,
   },
   plantNoteText: {
     flex: 1,
@@ -585,6 +599,8 @@ const styles = StyleSheet.create({
   // Like the photo button but shorter: less room above and below it
   linkButton: {
     height: LINK_ROW,
+    // Closer to the photo button under it
+    marginBottom: -space.sm,
   },
   // The chosen plant, where the link button was
   linkedPlant: {
@@ -592,6 +608,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: LINK_ROW,
     paddingHorizontal: space.sm,
+    marginBottom: -space.sm,
   },
   seeAll: {
     ...card,

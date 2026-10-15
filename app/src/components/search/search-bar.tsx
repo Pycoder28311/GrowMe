@@ -22,6 +22,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useSetSearching } from '@/components/layout/page-header';
+import { prefetchPlant } from '@/lib/plants';
+import { rememberPreview } from '@/lib/result-preview';
 import { LensPreview } from '@/components/search/lens-preview';
 import { ResultRowContent, type SearchResult } from '@/components/search/result-row';
 import { SearchResults } from '@/components/search/search-results';
@@ -239,6 +241,10 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
     (result: SearchResult, rect: Rect) => {
       const turn = (GLYPH_TURN_DEG * Math.PI) / 180;
       const lensOffset = { x: -2.5 * Math.cos(turn) + 2.5 * Math.sin(turn), y: -2.5 * Math.sin(turn) - 2.5 * Math.cos(turn) };
+      // The plant's request starts now, during the zoom: its page then opens with the data already in
+      if (result.type === 'plant') prefetchPlant(result.item.id);
+      // The page that opens shows what the result knows while the rest loads
+      rememberPreview(result);
       flyLens({
         glyph: { x: space.md + CONTROL / 2 + lensOffset.x, y: top + CONTROL / 2 + lensOffset.y },
         handleAngle: 45 + GLYPH_TURN_DEG,

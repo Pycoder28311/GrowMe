@@ -12,6 +12,8 @@ export const colors = {
   ink: '#1f3d24',
   /** Secondary text (ink at 70%) */
   inkMuted: 'rgba(31, 61, 36, 0.7)',
+  /** The plant page's light orange background */
+  page: '#eaffbdff',
   /** Screen and card background */
   surface: '#ffffff',
   /** Borders and dividers */

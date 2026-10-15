@@ -1,9 +1,10 @@
 import { parseRichContent } from '@growme/shared';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTopClearance } from '@/components/layout/app-shell';
+import { BlogSkeleton, BLOG_PHOTO_HEIGHT } from '@/components/search/page-skeleton';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
@@ -12,11 +13,12 @@ import { PostCarousel } from '@/components/wiki/post-carousel';
 import { ReadTimeBadge } from '@/components/wiki/read-time-badge';
 import { RichText } from '@/components/wiki/rich-text';
 import { ShareButtons } from '@/components/wiki/share-buttons';
+import { blogPreviewOf } from '@/lib/result-preview';
 import { publishedDate, readMinutes, useBlog, useBlogs } from '@/lib/blogs';
-import { colors, size, space } from '@/theme';
+import { colors, space } from '@/theme';
 
 // Photo height at the top of the post
-const PHOTO_HEIGHT = size.touch * 4;
+const PHOTO_HEIGHT = BLOG_PHOTO_HEIGHT;
 
 /** One Encyclopedia article from the database: photo, text, sharing, comments and the other articles */
 export default function Article() {
@@ -27,7 +29,7 @@ export default function Article() {
   const { blogs } = useBlogs();
 
   if (state === 'loading') {
-    return <ActivityIndicator color={colors.primary} style={{ marginTop: topClearance }} />;
+    return <BlogSkeleton blog={blogPreviewOf(Number(id))} topClearance={topClearance} />;
   }
   if (state === 'error' || !post) {
     return (
@@ -45,6 +47,7 @@ export default function Article() {
 
   return (
     // The photo starts at the very top, under the corner buttons; without one the title clears them
+    <View style={styles.root}>
     <ScrollView
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[styles.page, !cover && { paddingTop: topClearance }]}>
@@ -85,10 +88,14 @@ export default function Article() {
         )}
       </View>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   page: {
     paddingBottom: space.lg,
   },

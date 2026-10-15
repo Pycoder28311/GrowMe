@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -9,15 +10,16 @@ type CategoryTabsProps = {
   activeId: string;
   onChange: (id: string) => void;
   /**
-   * `equal` (default): equal pills in one row. `scroll`: white buttons with a black border sized to
+   * `equal` (default): equal pills in one row. `scroll`: white buttons (a border on the chosen and the pressed one) sized to
    * their words in a row that scrolls sideways, its scrollbar hidden (the plants' and Encyclopedia's
-   * kinds), spread across the width when they fit (never closer than a small gap); the chosen one has an orange border and a light orange fill
+   * kinds), spread across the width when they fit (never closer than a small gap); the chosen one has a black border
    */
   variant?: 'equal' | 'scroll';
 };
 
 /** Single-choice quick filters shown as equal pills in one row (e.g. Όλα · Κηπευτικά · Με άνθη) */
 export function CategoryTabs({ tabs, activeId, onChange, variant = 'equal' }: CategoryTabsProps) {
+  const [pressedId, setPressedId] = useState<string | null>(null);
   if (variant === 'scroll') {
     return (
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.hiddenBar} contentContainerStyle={styles.spread}>
@@ -29,8 +31,10 @@ export function CategoryTabs({ tabs, activeId, onChange, variant = 'equal' }: Ca
               accessibilityRole="button"
               accessibilityState={{ selected: isActive }}
               onPress={() => onChange(id)}
+              onPressIn={() => setPressedId(id)}
+              onPressOut={() => setPressedId(null)}
               pressedScale={0.96}
-              style={[styles.light, isActive && styles.lightActive]}>
+              style={[styles.light, isActive && styles.lightActive, pressedId === id && styles.lightPressed]}>
               <AppText bold={isActive} color={colors.ink}>
                 {label}
               </AppText>
@@ -72,6 +76,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: space.sm,
+    // Room below, so the tabs' shadow isn't cut by the scroll view
+    paddingBottom: space.sm,
   },
   tab: {
     flex: 1,
@@ -98,11 +104,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderWidth: 1.5,
-    borderColor: '#000000',
+    borderColor: 'transparent',
     backgroundColor: colors.surface,
+    boxShadow: shadow.tile,
   },
+  // The chosen one and the one being pressed show a border
   lightActive: {
-    borderColor: colors.accent,
-    backgroundColor: alpha(colors.accent, 0.15),
+    borderColor: '#000000',
+  },
+  lightPressed: {
+    borderColor: '#000000',
   },
 });

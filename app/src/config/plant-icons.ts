@@ -17,6 +17,8 @@ export const FLAG_ICONS: Record<PlantFlag, PlantIcon> = {
   privacy: { icon: 'fence', tint: '#ece8f8' },
   nearSea: { icon: 'sea', tint: '#ddeefa' },
   frostHardy: { icon: 'frost', tint: '#e4f2fb' },
+  indoor: { icon: 'home', tint: '#f4ead6' },
+  outdoor: { icon: 'sun', tint: '#fdf0cf' },
 };
 
 export const KIND_ICONS: Record<PlantKind, PlantIcon> = {

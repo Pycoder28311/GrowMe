@@ -57,6 +57,12 @@ export type Repo<TCreate, TUpdate, TOut, TFilter = unknown, TListItem = TOut> = 
   remove: (ctx: Ctx, id: number) => Promise<boolean>
 }
 
+/**
+ * Reads of resources everyone sees the same (public-admin: plants, blogs, tips...) may be reused: by the app
+ * for 1 minute, by a shared cache (Cloudflare) for 1 hour, and served stale for a day while it refreshes
+ */
+const PUBLIC_READ_CACHE = 'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400'
+
 const idParam = z.object({ id: z.coerce.number().int().positive() })
 const noFilter = z.object({})
 
@@ -101,18 +107,26 @@ export function crudRoutes<
   const { repo, access, paginate = true } = opts
   const { read, write } = guards[access]
   const filter = opts.filter ?? noFilter
+  const cacheable = access === 'public-admin'
 
   return new Hono<AppEnv>()
     .get('/', read, async (c) => {
       const query = c.req.query()
       const filters = parseOrThrow(filter, query) as z.infer<F>
-      if (!paginate) return c.json((await repo.list(toCtx(c), null, filters)).items)
+      if (!paginate) {
+        const items = (await repo.list(toCtx(c), null, filters)).items
+        if (cacheable) c.header('Cache-Control', PUBLIC_READ_CACHE)
+        return c.json(items)
+      }
       const page = toPageParams(parseOrThrow(pageQuery, query))
-      return c.json(await repo.list(toCtx(c), page, filters))
+      const result = await repo.list(toCtx(c), page, filters)
+      if (cacheable) c.header('Cache-Control', PUBLIC_READ_CACHE)
+      return c.json(result)
     })
     .get('/:id', read, validate('param', idParam), async (c) => {
       const item = await repo.get(toCtx(c), c.req.valid('param').id)
       if (!item) throw notFound()
+      if (cacheable) c.header('Cache-Control', PUBLIC_READ_CACHE)
       return c.json(item)
     })
     .post('/', write, validate('json', opts.create), async (c) => {

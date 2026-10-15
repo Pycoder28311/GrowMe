@@ -65,12 +65,12 @@ function Sheltered({ playing }: ArtProps) {
       <Layer>
         <Path d="M0 26 Q4 24 8 26" stroke={ink.sky} strokeWidth={2} fill="none" strokeLinecap="round" />
         <Path d="M0 38 Q4 36 8 38" stroke={ink.sky} strokeWidth={2} fill="none" strokeLinecap="round" />
-        <Rect x={10} y={18} width={14} height={36} rx={2} fill="#d1a782" />
-        <Line x1={10} y1={27} x2={24} y2={27} stroke="#b88a63" strokeWidth={1} />
-        <Line x1={10} y1={36} x2={24} y2={36} stroke="#b88a63" strokeWidth={1} />
-        <Line x1={10} y1={45} x2={24} y2={45} stroke="#b88a63" strokeWidth={1} />
-        <Line x1={17} y1={18} x2={17} y2={27} stroke="#b88a63" strokeWidth={1} />
-        <Line x1={17} y1={36} x2={17} y2={45} stroke="#b88a63" strokeWidth={1} />
+        <Rect x={10} y={18} width={14} height={36} rx={2} fill="#d4d7dc" />
+        <Line x1={10} y1={27} x2={24} y2={27} stroke="#a3a8b0" strokeWidth={1} />
+        <Line x1={10} y1={36} x2={24} y2={36} stroke="#a3a8b0" strokeWidth={1} />
+        <Line x1={10} y1={45} x2={24} y2={45} stroke="#a3a8b0" strokeWidth={1} />
+        <Line x1={17} y1={18} x2={17} y2={27} stroke="#a3a8b0" strokeWidth={1} />
+        <Line x1={17} y1={36} x2={17} y2={45} stroke="#a3a8b0" strokeWidth={1} />
       </Layer>
       <Layer style={[styles.shelterPivot, plant]}>
         <Line x1={39} y1={54} x2={39} y2={32} stroke={ink.stem} strokeWidth={2} strokeLinecap="round" />

@@ -5,12 +5,15 @@ import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { ArrowButton } from '@/components/ui/arrow-button';
-import { colors, size, space } from '@/theme';
+import { colors, quietGray, size, space } from '@/theme';
 
 /** Photo height: a little over a third of a phone screen */
 export const PHOTO_HEIGHT = 280;
-/** The white fade at the photos' bottom edge */
-const FADE = 110;
+/** The fade at the photos' bottom edge */
+export const FADE = 55;
+/** The gray the photos fade into, and the thick white border under them, where they meet the page's background */
+export const FADE_COLOR = quietGray;
+export const EDGE_BORDER = 14;
 /** Where the thumbnails' centres sit: on the fade, near the photos' bottom (PhotoStack) */
 export const THUMBS_CENTER = PHOTO_HEIGHT - 18;
 /** The thumbnails' size (smaller when many have to fit in a row) */
@@ -36,8 +39,8 @@ type PhotoHeaderProps = {
 };
 
 /**
- * The plant's photos across the top, swipeable with ‹ ›, fading into the page through a white
- * gradient (the thumbnails sit on that edge, drawn by PhotoStack over the page). Scrolling down
+ * The plant's photos across the top, swipeable with ‹ ›, fading into the page through a gradient
+ * of the page's colour (the thumbnails sit on that edge, drawn by PhotoStack over the page). Scrolling down
  * moves them up at half the page's speed (same size), so the page slides over them, fading out, until
  * the page's colour covers the screen.
  */
@@ -86,13 +89,15 @@ export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: Ph
         <Svg pointerEvents="none" width={width} height={FADE} style={styles.fade}>
           <Defs>
             <LinearGradient id={fadeId} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.surface} stopOpacity={0} />
-              <Stop offset="0.7" stopColor={colors.surface} stopOpacity={0.85} />
-              <Stop offset="1" stopColor={colors.surface} stopOpacity={1} />
+              <Stop offset="0" stopColor={FADE_COLOR} stopOpacity={0} />
+              <Stop offset="0.7" stopColor={FADE_COLOR} stopOpacity={0.85} />
+              <Stop offset="1" stopColor={FADE_COLOR} stopOpacity={1} />
             </LinearGradient>
           </Defs>
           <Rect x={0} y={0} width={width} height={FADE} fill={`url(#${fadeId})`} />
         </Svg>
+
+        <View pointerEvents="none" style={styles.edge} />
 
         {photos.length > 1 && (
           <>
@@ -125,6 +130,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     bottom: 0,
+  },
+  edge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: EDGE_BORDER,
+    backgroundColor: colors.surface,
   },
   arrow: {
     position: 'absolute',

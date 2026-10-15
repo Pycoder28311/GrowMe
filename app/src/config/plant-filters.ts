@@ -41,7 +41,7 @@ export type FilterDef = {
   linked?: LinkedOption[];
 };
 
-export type FilterId = 'kind' | 'size' | 'price' | 'sun-length' | 'sun-part' | 'season' | 'wind' | 'traits' | 'properties';
+export type FilterId = 'kind' | 'place' | 'size' | 'price' | 'sun-length' | 'sun-part' | 'season' | 'wind' | 'traits' | 'properties';
 
 /** The chosen options by filter (a single choice is an array of at most one) */
 export type Filters = Partial<Record<FilterId, string[]>>;
@@ -100,14 +100,17 @@ const flagOption = (key: PlantFlag): FilterOption => ({
 
 /* ─────────────── The filters ─────────────── */
 
-/** Plural names for the kind tabs (the dashboard's labels are singular) */
-const KIND_PLURALS: Record<(typeof PLANT_KINDS)[number], string> = {
-  flowers: 'Ανθοφόρα',
-  leaves: 'Φυλλώδη',
-  bush: 'Θάμνοι',
-};
-
 export const FILTERS: Record<FilterId, FilterDef> = {
+  // Only the results page's tabs choose it (not in any sheet)
+  place: {
+    id: 'place',
+    label: 'Χώρος',
+    select: 'one',
+    options: [
+      { id: 'indoor', label: 'Εσωτερικός χώρος', test: (p) => p.indoor },
+      { id: 'outdoor', label: 'Εξωτερικός χώρος', test: (p) => p.outdoor },
+    ],
+  },
   kind: {
     id: 'kind',
     label: 'Είδος',
@@ -181,14 +184,11 @@ export const FILTERS: Record<FilterId, FilterDef> = {
 /** The Explore sheet (home): a few quick choices; «Αντέχει αέρα» stands for the strong wind levels */
 export const SHORT_FILTERS: FilterId[] = ['size', 'sun-length', 'price', 'traits', 'kind'];
 
-/** The results page's Filters sheet: everything except the kind (its tabs) */
-export const FULL_FILTERS: FilterId[] = ['price', 'size', 'sun-length', 'sun-part', 'season', 'wind', 'traits', 'properties'];
+/** The results page's Filters sheet: everything except the place (its tabs) */
+export const FULL_FILTERS: FilterId[] = ['kind', 'price', 'size', 'sun-length', 'sun-part', 'season', 'wind', 'traits', 'properties'];
 
-/** The results page's tabs: all plants, or one kind */
-export const KIND_TABS = [
-  { id: 'all', label: 'Όλα' },
-  ...PLANT_KINDS.map((kind) => ({ id: kind, label: KIND_PLURALS[kind] })),
-];
+/** The results page's tabs: all plants, or the ones for indoors or outdoors */
+export const PLACE_TABS = [{ id: 'all', label: 'Όλα' }, ...FILTERS.place.options.map(({ id, label }) => ({ id, label }))];
 
 /** Ready-made searches at the end of the Filters sheet: each sets these filters */
 export const PRESETS: { id: string; label: string; filters: Filters }[] = [

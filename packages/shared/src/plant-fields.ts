@@ -45,11 +45,17 @@ export const PLANT_FLAGS = [
   { key: 'privacy', label: 'Ιδιωτικότητα (φράχτης)', emoji: '🏡', yes: 'Ιδιωτικότητα', no: null },
   { key: 'nearSea', label: 'Κοντά στη θάλασσα', emoji: '🌊', yes: 'Κοντά στη θάλασσα', no: null },
   { key: 'frostHardy', label: 'Αντέχει τον παγετό', emoji: '❄️', yes: 'Ανθεκτικό στον παγετό', no: null },
+  { key: 'indoor', label: 'Εσωτερικός χώρος', emoji: '🏠', yes: null, no: null },
+  { key: 'outdoor', label: 'Εξωτερικός χώρος', emoji: '🌤️', yes: null, no: null },
 ] as const satisfies readonly { key: string; label: string; emoji: string; yes: string | null; no: string | null }[]
 
 export type PlantFlag = (typeof PLANT_FLAGS)[number]['key']
 export const PLANT_FLAG_KEYS = PLANT_FLAGS.map((f) => f.key) as PlantFlag[]
 export type PlantFlags = Record<PlantFlag, boolean>
+
+/** The flags that are yes unless the dashboard says otherwise (every other one starts as no) */
+export const PLANT_FLAGS_YES_BY_DEFAULT: readonly PlantFlag[] = ['indoor', 'outdoor']
+export const flagDefault = (key: PlantFlag) => PLANT_FLAGS_YES_BY_DEFAULT.includes(key)
 
 /** What the user sees for one flag, or null when nothing is shown */
 export function flagPhrase(key: PlantFlag, value: boolean): string | null {

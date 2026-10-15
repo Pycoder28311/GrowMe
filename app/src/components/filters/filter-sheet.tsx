@@ -26,7 +26,7 @@ type FilterSheetProps = {
 };
 
 /**
- * The results page's filters, sliding up from below: every filter except the kind (the page's tabs).
+ * The results page's filters, sliding up from below: every filter except the place (the page's tabs).
  * Choices are a draft until Submit; closing the sheet another way drops them. «Καθαρισμός» clears all.
  */
 export function FilterSheet({ buttonFrame, plants, onClose }: FilterSheetProps) {
@@ -68,7 +68,7 @@ export function FilterSheet({ buttonFrame, plants, onClose }: FilterSheetProps) 
         <FiltersButton
           submit
           flipIn
-          count={chosenCount({ ...filters, kind: [] })}
+          count={chosenCount({ ...filters, place: [] })}
           onPress={submit}
           style={[styles.submit, { left: buttonFrame.x, top: buttonFrame.y, width: buttonFrame.width }]}
         />

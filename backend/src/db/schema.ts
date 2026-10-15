@@ -8,7 +8,7 @@ const id = () => integer('id').primaryKey({ autoIncrement: true })
 const createdAt = () => integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date())
 const owner = () => text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' })
 const optionalOwner = () => text('user_id').references(() => user.id, { onDelete: 'cascade' })
-const flag = (name: string) => integer(name, { mode: 'boolean' }).notNull().default(false)
+const flag = (name: string, yes = false) => integer(name, { mode: 'boolean' }).notNull().default(yes)
 
 /* ─────────────── A user's area (profile): approximate only, for plant advice by climate ─────────────── */
 
@@ -158,6 +158,9 @@ export const plants = sqliteTable(
         privacy: flag('privacy'),
         nearSea: flag('near_sea'),
         frostHardy: flag('frost_hardy'),
+        // Where it can live: both yes unless the dashboard says otherwise
+        indoor: flag('indoor', true),
+        outdoor: flag('outdoor', true),
         wind: text('wind', { enum: WIND_LEVELS }),
         kind: text('kind', { enum: PLANT_KINDS }),
         size: text('size', { enum: PLANT_SIZES }),

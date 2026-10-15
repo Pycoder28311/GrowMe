@@ -13,11 +13,32 @@ export function usePlants() {
 // The plants opened this session, so a plant's second page (its full lifecycle) shows at once
 const opened = new Map<number, Plant>();
 
-const fetchPlant = (id: number) =>
-  plantsApi.get(id).then((plant) => {
+// A plant's request started by a tap on a search result, so the page opening after the zoom uses it
+// instead of sending its own (only while it is this fresh)
+const started = new Map<number, { at: number; request: Promise<Plant> }>();
+const STARTED_FRESH_MS = 20_000;
+
+const fetchPlant = (id: number) => {
+  const early = started.get(id);
+  started.delete(id);
+  if (early && Date.now() - early.at < STARTED_FRESH_MS) return early.request;
+  return plantsApi.get(id).then((plant) => {
     opened.set(id, plant);
     return plant;
   });
+};
+
+/** Starts a plant's request now (the search result's tap), for the page to use when it opens */
+export function prefetchPlant(id: number) {
+  if (started.has(id)) return;
+  const request = plantsApi.get(id).then((plant) => {
+    opened.set(id, plant);
+    return plant;
+  });
+  // A failed one is dropped: the page then asks on its own and shows its error and retry
+  request.catch(() => started.delete(id));
+  started.set(id, { at: Date.now(), request });
+}
 
 /**
  * One plant with its lifecycles, tips, diseases and combination. A plant opened before shows

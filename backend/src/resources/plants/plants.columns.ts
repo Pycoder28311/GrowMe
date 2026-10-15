@@ -58,4 +58,6 @@ export const toFilterFields = (p: PlantRow): PlantFilterFields => ({
   privacy: p.privacy,
   nearSea: p.nearSea,
   frostHardy: p.frostHardy,
+  indoor: p.indoor,
+  outdoor: p.outdoor,
 })

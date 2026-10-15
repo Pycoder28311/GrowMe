@@ -2,6 +2,7 @@ import {
   DIFFICULTIES,
   DIFFICULTY_LABELS,
   MAX_MONTH_RANGES,
+  flagDefault,
   PLANT_FLAGS,
   PLANT_KIND_LABELS,
   PLANT_KINDS,
@@ -189,7 +190,7 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         <span class="caption">Χαρακτηριστικά</span>
         <div class="toggles">
           {PLANT_FLAGS.map((f) => (
-            <Toggle field={f.key} label={f.label} emoji={f.emoji} checked={p?.[f.key] ?? false} />
+            <Toggle field={f.key} label={f.label} emoji={f.emoji} checked={p?.[f.key] ?? flagDefault(f.key)} />
           ))}
         </div>
         <TextChoices field="wind" label="Αέρας" value={p?.wind} options={labelled(WIND_LEVELS, WIND_LABELS)} none="Δεν ορίστηκε" />

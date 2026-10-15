@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
 
 import { useTopClearance } from '@/components/layout/app-shell';
+import { TopGradient } from '@/components/layout/top-gradient';
 import { AppText } from '@/components/ui/app-text';
 import { CategoryTabs } from '@/components/ui/category-tabs';
 import { PillButton } from '@/components/ui/pill-button';
@@ -21,6 +22,8 @@ export default function WikiScreen() {
   const { blogs, loading, error, loadMore, refresh } = useBlogs(tabId === 'all' ? undefined : tabId);
 
   return (
+    <View style={styles.page}>
+    <TopGradient />
     <FlatList
       data={blogs}
       keyExtractor={(post) => String(post.id)}
@@ -60,16 +63,21 @@ export default function WikiScreen() {
       // The tabs sit as far under the corner buttons as the first article is under them
       contentContainerStyle={[styles.list, { paddingTop: topClearance + space.md - space.sm }]}
     />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+  },
   list: {
     paddingHorizontal: space.md,
     paddingBottom: space.lg,
   },
+  // Plus the tabs' own bottom padding: as far below them as they are under the corner buttons
   tabs: {
-    marginBottom: space.md,
+    marginBottom: space.sm,
   },
   gap: {
     height: space.md,
