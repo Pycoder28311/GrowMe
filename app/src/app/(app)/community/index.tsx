@@ -13,6 +13,7 @@ import { TopGradient } from '@/components/layout/top-gradient';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
 import { timeAgo } from '@/lib/format';
+import { LIST_TUNING } from '@/lib/list-tuning';
 import { usePosts } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
 import { colors, quietGray, space } from '@/theme';
@@ -33,6 +34,7 @@ export default function CommunityScreen() {
       {/* Behind the posts: it shows through the gray list's gaps and header */}
       <TopGradient />
       <FlatList
+        {...LIST_TUNING}
         style={styles.grayList}
         data={posts}
         keyExtractor={(post) => String(post.id)}

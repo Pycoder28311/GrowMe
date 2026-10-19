@@ -11,6 +11,7 @@ import { CategoryTabs } from '@/components/ui/category-tabs';
 import { PageSearchBar } from '@/components/search/page-search-bar';
 import { PillButton } from '@/components/ui/pill-button';
 import { PLACE_TABS } from '@/config/plant-filters';
+import { LIST_TUNING } from '@/lib/list-tuning';
 import { useExploreFilters } from '@/lib/explore-filters';
 import { matchPlants } from '@/lib/search-match';
 import { activeFilters, chosenCount, matchPlantFilters } from '@/lib/plant-filter-match';
@@ -75,6 +76,7 @@ export default function ResultsScreen() {
       <TopGradient />
       {searching ? (
         <FlatList
+          {...LIST_TUNING}
           data={searched}
           keyExtractor={(plant) => String(plant.id)}
           renderItem={({ item }) => <PlantCard plant={cardFromIndex(item)} />}
@@ -101,6 +103,7 @@ export default function ResultsScreen() {
         />
       ) : !filtering ? (
         <FlatList
+          {...LIST_TUNING}
           data={paged.plants}
           keyExtractor={(plant) => String(plant.id)}
           renderItem={({ item }) => <PlantCard plant={cardFromSummary(item)} />}
@@ -131,6 +134,7 @@ export default function ResultsScreen() {
         />
       ) : (
         <SectionList<Row>
+          {...LIST_TUNING}
           sections={[
             { key: 'matches', data: (result?.matches ?? []).map((p) => ({ card: cardFromIndex(p), key: `m${p.id}` })) },
             {

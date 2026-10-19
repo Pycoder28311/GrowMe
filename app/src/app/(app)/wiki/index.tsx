@@ -10,6 +10,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { PostCard } from '@/components/wiki/post-card';
 import { WIKI_TABS, type WikiTabId } from '@/config/wiki-posts';
 import { useBlogs } from '@/lib/blogs';
+import { LIST_TUNING } from '@/lib/list-tuning';
 import { colors, space } from '@/theme';
 
 /**
@@ -25,6 +26,7 @@ export default function WikiScreen() {
     <View style={styles.page}>
     <TopGradient />
     <FlatList
+      {...LIST_TUNING}
       data={blogs}
       keyExtractor={(post) => String(post.id)}
       renderItem={({ item }) => (

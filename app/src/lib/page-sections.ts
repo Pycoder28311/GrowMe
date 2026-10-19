@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LayoutChangeEvent, ScrollView } from 'react-native';
 
 /** A section counts as seen once its top passes this much of the screen's height */
@@ -7,6 +7,8 @@ const SEEN_AT = 0.85;
 const PIN_RELEASE = 40;
 /** How long a jump's own scrolling may take */
 const JUMP_MS = 700;
+/** The sections are worked out at most this often while scrolling (and once more right after the last event) */
+const SCROLL_UPDATE_MS = 60;
 
 type SectionState = {
   /** The section at the middle of the screen */
@@ -78,14 +80,29 @@ export function usePageSections(order: readonly string[], headerLine: number) {
     [headerLine, update],
   );
 
-  /** Call with the page's scroll offset on every scroll event */
-  const onScrollY = useCallback(
-    (offset: number) => {
-      y.current = offset;
-      update();
+  // Scroll events come every frame: the offset is kept at once, but the sections (and their re-render) are
+  // worked out at most every SCROLL_UPDATE_MS, with a last one after the final event, so the page never ends stale
+  const latestUpdate = useRef(update);
+  useEffect(() => {
+    latestUpdate.current = update;
+  }, [update]);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (scrollTimer.current) clearTimeout(scrollTimer.current);
     },
-    [update],
+    [],
   );
+
+  /** Call with the page's scroll offset on every scroll event */
+  const onScrollY = useCallback((offset: number) => {
+    y.current = offset;
+    if (scrollTimer.current) return;
+    scrollTimer.current = setTimeout(() => {
+      scrollTimer.current = null;
+      latestUpdate.current();
+    }, SCROLL_UPDATE_MS);
+  }, []);
 
   const scrollProps = {
     ref: scrollRef,
