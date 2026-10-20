@@ -87,11 +87,12 @@ export function FormPage(props: {
 }
 
 /** A titled block inside a form (like the app's Section) */
-export function FormSection(props: { title: string; children: Child }) {
+export function FormSection(props: { title: string; children: Child; when?: string; whenNote?: string }) {
   return (
-    <section class="section">
+    <section class="section" data-when={props.when}>
       <div class="head">
         <h2>{props.title}</h2>
+        {props.when && <span class="small muted when-note">{props.whenNote}</span>}
       </div>
       {props.children}
     </section>

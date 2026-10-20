@@ -161,6 +161,10 @@ input.small { font-size: var(--text-small); color: var(--ink-muted); }
 .section { display: flex; flex-direction: column; gap: var(--space-sm); }
 .section > .head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
 .section > .head h2 { margin: 0; }
+.dimmed { opacity: .45; }
+.when-note { display: none; }
+.dimmed > .head .when-note { display: inline; }
+.card.dimmed::before { content: "Μόνο για εξωτερικά φυτά"; font-size: var(--text-small); color: var(--ink-muted); }
 
 /* Repeatable lists */
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }

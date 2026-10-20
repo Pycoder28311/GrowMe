@@ -1,5 +1,7 @@
 import {
+  EFFORT_LEVELS,
   monthsOfRange,
+  sunBar,
   sunLength,
   type MonthRange,
   type PlantSummary,
@@ -71,46 +73,30 @@ export function plantingPeriod(range: MonthRange): Trait {
 
 type PlantFields = Pick<
   PlantSummary,
-  | 'priceMin'
-  | 'priceMax'
-  | 'difficulty'
-  | 'sunStart'
-  | 'sunEnd'
-  | 'monthRanges'
+  | 'difficultyLevels'
+  | 'sunIntenseStart'
+  | 'sunIntenseEnd'
+  | 'sunSoftStart'
+  | 'sunSoftEnd'
+  | 'plantingSeason'
   | 'food'
   | 'native'
 >;
 
-const euros = (cents: number) =>
-  (cents / 100).toLocaleString('el-GR', { maximumFractionDigits: 2 });
-
-/** '3–6 €', '3 €' or 'από 3 €'; null without a price */
-export function priceLabel({
-  priceMin: min,
-  priceMax: max,
-}: PlantFields): string | null {
-  if (min != null && max != null)
-    return min === max ? `${euros(min)} €` : `${euros(min)}–${euros(max)} €`;
-  if (min != null) return `από ${euros(min)} €`;
-  if (max != null) return `έως ${euros(max)} €`;
-  return null;
-}
-
-/** Sun from the length of its sun window: 6+ hours full sun, 3–5 partial shade, less shade */
-export function sunlightTrait({ sunStart, sunEnd }: PlantFields): Trait | null {
-  const hours = sunLength(sunStart, sunEnd);
+/** Sun from the length of its intense-sun bar: 6+ hours full sun, 3–5 partial shade, less shade; null without a bar */
+export function sunlightTrait(plant: PlantFields): Trait | null {
+  const bar = sunBar(plant, 'intense');
+  const hours = bar && sunLength(bar.start, bar.end);
   if (hours == null) return null;
   if (hours >= 6) return SUNLIGHT['full-sun'];
   return hours >= 3 ? SUNLIGHT['partial-shade'] : SUNLIGHT.shade;
 }
 
-/** Difficulty: 1 easy, 2 moderate, 3 hard */
-export const effortTrait = ({ difficulty }: PlantFields): Trait =>
-  difficulty === 1
-    ? EFFORT.easy
-    : difficulty === 2
-      ? EFFORT.moderate
-      : EFFORT.expert;
+/** Difficulty: the hardest level the plant is marked with (easy, moderate, hard); null when none is set */
+export function effortTrait({ difficultyLevels }: PlantFields): Trait | null {
+  const hardest = Math.max(-1, ...difficultyLevels.map((level) => EFFORT_LEVELS.indexOf(level)));
+  return hardest < 0 ? null : [EFFORT.easy, EFFORT.moderate, EFFORT.expert][hardest];
+}
 
 /** 🍅 Φαγώσιμο, when it is edible */
 export const useTrait = ({ food }: PlantFields): Trait | null =>
@@ -124,9 +110,9 @@ export const originTrait = ({ native }: PlantFields): Trait | null =>
   native ? { emoji: '📍', label: native } : null;
 
 /** The planting seasons' label (several joined) and the first one's icon; null when none is set */
-export function seasonTrait({ monthRanges }: PlantFields): Trait | null {
-  if (monthRanges.length === 0) return null;
-  const periods = monthRanges.map(plantingPeriod);
+export function seasonTrait({ plantingSeason }: PlantFields): Trait | null {
+  if (plantingSeason.length === 0) return null;
+  const periods = plantingSeason.map(plantingPeriod);
   return {
     emoji: periods[0].emoji,
     label: periods.map((period) => period.label).join(', '),

@@ -20,11 +20,13 @@ import {
   flagDefault,
   PLANT_FLAGS,
   PLANT_TRAIT_SUGGESTIONS,
+  PLANT_USAGE_FLAGS,
   parseRichContent,
   plantSave,
   type Lifecycle,
   type LifecycleTab,
   type Plant,
+  type PlantFlag,
   type PlantSummary,
 } from '@growme/shared'
 import { combinationsRepo } from '../../combinations/combinations.repo'
@@ -53,16 +55,30 @@ import { SunWindow } from '../ui/sun-window'
 import type { SearchOption } from '../ui/search-select'
 import { savePlant } from './plants.save'
 
+const USAGE: readonly PlantFlag[] = PLANT_USAGE_FLAGS
+/** The yes/no toggles of some flags, in PLANT_FLAGS order */
+const togglesOf = (p: Plant | null, pick: (key: PlantFlag) => boolean) =>
+  PLANT_FLAGS.filter((f) => pick(f.key)).map((f) => (
+    <Toggle field={f.key} label={f.label} emoji={f.emoji} checked={p?.[f.key] ?? flagDefault(f.key)} />
+  ))
+
 const labelled = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
   values.map((value) => ({ value, label: labels[value] }))
 
-/** A plant in the dashboard's list: cover photo, names and difficulty */
-function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: string | null; deleteUrl: string }) {
+/** A plant in the dashboard's list: cover photo, names, difficulty, where it lives and what it is used for */
+export function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: string | null; deleteUrl: string }) {
   const difficulty = item.difficultyLevels.map((level) => DIFFICULTY_LABELS[level]).join(', ')
+  const badges = [
+    item.indoor ? '🏠' : '',
+    item.outdoor ? '🌤️' : '',
+    ...PLANT_FLAGS.filter((f) => USAGE.includes(f.key) && item[f.key]).map((f) => f.emoji),
+  ]
+    .filter(Boolean)
+    .join(' ')
   return (
     <ItemCard
       title={item.name}
-      lines={[item.scientificName, difficulty]}
+      lines={[item.scientificName, difficulty, badges]}
       image={item.images[0]?.url}
       emoji="🪴"
       href={href}
@@ -153,7 +169,7 @@ const DISEASE_TEXTS = [
 ] as const
 
 /** The plant form: laid out like the app's plant page (photos, name, facts, seasons, stages, care, more) */
-function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOptions }) {
+export function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOptions }) {
   return (
     <>
       <ImagePicker field="imageIds" images={p?.images ?? []} uploadUrl="/api/admin/images" />
@@ -165,14 +181,19 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         <TextField field="family" value={p?.family} size="small" placeholder="Οικογένεια" nullable />
       </div>
 
+      {/* Where it can live: at least one */}
+      <div class="card facts">
+        <div class="field">
+          <span class="caption">Χώρος</span>
+          <div class="toggles">{togglesOf(p, (key) => key === 'indoor' || key === 'outdoor')}</div>
+          <p class="error" aria-live="polite" />
+        </div>
+      </div>
+
       {/* Yes/no characteristics (shown under the scientific name in the app), then frost, salt and wind */}
       <div class="card facts">
         <span class="caption">Χαρακτηριστικά</span>
-        <div class="toggles">
-          {PLANT_FLAGS.map((f) => (
-            <Toggle field={f.key} label={f.label} emoji={f.emoji} checked={p?.[f.key] ?? flagDefault(f.key)} />
-          ))}
-        </div>
+        <div class="toggles">{togglesOf(p, (key) => !USAGE.includes(key) && key !== 'indoor' && key !== 'outdoor')}</div>
         {TOLERANCES.map((t) => (
           <TextChoices
             field={t.key}
@@ -184,8 +205,14 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         ))}
       </div>
 
-      {/* The facts card */}
-      <div class="card facts">
+      {/* What it is used for (exterior plants) */}
+      <div class="card facts" data-when="outdoor">
+        <span class="caption">Χρήση</span>
+        <div class="toggles">{togglesOf(p, (key) => USAGE.includes(key))}</div>
+      </div>
+
+      {/* The sun bars (exterior plants) */}
+      <div class="card facts" data-when="outdoor">
         {SUN_BARS.map((bar) => (
           <div class="fact">
             <span class="emoji" aria-hidden="true">
@@ -202,10 +229,14 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
             />
           </div>
         ))}
+      </div>
+
+      {/* The facts card */}
+      <div class="card facts">
         <MultiChoices field="potSizes" label="Μέγεθος γλάστρας" values={p?.potSizes ?? []} options={labelled(POT_SIZES, POT_SIZE_LABELS)} />
         <MultiChoices field="difficultyLevels" label="Δυσκολία" values={p?.difficultyLevels ?? []} options={labelled(EFFORT_LEVELS, DIFFICULTY_LABELS)} />
         <MultiChoices field="timeNeeded" label="Χρόνος που χρειάζεται" values={p?.timeNeeded ?? []} options={labelled(EFFORT_LEVELS, TIME_NEEDED_LABELS)} />
-        <MultiChoices field="toxicity" label="Τοξικότητα" values={p?.toxicity ?? []} options={labelled(TOXICITY, TOXICITY_LABELS)} />
+        <MultiChoices field="toxicity" label="Τοξικότητα" values={p?.toxicity ?? []} options={labelled(TOXICITY, TOXICITY_LABELS)} exclusive="none" />
         <TraitFact emoji="📍" field="native" label="Προέλευση" value={p?.native} />
         <div class="fact">
           <span class="emoji" aria-hidden="true">
@@ -223,7 +254,8 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
       </div>
 
       {SEASON_FIELDS.map((field) => (
-        <RepeatableList
+        <div data-when={field === 'seedingSeason' ? 'outdoor' : undefined}>
+          <RepeatableList
           field={field}
           title={`📅 ${SEASON_LABELS[field]}`}
           itemLabel="Περίοδος"
@@ -236,7 +268,8 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
           addAt="foot"
           emptyText="Καμία περίοδος ακόμα. Πρόσθεσε έως τρεις (από – έως μήνα)."
           renderItem={(r) => <MonthPair from={r?.from} to={r?.to} />}
-        />
+          />
+        </div>
       ))}
 
       <RepeatableList

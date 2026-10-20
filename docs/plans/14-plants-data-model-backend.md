@@ -244,3 +244,7 @@ Files **not** touched: `app/` (separate plan), `backend/src/lib/crud.ts`, `lib/p
 3. **Genus** (D12) and the `greenness` name for «Πρασινάδα» (D10): defaults, tell me if you want other names.
 4. **Public API writes do not purge the cache** (Section 6). Adding a `purgeApiCache` to the write routes of `crudRoutes` for `public-*` access would fix it, but `lib/crud.ts` is shared core code, so I left it out. Want it added?
 5. **Remote rollout:** applying 0017 remotely and deploying needs your explicit go-ahead, together with the app release.
+
+## Note from plan 15
+
+Usage flags, the seeding season and the sun bars are dimmed but still saved when a plant is not outdoor, so a plant marked indoor-only can still carry them. The app must ignore them for indoor-only plants.

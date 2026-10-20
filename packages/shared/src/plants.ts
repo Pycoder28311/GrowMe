@@ -50,6 +50,11 @@ const lifespanInOrder = (p: { lifespanMin?: number | null; lifespanMax?: number 
     ? true
     : (p.lifespanMin === null) === (p.lifespanMax === null) && (p.lifespanMin === null || p.lifespanMin <= p.lifespanMax!)
 
+/** At least one of indoor / outdoor (when both are sent) */
+const placed = (p: { indoor?: boolean; outdoor?: boolean }) =>
+  p.indoor === undefined || p.outdoor === undefined || p.indoor || p.outdoor
+const placedMessage = { message: 'Pick indoor or outdoor', path: ['outdoor'] }
+
 const lifespanMessage = { message: 'Set both years, the minimum not larger than the maximum', path: ['lifespanMax'] }
 
 /** native: a short text, empty = not shown. It may hold blog links: 60 characters of what a reader
@@ -173,10 +178,13 @@ export const plantCreate = z
   .refine(intenseInOrder, barMessage('sunIntenseEnd'))
   .refine(softInOrder, barMessage('sunSoftEnd'))
   .refine(lifespanInOrder, lifespanMessage)
+  .refine(placed, placedMessage)
 
 /** Send only what changes; imageIds replaces the whole list */
 export const plantUpdate = plantFields.partial().refine(intenseInOrder, barMessage('sunIntenseEnd'))
-  .refine(softInOrder, barMessage('sunSoftEnd')).refine(lifespanInOrder, lifespanMessage)
+  .refine(softInOrder, barMessage('sunSoftEnd'))
+  .refine(lifespanInOrder, lifespanMessage)
+  .refine(placed, placedMessage)
 
 /** GET /api/plants?combinationId=3 (optional) */
 export const plantFilter = z.object({
@@ -357,6 +365,7 @@ export const plantSave = plantFields
   .refine(intenseInOrder, barMessage('sunIntenseEnd'))
   .refine(softInOrder, barMessage('sunSoftEnd'))
   .refine(lifespanInOrder, lifespanMessage)
+  .refine(placed, placedMessage)
 
 export type PlantSave = z.infer<typeof plantSave>
 

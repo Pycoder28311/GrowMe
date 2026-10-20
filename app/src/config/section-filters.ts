@@ -1,153 +1,209 @@
-// The filters of the results page's two sections (indoor and outdoor plants). A mockup for now: the choices
-// live only in the app (nothing is sent to the backend) and nothing filters the fake plants yet.
+import {
+  DIFFICULTY_LABELS,
+  EFFORT_LEVELS,
+  PLANT_FLAGS,
+  PLANT_USAGE_FLAGS,
+  POT_SIZE_LABELS,
+  POT_SIZES,
+  rangesCoverMonth,
+  SEASONS,
+  SUN_MAX_HOUR,
+  SUN_MIN_HOUR,
+  sunBar,
+  TIME_NEEDED_LABELS,
+  TOXICITY,
+  TOXICITY_LABELS,
+  type SearchPlant,
+  type SeasonField,
+  type SunBarKey,
+} from '@growme/shared';
+
+// Every filter of the results page's two sections (indoor and outdoor plants), defined once as data: the
+// filter sheets render it, and lib/plant-filter-match.ts applies it to the search index's plants, on the
+// phone. A new filter is one entry in FILTERS (no component changes). No React Native code here.
 
 export type SectionId = 'indoor' | 'outdoor';
 
-/** The hours the sunlight bars cover: 6 am to 9 pm */
-export const SUN_MIN = 6;
-export const SUN_MAX = 21;
+/** What a filter reads: a plant of the search index */
+export type FilterPlant = SearchPlant;
 
-/** [from, to] in clock hours */
-export type SunRange = readonly [number, number];
+/** [from, to] in clock hours (or any whole numbers) */
+export type Range = readonly [number, number];
 
-export type FilterOption = { id: string; label: string };
+export type FilterOption = { id: string; label: string; test: (plant: FilterPlant) => boolean };
 
-/** Filters chosen with chips (the ids of the chosen options) */
-export type ChipKey = 'pot' | 'difficulty' | 'time' | 'toxicity' | 'usage' | 'seeding' | 'planting' | 'green';
-
-export type SectionFilters = Record<ChipKey, string[]> & {
-  /** Hours with intense (direct) sun the plant needs, and hours with light that is not intense */
-  sunIntense: SunRange;
-  sunWeak: SunRange;
-};
-
-export const NO_FILTERS: SectionFilters = {
-  sunIntense: [SUN_MIN, SUN_MAX],
-  sunWeak: [SUN_MIN, SUN_MAX],
-  pot: [],
-  difficulty: [],
-  time: [],
-  toxicity: [],
-  usage: [],
-  seeding: [],
-  planting: [],
-  green: [],
-};
-
-export type ChipFilter = {
-  key: ChipKey;
+type FilterBase = {
+  /** The key of its choice in a Selection */
+  key: string;
   label: string;
-  options: FilterOption[];
   /** The sections this filter appears in */
-  sections: SectionId[];
-  /** One choice at most (tap it again to clear) */
-  single?: boolean;
+  sections: readonly SectionId[];
+  /** A heading shared by several filters in the sheet (shown once, before the first of them) */
+  group?: string;
+  /** Also in the home screen's short set */
+  quick?: boolean;
 };
 
-const SEASONS: FilterOption[] = [
-  { id: 'spring', label: 'Άνοιξη' },
-  { id: 'summer', label: 'Καλοκαίρι' },
-  { id: 'autumn', label: 'Φθινόπωρο' },
-  { id: 'winter', label: 'Χειμώνας' },
-];
+/** Options to tap; a plant passes when it passes any chosen option */
+export type ChipFilter = FilterBase & {
+  kind: 'chips';
+  /** one: a single choice (tap it again to clear); many: any number */
+  select: 'one' | 'many';
+  options: FilterOption[];
+  /** Choosing here empties these filters (e.g. the two seasons) */
+  clears?: readonly string[];
+  /** An option that excludes the others, and the others exclude it (toxicity «none») */
+  exclusive?: string;
+};
 
-/** In the order they show in the sheet (after the sunlight bars) */
-export const CHIP_FILTERS: ChipFilter[] = [
+/** A bar with two thumbs and two inputs; a plant passes when `test` says so for the chosen range */
+export type RangeFilter = FilterBase & {
+  kind: 'range';
+  min: number;
+  max: number;
+  ticks: number[];
+  test: (plant: FilterPlant, range: Range) => boolean;
+};
+
+export type PlantFilter = ChipFilter | RangeFilter;
+
+/** What is chosen, by filter key: option ids for chips, a range for a bar */
+export type Selection = Record<string, readonly string[] | Range>;
+
+/* ─────────────── Helpers for the entries ─────────────── */
+
+const optionsFrom = <T extends string>(
+  values: readonly T[],
+  labels: Record<T, string>,
+  test: (plant: FilterPlant, value: T) => boolean,
+): FilterOption[] => values.map((value) => ({ id: value, label: labels[value], test: (plant) => test(plant, value) }));
+
+/** The four seasons; a plant passes when any of its ranges in `field` reaches a month of the season */
+const seasonOptions = (field: SeasonField): FilterOption[] =>
+  SEASONS.map((season) => ({
+    id: season.id,
+    label: season.label,
+    test: (plant) => season.months.some((month) => rangesCoverMonth(plant[field], month)),
+  }));
+
+const flagLabel = (key: (typeof PLANT_FLAGS)[number]['key']) => PLANT_FLAGS.find((flag) => flag.key === key)!.label;
+
+/** Sun: the plant's bar lies inside the range; a plant without that bar doesn't pass */
+const sunTest = (kind: SunBarKey) => (plant: FilterPlant, [from, to]: Range) => {
+  const bar = sunBar(plant, kind);
+  return bar !== null && bar.start >= from && bar.end <= to;
+};
+
+const SUN_TICKS = [6, 9, 12, 15, 18, 21];
+const SUN_GROUP = 'Φως (από τις 6 το πρωί έως τις 9 το βράδυ)';
+const BOTH: readonly SectionId[] = ['indoor', 'outdoor'];
+
+/* ─────────────── The filters, in the order they show in the sheet ─────────────── */
+
+export const FILTERS: readonly PlantFilter[] = [
   {
+    kind: 'range',
+    key: 'sunIntense',
+    label: 'Έντονο φως',
+    group: SUN_GROUP,
+    sections: BOTH,
+    quick: true,
+    min: SUN_MIN_HOUR,
+    max: SUN_MAX_HOUR,
+    ticks: SUN_TICKS,
+    test: sunTest('intense'),
+  },
+  {
+    kind: 'range',
+    key: 'sunSoft',
+    label: 'Μη έντονο φως',
+    group: SUN_GROUP,
+    sections: BOTH,
+    min: SUN_MIN_HOUR,
+    max: SUN_MAX_HOUR,
+    ticks: SUN_TICKS,
+    test: sunTest('soft'),
+  },
+  {
+    kind: 'chips',
     key: 'pot',
     label: 'Μέγεθος γλάστρας (διάμετρος)',
-    sections: ['indoor', 'outdoor'],
-    options: [
-      { id: 'small', label: 'Μικρή (έως 20 εκ.)' },
-      { id: 'medium', label: 'Μεσαία (21–35 εκ.)' },
-      { id: 'big', label: 'Μεγάλη (36–50 εκ.)' },
-      { id: 'large', label: 'Πολύ μεγάλη (πάνω από 50 εκ.)' },
-    ],
+    sections: BOTH,
+    select: 'many',
+    quick: true,
+    options: optionsFrom(POT_SIZES, POT_SIZE_LABELS, (p, v) => p.potSizes.includes(v)),
   },
   {
+    kind: 'chips',
     key: 'difficulty',
     label: 'Δυσκολία',
-    sections: ['indoor', 'outdoor'],
-    options: [
-      { id: 'small', label: 'Εύκολο' },
-      { id: 'medium', label: 'Μέτριο' },
-      { id: 'big', label: 'Δύσκολο' },
-    ],
+    sections: BOTH,
+    select: 'many',
+    quick: true,
+    options: optionsFrom(EFFORT_LEVELS, DIFFICULTY_LABELS, (p, v) => p.difficultyLevels.includes(v)),
   },
   {
+    kind: 'chips',
     key: 'time',
     label: 'Χρόνος που θέλει',
-    sections: ['indoor', 'outdoor'],
-    options: [
-      { id: 'small', label: 'Λίγος' },
-      { id: 'medium', label: 'Μέτριος' },
-      { id: 'big', label: 'Πολύς' },
-    ],
+    sections: BOTH,
+    select: 'many',
+    options: optionsFrom(EFFORT_LEVELS, TIME_NEEDED_LABELS, (p, v) => p.timeNeeded.includes(v)),
   },
   {
+    kind: 'chips',
     key: 'toxicity',
     label: 'Τοξικότητα (για ποιο ζώο)',
-    sections: ['indoor', 'outdoor'],
-    options: [
-      { id: 'cat', label: 'Γάτα' },
-      { id: 'dog', label: 'Σκύλος' },
-      { id: 'none', label: 'Για κανένα' },
-    ],
+    sections: BOTH,
+    select: 'many',
+    exclusive: 'none',
+    options: optionsFrom(TOXICITY, TOXICITY_LABELS, (p, v) => p.toxicity.includes(v)),
   },
   {
+    kind: 'chips',
     key: 'usage',
     label: 'Χρήση',
     sections: ['outdoor'],
-    options: [
-      { id: 'edible', label: 'Βρώσιμο' },
-      { id: 'climbing', label: 'Αναρριχητικό' },
-      { id: 'aromatic', label: 'Αρωματικό' },
-      { id: 'ornamental', label: 'Καλλωπιστικό' },
-      { id: 'tree', label: 'Δεντράκι' },
-      { id: 'lawn', label: 'Πρασινάδα' },
-      { id: 'succulent', label: 'Παχύφυτα' },
-    ],
+    select: 'many',
+    options: PLANT_USAGE_FLAGS.map((key) => ({ id: key, label: flagLabel(key), test: (p) => p[key] })),
   },
-  { key: 'seeding', label: 'Εποχή σποράς', sections: ['outdoor'], options: SEASONS },
-  { key: 'planting', label: 'Εποχή φύτευσης', sections: ['indoor', 'outdoor'], options: SEASONS },
   {
+    kind: 'chips',
+    key: 'seeding',
+    label: 'Εποχή σποράς',
+    sections: ['outdoor'],
+    select: 'many',
+    clears: ['planting'],
+    options: seasonOptions('seedingSeason'),
+  },
+  {
+    kind: 'chips',
+    key: 'planting',
+    label: 'Εποχή φύτευσης',
+    sections: BOTH,
+    select: 'many',
+    clears: ['seeding'],
+    options: seasonOptions('plantingSeason'),
+  },
+  {
+    kind: 'chips',
     key: 'green',
     label: 'Πρασινάδα (αν είναι πράσινο όλο τον χρόνο)',
-    sections: ['indoor', 'outdoor'],
-    single: true,
+    sections: BOTH,
+    select: 'one',
     options: [
-      { id: 'yes', label: 'Όλο τον χρόνο' },
-      { id: 'no', label: 'Μέρος του χρόνου' },
+      { id: 'yes', label: 'Όλο τον χρόνο', test: (p) => p.evergreen },
+      { id: 'no', label: 'Μέρος του χρόνου', test: (p) => !p.evergreen },
     ],
   },
 ];
 
-export const chipFiltersFor = (section: SectionId) => CHIP_FILTERS.filter((filter) => filter.sections.includes(section));
+export const filtersFor = (section: SectionId) => FILTERS.filter((filter) => filter.sections.includes(section));
 
-/** Choosing a season for sowing clears the planting ones and the other way round */
-const EXCLUSIVE_WITH: Partial<Record<ChipKey, ChipKey>> = { seeding: 'planting', planting: 'seeding' };
+/** The short set of the home screen's sheet */
+export const QUICK_FILTERS = FILTERS.filter((filter) => filter.quick);
 
-/** Switches one option on or off, keeping the filters' rules (single choice, «Για κανένα», the two seasons) */
-export function toggleOption(filters: SectionFilters, filter: ChipFilter, optionId: string): SectionFilters {
-  const chosen = filters[filter.key];
-  if (chosen.includes(optionId)) return { ...filters, [filter.key]: chosen.filter((id) => id !== optionId) };
-
-  let next: string[];
-  if (filter.single) next = [optionId];
-  // «Για κανένα» excludes the animals, and an animal excludes it
-  else if (filter.key === 'toxicity') next = optionId === 'none' ? ['none'] : [...chosen.filter((id) => id !== 'none'), optionId];
-  else next = [...chosen, optionId];
-
-  const result = { ...filters, [filter.key]: next };
-  const other = EXCLUSIVE_WITH[filter.key];
-  if (other) result[other] = [];
-  return result;
-}
-
-const sunChanged = (range: SunRange) => range[0] !== SUN_MIN || range[1] !== SUN_MAX;
-
-/** How many choices are made in a section (a sunlight bar moved from its ends counts as one) */
-export function chosenCount(filters: SectionFilters, section: SectionId) {
-  const chips = chipFiltersFor(section).reduce((sum, filter) => sum + filters[filter.key].length, 0);
-  return chips + Number(sunChanged(filters.sunIntense)) + Number(sunChanged(filters.sunWeak));
-}
+/** Nothing chosen: no options in the chip filters, the whole bar in the range ones */
+export const NO_FILTERS: Selection = Object.fromEntries(
+  FILTERS.map((filter) => [filter.key, filter.kind === 'range' ? ([filter.min, filter.max] as Range) : []]),
+);

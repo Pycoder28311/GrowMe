@@ -282,9 +282,16 @@ export function TextChoices(
 }
 
 /** Several choices out of a few texts, as pills; sends the checked values as an array (empty = none) */
-export function MultiChoices(props: Base & { values: readonly string[]; options: readonly { value: string; label: string }[] }) {
+export function MultiChoices(
+  props: Base & {
+    values: readonly string[]
+    options: readonly { value: string; label: string }[]
+    /** A value that excludes the others: checking it unchecks them, and checking another unchecks it */
+    exclusive?: string
+  },
+) {
   return (
-    <div class="field" role="group" aria-label={props.label} data-multi={props.field}>
+    <div class="field" role="group" aria-label={props.label} data-multi={props.field} data-exclusive={props.exclusive}>
       {props.label && <span class="caption">{props.label}</span>}
       <div class="choices">
         {props.options.map((o) => (

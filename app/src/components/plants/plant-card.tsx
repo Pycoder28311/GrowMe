@@ -12,7 +12,6 @@ import { FACT_ICONS, FLAG_ICONS, type PlantIcon } from '@/config/plant-icons';
 import {
   effortTrait,
   originTrait,
-  priceLabel,
   sunlightTrait,
   useTrait,
   type Trait,
@@ -40,12 +39,12 @@ export type PlantCardData = Pick<
   | 'id'
   | 'name'
   | 'scientificName'
-  | 'priceMin'
-  | 'priceMax'
-  | 'difficulty'
-  | 'sunStart'
-  | 'sunEnd'
-  | 'monthRanges'
+  | 'difficultyLevels'
+  | 'sunIntenseStart'
+  | 'sunIntenseEnd'
+  | 'sunSoftStart'
+  | 'sunSoftEnd'
+  | 'plantingSeason'
   | 'food'
   | 'native'
 > & { cover: string | null };
@@ -55,7 +54,6 @@ export const cardFromIndex = (plant: SearchPlant): PlantCardData => ({ ...plant,
 
 /** One search result: photo with its planting months on the left, details on the right. Opens the plant's page (or does `onPress`). */
 export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: () => void }) {
-  const price = priceLabel(plant);
   const cover = plant.cover;
   // Only the fields this plant has values for, each with its icon (the card never shows wind)
   const traits = [
@@ -86,10 +84,10 @@ export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: 
             <AppText size="big">🪴</AppText>
           </View>
         )}
-        {plant.monthRanges.length > 0 && (
+        {plant.plantingSeason.length > 0 && (
           <View style={styles.season}>
             <View style={styles.seasonDot} />
-            <MonthsPill ranges={plant.monthRanges} />
+            <MonthsPill ranges={plant.plantingSeason} />
           </View>
         )}
       </View>
@@ -99,11 +97,6 @@ export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: 
           <AppText bold style={styles.name}>
             {plant.name}
           </AppText>
-          {price && (
-            <AppText bold color={colors.accent}>
-              {price}
-            </AppText>
-          )}
         </View>
 
         <View style={styles.traits}>

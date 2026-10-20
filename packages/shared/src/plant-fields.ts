@@ -179,6 +179,15 @@ export type MonthRange = [number, number]
 /** At most this many ranges per season */
 export const MAX_MONTH_RANGES = 3
 
+/** The four seasons and their months (12 = December) */
+export const SEASONS = [
+  { id: 'winter', label: 'Χειμώνας', months: [12, 1, 2] },
+  { id: 'spring', label: 'Άνοιξη', months: [3, 4, 5] },
+  { id: 'summer', label: 'Καλοκαίρι', months: [6, 7, 8] },
+  { id: 'autumn', label: 'Φθινόπωρο', months: [9, 10, 11] },
+] as const
+export type SeasonId = (typeof SEASONS)[number]['id']
+
 /** A plant's seasons, each up to MAX_MONTH_RANGES ranges */
 export const SEASON_FIELDS = ['seedingSeason', 'plantingSeason'] as const
 export type SeasonField = (typeof SEASON_FIELDS)[number]

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -13,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ExploreSheet } from '@/components/explore/explore-sheet';
 import { AskCard } from '@/components/home/ask-card';
 import { FollowUs } from '@/components/home/follow-us';
 import { ActionButton, ActionButtonText } from '@/components/ui/action-button';
@@ -64,7 +66,9 @@ function NudgingChevron() {
 }
 
 export default function HomeScreen() {
-  const { openExplore } = useExploreFilters();
+  const { selection, setSelection } = useExploreFilters();
+  // The quick filters sheet opens from «Επίλεξε φυτό»; the results page opens when it closes
+  const [exploring, setExploring] = useState(false);
   const blur = useBackgroundBlur();
   // Reduced-motion users keep a sharp background
   const reduceMotion = useReducedMotion();
@@ -148,7 +152,7 @@ export default function HomeScreen() {
             <Animated.View style={[styles.heroRest, heroStyle]}>
             {/* Bold phrase that pops in as the title's last letters land */}
             <GlassText text={APP_TAGLINE} delayMs={850} maxWidth={TAGLINE_WIDTH} />
-            <ActionButton innerGlow onPress={openExplore}>
+            <ActionButton innerGlow onPress={() => setExploring(true)}>
               {/* The word stays centred in the button; the arrow hangs off its right side */}
               <View>
                 <ActionButtonText shadow>Επίλεξε φυτό</ActionButtonText>
@@ -170,6 +174,17 @@ export default function HomeScreen() {
       <Animated.View pointerEvents="none" style={[styles.title, titleStyle]}>
         <AppTitle />
       </Animated.View>
+
+      {exploring && (
+        <ExploreSheet
+          initialSelection={selection}
+          onClose={(applied) => {
+            if (applied) setSelection(applied);
+            setExploring(false);
+            router.navigate('/results');
+          }}
+        />
+      )}
     </View>
   );
 }

@@ -1,30 +1,20 @@
-import { router } from 'expo-router';
-import { createContext, use, useCallback, useState, type ReactNode } from 'react';
+import { createContext, use, useState, type ReactNode } from 'react';
 
-import type { Filters } from '@/config/plant-filters';
+import { NO_FILTERS, type Selection } from '@/config/section-filters';
 
 type ExploreFilters = {
-  filters: Filters;
-  setFilters: (filters: Filters) => void;
-  /** «Επίλεξε φυτό»: straight to the results (no sheet in between) */
-  openExplore: () => void;
+  /** What the home screen's quick sheet chose; the results page starts both sections from it */
+  selection: Selection;
+  setSelection: (selection: Selection) => void;
 };
 
 const ExploreFiltersContext = createContext<ExploreFilters | null>(null);
 
-/**
- * The chosen plant filters (config/plant-filters.ts), one selection shared by the home screen's
- * home button, the results page's Filters sheet and its place tabs.
- */
+/** The plant filters chosen on the home screen (config/section-filters.ts), handed to the results page */
 export function ExploreFiltersProvider({ children }: { children: ReactNode }) {
-  const [filters, setFilters] = useState<Filters>({});
-  const openExplore = useCallback(() => router.navigate('/results'), []);
+  const [selection, setSelection] = useState<Selection>(NO_FILTERS);
 
-  return (
-    <ExploreFiltersContext value={{ filters, setFilters, openExplore }}>
-      {children}
-    </ExploreFiltersContext>
-  );
+  return <ExploreFiltersContext value={{ selection, setSelection }}>{children}</ExploreFiltersContext>;
 }
 
 export function useExploreFilters() {

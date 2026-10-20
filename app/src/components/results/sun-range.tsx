@@ -3,19 +3,29 @@ import { Platform, StyleSheet, TextInput, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { RangeSlider } from '@/components/ui/range-slider';
-import { SUN_MAX, SUN_MIN, type SunRange } from '@/config/section-filters';
+import type { Range } from '@/config/section-filters';
 import { colors, fontFamily, fontSize, radius, space } from '@/theme';
 
-const TICKS = [6, 9, 12, 15, 18, 21];
-
 /** A small box with an hour in it: write a number, and it is kept (between the bar's ends) when you leave it */
-function HourInput({ label, value, onCommit }: { label: string; value: number; onCommit: (hour: number) => void }) {
+function HourInput({
+  label,
+  value,
+  min,
+  max,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onCommit: (hour: number) => void;
+}) {
   // The text being typed; null while not editing, when the box shows the bar's hour
   const [editing, setEditing] = useState<string | null>(null);
 
   const commit = () => {
     const hour = parseInt(editing ?? '', 10);
-    if (!Number.isNaN(hour)) onCommit(Math.min(SUN_MAX, Math.max(SUN_MIN, hour)));
+    if (!Number.isNaN(hour)) onCommit(Math.min(max, Math.max(min, hour)));
     setEditing(null);
   };
 
@@ -45,17 +55,27 @@ function HourInput({ label, value, onCommit }: { label: string; value: number; o
   );
 }
 
-/** One sunlight bar: two small inputs above (from, to), and the draggable range from 6 am to 9 pm under them */
-export function SunRangeFilter({ title, value, onChange }: { title: string; value: SunRange; onChange: (value: SunRange) => void }) {
+type SunRangeFilterProps = {
+  title: string;
+  value: Range;
+  onChange: (value: Range) => void;
+  /** The hours the bar covers, and the numbers written under it */
+  min: number;
+  max: number;
+  ticks: number[];
+};
+
+/** One sunlight bar: two small inputs above (from, to), and the draggable range under them */
+export function SunRangeFilter({ title, value, onChange, min, max, ticks }: SunRangeFilterProps) {
   const [from, to] = value;
   return (
     <View style={styles.root}>
       <AppText bold>{title}</AppText>
       <View style={styles.inputs}>
-        <HourInput label="Από" value={from} onCommit={(hour) => onChange([Math.min(hour, to), to])} />
-        <HourInput label="Έως" value={to} onCommit={(hour) => onChange([from, Math.max(hour, from)])} />
+        <HourInput label="Από" value={from} min={min} max={max} onCommit={(hour) => onChange([Math.min(hour, to), to])} />
+        <HourInput label="Έως" value={to} min={min} max={max} onCommit={(hour) => onChange([from, Math.max(hour, from)])} />
       </View>
-      <RangeSlider min={SUN_MIN} max={SUN_MAX} value={value} onChange={onChange} ticks={TICKS} label={title} />
+      <RangeSlider min={min} max={max} value={value} onChange={onChange} ticks={ticks} label={title} />
     </View>
   );
 }

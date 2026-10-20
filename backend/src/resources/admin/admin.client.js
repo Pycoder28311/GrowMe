@@ -156,7 +156,12 @@
     [/^Minimum must not be larger than maximum$/, 'Το «από» δεν μπορεί να είναι μεγαλύτερο από το «έως».'],
     [/^Set both hours, the end after the start$/, 'Βάλε και τις δύο ώρες, το «έως» μετά το «από»'],
     [/^Use e\.g\. /, 'Γράψε π.χ. «4-6 weeks» ή «2 years» (days, weeks, months, years)'],
-    [/^Seed stages go before the plant stages$/, 'Τα στάδια σπόρου μπαίνουν πριν από τα στάδια φυτού'],
+    [/^Stages go in tab order/, 'Τα στάδια μπαίνουν με τη σειρά: σπόρος, φυτό, περιποίηση'],
+    [/^Picked twice$/, 'Έχει επιλεγεί δύο φορές'],
+    [/^None can not be combined/, 'Το «Κανένα» δεν συνδυάζεται με γάτες ή σκύλους'],
+    [/^Pick indoor or outdoor$/, 'Διάλεξε εσωτερικό ή εξωτερικό χώρο'],
+    [/^Set both years/, 'Βάλε και τις δύο τιμές, το «από» όχι μεγαλύτερο από το «έως»'],
+    [/^Write at least one of the three texts$/, 'Γράψε τουλάχιστον ένα από τα τρία κείμενα'],
     [/^Unknown image$/, 'Μια φωτογραφία δεν βρέθηκε. Ανέβασέ την ξανά.'],
     [/^Unknown combinationId$/, 'Ο συνδυασμός δεν βρέθηκε'],
     [/^Not found$/, 'Δεν βρέθηκε (ανανέωσε τη σελίδα)'],
@@ -165,9 +170,7 @@
     [/^The text is too long$/, 'Το κείμενο είναι πολύ μεγάλο'],
     [/^Lists are nested too deeply$/, 'Πάρα πολλές λίστες η μία μέσα στην άλλη'],
     [/^Too many images$/, 'Έως 50 εικόνες σε ένα άρθρο'],
-    [/^Tip picked twice$/, 'Αυτή η συμβουλή υπάρχει ήδη στη λίστα'],
     [/^Plant picked twice$/, 'Αυτό το φυτό είναι ήδη επιλεγμένο'],
-    [/^Unknown tipId$/, 'Μια συμβουλή δεν βρέθηκε (ίσως διαγράφηκε). Διάλεξε άλλη.'],
     [/^Unknown plantIds$/, 'Ένα φυτό δεν βρέθηκε (ίσως διαγράφηκε). Ανανέωσε τη σελίδα.'],
     [/^Unknown blog link$/, 'Ο σύνδεσμος δείχνει σε άρθρο που δεν υπάρχει (ή στο ίδιο το άρθρο)'],
   ]
@@ -701,6 +704,30 @@
     if (event.target.matches?.('[data-blog-links]')) updateLinksLine(event.target)
   })
   for (const field of form.querySelectorAll('[data-blog-links]')) updateLinksLine(field)
+
+  /* ─────────────── Conditional sections and exclusive choices ─────────────── */
+
+  /** [data-when="field"] parts are dimmed (and inert) while that checkbox is off; their values are still sent */
+  function applyWhen() {
+    for (const part of form.querySelectorAll('[data-when]')) {
+      const box = form.querySelector(`input[data-field="${part.dataset.when}"]`)
+      const off = !!box && !box.checked
+      part.classList.toggle('dimmed', off)
+      part.toggleAttribute('inert', off)
+    }
+  }
+  form.addEventListener('change', (event) => {
+    const group = event.target.closest?.('[data-exclusive]')
+    if (group && event.target.type === 'checkbox') {
+      const only = group.dataset.exclusive
+      const picked = event.target.value === only
+      for (const box of group.querySelectorAll('input[type=checkbox]')) {
+        if (box !== event.target && (picked || box.value === only)) box.checked = false
+      }
+    }
+    applyWhen()
+  })
+  applyWhen()
 
   /* ─────────────── Start ─────────────── */
 
