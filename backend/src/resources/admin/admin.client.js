@@ -66,8 +66,8 @@
     return raw === '' && input.hasAttribute('data-nullable') ? null : raw
   }
 
-  const KEYED = '[data-field], [data-list], [data-images], [data-checks]'
-  const keyOf = (el) => el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks
+  const KEYED = '[data-field], [data-list], [data-images], [data-checks], [data-multi]'
+  const keyOf = (el) => el.dataset.field ?? el.dataset.list ?? el.dataset.images ?? el.dataset.checks ?? el.dataset.multi
 
   /** A row with nothing filled in (its id aside) */
   const isEmptyRow = (values) => Object.entries(values).every(([key, value]) => key === 'id' || value === null || value === '')
@@ -97,6 +97,8 @@
         data[el.dataset.images] = rowsOf(el).map((row) => Number(row.dataset.imageId))
       } else if (el.dataset.checks !== undefined) {
         data[el.dataset.checks] = [...el.querySelectorAll('input[type=checkbox]:checked')].map((c) => Number(c.value))
+      } else if (el.dataset.multi !== undefined) {
+        data[el.dataset.multi] = [...el.querySelectorAll('input[type=checkbox]:checked')].map((c) => c.value)
       } else if (el.type === 'radio') {
         if (el.checked) data[el.dataset.field] = readValue(el)
         else if (!(el.dataset.field in data)) data[el.dataset.field] = null

@@ -132,9 +132,14 @@ export const combinations = sqliteTable('combinations', {
 
 // A plant's choices; the same lists as @growme/shared's plant-fields.ts (repeated so drizzle-kit
 // reads this file on its own)
-export const WIND_LEVELS = ['strong', 'moderate', 'light', 'sheltered'] as const
-export const PLANT_KINDS = ['flowers', 'leaves', 'bush'] as const
-export const PLANT_SIZES = ['small', 'medium', 'large'] as const
+export const TOLERANCE_LEVELS = ['small', 'medium', 'big'] as const
+export const LIFECYCLE_TABS = ['seed', 'plant', 'care'] as const
+type Level = 'small' | 'medium' | 'big'
+type PotSize = Level | 'large'
+type Toxicity = 'cat' | 'dog' | 'none'
+
+/** A list of fixed choices kept as JSON text; «[]» = not set */
+const choiceList = <T extends string>(name: string) => text(name, { mode: 'json' }).$type<T[]>().notNull().default([])
 
 export const plants = sqliteTable(
     'plants',
@@ -144,10 +149,11 @@ export const plants = sqliteTable(
         name: text('name').notNull(),
         scientificName: text('scientific_name').notNull(),
         description: text('description'),
-        priceMin: integer('price_min'), // in cents
-        priceMax: integer('price_max'),
+        family: text('family'),
         // A short text, null = not shown (e.g. «Ιθαγενές της Μεσογείου»)
         native: text('native'),
+        trivia: text('trivia'),
+        secret: text('secret'),
         // Yes/no fields (PLANT_FLAGS in @growme/shared)
         food: flag('food'),
         aromatic: flag('aromatic'),
@@ -155,32 +161,49 @@ export const plants = sqliteTable(
         ornamental: flag('ornamental'),
         succulent: flag('succulent'),
         smallTree: flag('small_tree'),
+        greenness: flag('greenness'),
+        evergreen: flag('evergreen'),
         privacy: flag('privacy'),
-        nearSea: flag('near_sea'),
-        frostHardy: flag('frost_hardy'),
         // Where it can live: both yes unless the dashboard says otherwise
         indoor: flag('indoor', true),
         outdoor: flag('outdoor', true),
-        wind: text('wind', { enum: WIND_LEVELS }),
-        kind: text('kind', { enum: PLANT_KINDS }),
-        size: text('size', { enum: PLANT_SIZES }),
-        difficulty: integer('difficulty').notNull(), // 1 easy – 3 hard (the CHECK below still says 1–5, see 0013)
-        sunStart: integer('sun_start'), // clock hours 0–24: the sun window
-        sunEnd: integer('sun_end'),
-        // Up to 3 month ranges, 1–12 (an end may be smaller than its start, e.g. Nov–Feb); the API sends monthRanges
-        monthStart: integer('month_start'),
-        monthEnd: integer('month_end'),
-        monthStart2: integer('month_start_2'),
-        monthEnd2: integer('month_end_2'),
-        monthStart3: integer('month_start_3'),
-        monthEnd3: integer('month_end_3'),
-        lifespan: text('lifespan'), // e.g. «4-6 years» (parseDuration)
+        // How much it tolerates (null = not set)
+        frostTolerance: text('frost_tolerance', { enum: TOLERANCE_LEVELS }),
+        saltTolerance: text('salt_tolerance', { enum: TOLERANCE_LEVELS }),
+        windTolerance: text('wind_tolerance', { enum: TOLERANCE_LEVELS }),
+        // Several choices each (JSON lists of the values in @growme/shared)
+        potSizes: choiceList<PotSize>('pot_sizes'),
+        difficultyLevels: choiceList<Level>('difficulty_levels'),
+        timeNeeded: choiceList<Level>('time_needed'),
+        toxicity: choiceList<Toxicity>('toxicity'),
+        // Legacy 1–3, written by the API as the hardest of difficultyLevels: the CHECK below blocks dropping it (0013)
+        difficulty: integer('difficulty').notNull(),
+        // Two sun bars, clock hours 6–21 (both hours of a bar or neither)
+        sunIntenseStart: integer('sun_intense_start'),
+        sunIntenseEnd: integer('sun_intense_end'),
+        sunSoftStart: integer('sun_soft_start'),
+        sunSoftEnd: integer('sun_soft_end'),
+        // Seasons: up to 3 month ranges each, 1–12 (an end may be smaller than its start, e.g. Nov–Feb); the API sends seedingSeason / plantingSeason
+        seedingStart: integer('seeding_start'),
+        seedingEnd: integer('seeding_end'),
+        seedingStart2: integer('seeding_start_2'),
+        seedingEnd2: integer('seeding_end_2'),
+        seedingStart3: integer('seeding_start_3'),
+        seedingEnd3: integer('seeding_end_3'),
+        plantingStart: integer('planting_start'),
+        plantingEnd: integer('planting_end'),
+        plantingStart2: integer('planting_start_2'),
+        plantingEnd2: integer('planting_end_2'),
+        plantingStart3: integer('planting_start_3'),
+        plantingEnd3: integer('planting_end_3'),
+        lifespanMin: integer('lifespan_min'), // whole years
+        lifespanMax: integer('lifespan_max'),
         createdAt: createdAt(),
     },
     (t) => [
         index('plants_combination_id_idx').on(t.combinationId),
         check('plants_difficulty_check', sql`${t.difficulty} BETWEEN 1 AND 5`),
-        check('plants_month_check', sql`${t.monthStart} BETWEEN 1 AND 12 AND ${t.monthEnd} BETWEEN 1 AND 12`),
+        check('plants_month_check', sql`${t.plantingStart} BETWEEN 1 AND 12 AND ${t.plantingEnd} BETWEEN 1 AND 12`),
     ],
 )
 
@@ -192,32 +215,10 @@ export const lifecycles = sqliteTable(
         position: integer('position').notNull().default(0),
         title: text('title').notNull(),
         content: text('content').notNull(),
-        seed: flag('seed'), // a stage before the plant is sold ready to transplant
-        duration: text('duration'), // counted from sowing, e.g. «6-12 months»
+        tab: text('tab', { enum: LIFECYCLE_TABS }).notNull().default('plant'), // seed: from sowing · plant: from a ready plant · care
+        duration: text('duration'), // optional, counted from sowing, e.g. «6-12 months»
     },
     (t) => [index('lifecycles_plant_id_idx').on(t.plantId, t.position)],
-)
-
-/** A library of tips: one tip can be on many plants (plant_tips) */
-export const tips = sqliteTable('tips', {
-    id: id(),
-    title: text('title').notNull(),
-    content: text('content').notNull(),
-})
-
-/** Which tips a plant shows, in order */
-export const plantTips = sqliteTable(
-    'plant_tips',
-    {
-        plantId: integer('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
-        tipId: integer('tip_id').notNull().references(() => tips.id, { onDelete: 'cascade' }),
-        position: integer('position').notNull(),
-    },
-    (t) => [
-        primaryKey({ columns: [t.plantId, t.tipId] }),
-        index('plant_tips_plant_idx').on(t.plantId, t.position),
-        index('plant_tips_tip_idx').on(t.tipId),
-    ],
 )
 
 export const diseases = sqliteTable(
@@ -227,7 +228,10 @@ export const diseases = sqliteTable(
         plantId: integer('plant_id').notNull().references(() => plants.id, { onDelete: 'cascade' }),
         title: text('title').notNull(),
         label: text('label'),
-        content: text('content').notNull(),
+        // Τι βλέπω / Τι είναι / Τι κάνω (editor documents as JSON text); at least one is set
+        symptoms: text('symptoms'),
+        what: text('what'),
+        action: text('action'),
     },
     (t) => [index('diseases_plant_id_idx').on(t.plantId)],
 )
@@ -318,7 +322,6 @@ export const combinationsRelations = relations(combinations, ({ many }) => ({
 export const plantsRelations = relations(plants, ({ one, many }) => ({
     combination: one(combinations, { fields: [plants.combinationId], references: [combinations.id] }),
     lifecycles: many(lifecycles),
-    tipLinks: many(plantTips),
     diseases: many(diseases),
     images: many(plantImages),
     posts: many(posts),
@@ -326,15 +329,6 @@ export const plantsRelations = relations(plants, ({ one, many }) => ({
 
 export const lifecyclesRelations = relations(lifecycles, ({ one }) => ({
     plant: one(plants, { fields: [lifecycles.plantId], references: [plants.id] }),
-}))
-
-export const tipsRelations = relations(tips, ({ many }) => ({
-    plantLinks: many(plantTips),
-}))
-
-export const plantTipsRelations = relations(plantTips, ({ one }) => ({
-    plant: one(plants, { fields: [plantTips.plantId], references: [plants.id] }),
-    tip: one(tips, { fields: [plantTips.tipId], references: [tips.id] }),
 }))
 
 export const diseasesRelations = relations(diseases, ({ one }) => ({

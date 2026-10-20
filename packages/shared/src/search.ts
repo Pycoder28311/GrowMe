@@ -7,7 +7,22 @@ import type { PlantSummary } from './plants'
 /** What the app's plant filters read (plan 09): one list, so the index and the filters agree */
 export type PlantFilterFields = Pick<
   PlantSummary,
-  'priceMin' | 'priceMax' | 'sunStart' | 'sunEnd' | 'monthRanges' | 'wind' | 'kind' | 'size' | 'difficulty' | PlantFlag
+  | 'lifespanMin'
+  | 'lifespanMax'
+  | 'potSizes'
+  | 'difficultyLevels'
+  | 'timeNeeded'
+  | 'toxicity'
+  | 'frostTolerance'
+  | 'saltTolerance'
+  | 'windTolerance'
+  | 'sunIntenseStart'
+  | 'sunIntenseEnd'
+  | 'sunSoftStart'
+  | 'sunSoftEnd'
+  | 'seedingSeason'
+  | 'plantingSeason'
+  | PlantFlag
 >
 
 export type SearchPlant = PlantFilterFields & {

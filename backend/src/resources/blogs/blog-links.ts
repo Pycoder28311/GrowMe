@@ -32,8 +32,7 @@ export async function linkedFromCount(db: Db, blogId: number) {
   const row = await db.get<{ n: number }>(sql`SELECT
       (SELECT count(*) FROM plants WHERE description LIKE ${plain} OR description LIKE ${rich} OR native LIKE ${plain})
     + (SELECT count(*) FROM lifecycles WHERE content LIKE ${plain})
-    + (SELECT count(*) FROM tips WHERE content LIKE ${plain})
-    + (SELECT count(*) FROM diseases WHERE content LIKE ${plain} OR content LIKE ${rich})
+    + (SELECT count(*) FROM diseases WHERE symptoms LIKE ${rich} OR what LIKE ${rich} OR action LIKE ${rich} OR symptoms LIKE ${plain} OR what LIKE ${plain} OR action LIKE ${plain})
     + (SELECT count(*) FROM combinations WHERE description LIKE ${plain})
     + (SELECT count(*) FROM blogs WHERE id != ${blogId} AND content LIKE ${rich}) AS n`)
   return row?.n ?? 0

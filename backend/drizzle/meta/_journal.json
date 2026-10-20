@@ -120,6 +120,13 @@
       "when": 1791978412981,
       "tag": "0016_plant_indoor_outdoor",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1792535309683,
+      "tag": "0017_plant_fields_v2",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import { WidgetsScript } from './widgets-script'
 //   text   → string ('' becomes null when data-nullable)   number → number or null
 //   money  → euros typed, cents sent (3.5 → 350)           bool   → checkbox checked
 //   id     → number, left out when empty (new list rows)
+//   MultiChoices (data-multi) → array of the checked texts
 // DurationField and SunWindow (sun-window.tsx) keep their value in hidden inputs and are run by
 // /admin-widgets.js (admin-editor/widgets.ts).
 // Pickers (search-select.tsx) add: a searchable single choice (number) and a checklist (array of ids).
@@ -270,6 +271,25 @@ export function TextChoices(
               checked={o.value === props.value}
               aria-label={o.label}
             />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+      {props.hint && <span class="small muted">{props.hint}</span>}
+      <p class="error" aria-live="polite" />
+    </div>
+  )
+}
+
+/** Several choices out of a few texts, as pills; sends the checked values as an array (empty = none) */
+export function MultiChoices(props: Base & { values: readonly string[]; options: readonly { value: string; label: string }[] }) {
+  return (
+    <div class="field" role="group" aria-label={props.label} data-multi={props.field}>
+      {props.label && <span class="caption">{props.label}</span>}
+      <div class="choices">
+        {props.options.map((o) => (
+          <label class="choice">
+            <input type="checkbox" value={o.value} checked={props.values.includes(o.value)} aria-label={o.label} />
             <span>{o.label}</span>
           </label>
         ))}
