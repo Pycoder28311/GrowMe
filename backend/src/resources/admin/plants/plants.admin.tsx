@@ -1,33 +1,41 @@
 import {
-  DIFFICULTIES,
   DIFFICULTY_LABELS,
+  EFFORT_LEVELS,
+  LIFECYCLE_TABS,
+  LIFECYCLE_TAB_LABELS,
   MAX_MONTH_RANGES,
+  POT_SIZES,
+  POT_SIZE_LABELS,
+  SEASON_FIELDS,
+  SEASON_LABELS,
+  SUN_BARS,
+  SUN_MAX_HOUR,
+  SUN_MIN_HOUR,
+  TIME_NEEDED_LABELS,
+  TOLERANCES,
+  TOLERANCE_LABELS,
+  TOLERANCE_LEVELS,
+  TOXICITY,
+  TOXICITY_LABELS,
   flagDefault,
   PLANT_FLAGS,
-  PLANT_KIND_LABELS,
-  PLANT_KINDS,
-  PLANT_SIZE_LABELS,
-  PLANT_SIZES,
   PLANT_TRAIT_SUGGESTIONS,
-  WIND_LABELS,
-  WIND_LEVELS,
   parseRichContent,
   plantSave,
   type Lifecycle,
+  type LifecycleTab,
   type Plant,
   type PlantSummary,
-  type Tip,
 } from '@growme/shared'
 import { combinationsRepo } from '../../combinations/combinations.repo'
 import { plantsRepo } from '../../plants/plants.repo'
 import { blogLinkOptions } from '../../blogs/blog-links'
-import { tipsRepo } from '../../tips/tips.repo'
 import { adminResource, numericId } from '../resource'
 import {
-  Choices,
   DurationField,
-  MoneyField,
   MonthPair,
+  MultiChoices,
+  RangeField,
   Select,
   SuggestField,
   TextArea,
@@ -36,37 +44,25 @@ import {
   Toggle,
   type Option,
 } from '../ui/fields'
-import { snippet } from '../ui/format'
 import { BlogLinkPicker } from '../ui/blog-link-picker'
 import { ImagePicker } from '../ui/image-picker'
 import { FormSection, ItemCard } from '../ui/pages'
 import { RepeatableList } from '../ui/repeatable-list'
 import { EMPTY_DOC, RichTextEditor } from '../ui/rich-text-editor'
 import { SunWindow } from '../ui/sun-window'
-import { SearchOptions, SearchSelect, type SearchOption } from '../ui/search-select'
+import type { SearchOption } from '../ui/search-select'
 import { savePlant } from './plants.save'
 
-const DIFFICULTY: Option[] = DIFFICULTIES.map((value) => ({ value, label: DIFFICULTY_LABELS[value] }))
 const labelled = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
   values.map((value) => ({ value, label: labels[value] }))
 
-const euros = (cents: number) => (cents / 100).toLocaleString('el-GR', { maximumFractionDigits: 2 })
-
-function priceText(p: PlantSummary) {
-  if (p.priceMin == null && p.priceMax == null) return null
-  if (p.priceMin != null && p.priceMax != null && p.priceMin !== p.priceMax) {
-    return `${euros(p.priceMin)}–${euros(p.priceMax)} €`
-  }
-  return `${euros((p.priceMin ?? p.priceMax)!)} €`
-}
-
-/** A plant in the dashboard's list: cover photo, names, price and difficulty */
+/** A plant in the dashboard's list: cover photo, names and difficulty */
 function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: string | null; deleteUrl: string }) {
-  const price = priceText(item)
+  const difficulty = item.difficultyLevels.map((level) => DIFFICULTY_LABELS[level]).join(', ')
   return (
     <ItemCard
       title={item.name}
-      lines={[item.scientificName, [price, DIFFICULTY_LABELS[item.difficulty]].filter(Boolean).join(' · ')]}
+      lines={[item.scientificName, difficulty]}
       image={item.images[0]?.url}
       emoji="🪴"
       href={href}
@@ -75,7 +71,7 @@ function PlantListItem({ item, href, deleteUrl }: { item: PlantSummary; href: st
   )
 }
 
-/** Title + text rows (lifecycles and new tips share it); the text may link to blogs */
+/** Title + text rows (lifecycle stages); the text may link to blogs */
 const TitledText = (props: { title?: string; content?: string; titleLabel: string }) => (
   <>
     <TextField field="title" value={props.title} placeholder={props.titleLabel} required />
@@ -83,66 +79,48 @@ const TitledText = (props: { title?: string; content?: string; titleLabel: strin
   </>
 )
 
-/**
- * A tip from the library: picked by typing its title, shown read-only (shared tips are edited on
- * their own page, «Επεξεργασία»)
- */
-const PickedTip = ({ tip }: { tip: Tip | null }) => (
-  <>
-    <SearchSelect field="tipId" source="tips" value={tip?.id} text={tip?.title} placeholder="Γράψε για αναζήτηση συμβουλής…" />
-    <p class="small muted picked-text" data-fill="content">
-      {tip?.content}
-    </p>
-    <a
-      class="small"
-      data-fill-href="/tips/{value}"
-      href={tip ? `/tips/${tip.id}` : undefined}
-      hidden={!tip}
-      target="_blank"
-      rel="noopener"
-    >
-      Επεξεργασία ↗
-    </a>
-  </>
-)
-
-const STAGE_BADGE = { seed: '🌰 Στάδιο σπόρου', plant: '🪴 Στάδιο φυτού' }
+const STAGE_BADGE: Record<LifecycleTab, string> = {
+  seed: '🌰 Στάδιο σπόρου',
+  plant: '🪴 Στάδιο φυτού',
+  care: '💧 Περιποίηση',
+}
 const STAGE_SWITCH = { seed: '→ Κάν\'το στάδιο σπόρου', plant: '→ Κάν\'το στάδιο φυτού' }
 
 /**
- * A lifecycle stage: a seed stage (before the plant is sold ready to transplant) or a plant stage,
- * its time from sowing, title and text. The switch moves it to the other group (admin.client.js
- * switchGroup), which also updates the hidden `seed` and the badge.
+ * A lifecycle stage on one tab: from seed, from a ready plant (transplant) or care; its time from
+ * sowing (optional), title and text. Seed and plant stages switch to each other (admin.client.js
+ * switchGroup updates the hidden `tab` and the badge); care stages stay where they are.
  */
-const StageFields = ({ stage, seed }: { stage?: Lifecycle | null; seed: boolean }) => {
-  const group = seed ? 'seed' : 'plant'
-  const other = seed ? 'plant' : 'seed'
+const StageFields = ({ stage, tab }: { stage?: Lifecycle | null; tab: LifecycleTab }) => {
+  const other = tab === 'seed' ? 'plant' : 'seed'
   return (
     <>
       <div class="field stage-head">
         <div class="row">
           <span class="stage-badge" data-group-text>
-            {STAGE_BADGE[group]}
+            {STAGE_BADGE[tab]}
           </span>
-          <button
-            type="button"
-            class="chip-button"
-            data-switch-group
-            data-to={other}
-            data-value-seed="true"
-            data-value-plant="false"
-            data-text-seed={STAGE_BADGE.seed}
-            data-text-plant={STAGE_BADGE.plant}
-            data-switch-seed={STAGE_SWITCH.seed}
-            data-switch-plant={STAGE_SWITCH.plant}
-          >
-            {STAGE_SWITCH[other]}
-          </button>
+          {tab !== 'care' && (
+            <button
+              type="button"
+              class="chip-button"
+              data-switch-group
+              data-to={other}
+              data-value-seed="seed"
+              data-value-plant="plant"
+              data-text-seed={STAGE_BADGE.seed}
+              data-text-plant={STAGE_BADGE.plant}
+              data-switch-seed={STAGE_SWITCH.seed}
+              data-switch-plant={STAGE_SWITCH.plant}
+            >
+              {STAGE_SWITCH[other]}
+            </button>
+          )}
         </div>
-        <input type="hidden" data-field="seed" data-type="json" data-group-value value={String(seed)} />
+        <input type="hidden" data-field="tab" data-type="text" data-group-value value={tab} />
         <p class="error" aria-live="polite" />
       </div>
-      <DurationField field="duration" label="Πόσο μετά τη σπορά" value={stage?.duration} unit="months" />
+      <DurationField field="duration" label="Πόσο μετά τη σπορά (προαιρετικό)" value={stage?.duration} unit="months" />
       <TitledText title={stage?.title} content={stage?.content} titleLabel="Στάδιο (π.χ. Πρώτα άνθη)" />
     </>
   )
@@ -165,27 +143,29 @@ const TraitFact = (props: { emoji: string; field: keyof typeof PLANT_TRAIT_SUGGE
   </div>
 )
 
-type PlantOptions = { combinations: Option[]; tips: SearchOption[]; blogs: SearchOption[] }
+type PlantOptions = { combinations: Option[]; blogs: SearchOption[] }
 
-/** The plant form: laid out like the app's plant page (photos, name and price, facts, care, more) */
+/** The three texts of a disease: Τι βλέπω, Τι είναι, Τι κάνω */
+const DISEASE_TEXTS = [
+  ['symptoms', 'Τι βλέπω'],
+  ['what', 'Τι είναι'],
+  ['action', 'Τι κάνω'],
+] as const
+
+/** The plant form: laid out like the app's plant page (photos, name, facts, seasons, stages, care, more) */
 function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOptions }) {
   return (
     <>
       <ImagePicker field="imageIds" images={p?.images ?? []} uploadUrl="/api/admin/images" />
 
-      {/* Name (big) with the price on the right, the scientific name under them */}
+      {/* Name (big), the scientific name and family under it */}
       <div>
-        <div class="title-row">
-          <TextField field="name" value={p?.name} size="big" placeholder="Όνομα φυτού" required />
-          <div class="row price">
-            <MoneyField field="priceMin" cents={p?.priceMin} placeholder="από €" />
-            <MoneyField field="priceMax" cents={p?.priceMax} placeholder="έως €" />
-          </div>
-        </div>
+        <TextField field="name" value={p?.name} size="big" placeholder="Όνομα φυτού" required />
         <TextField field="scientificName" value={p?.scientificName} size="small" placeholder="Επιστημονική ονομασία" required />
+        <TextField field="family" value={p?.family} size="small" placeholder="Οικογένεια" nullable />
       </div>
 
-      {/* Yes/no characteristics (shown under the scientific name in the app), then wind, kind and size */}
+      {/* Yes/no characteristics (shown under the scientific name in the app), then frost, salt and wind */}
       <div class="card facts">
         <span class="caption">Χαρακτηριστικά</span>
         <div class="toggles">
@@ -193,48 +173,71 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
             <Toggle field={f.key} label={f.label} emoji={f.emoji} checked={p?.[f.key] ?? flagDefault(f.key)} />
           ))}
         </div>
-        <TextChoices field="wind" label="Αέρας" value={p?.wind} options={labelled(WIND_LEVELS, WIND_LABELS)} none="Δεν ορίστηκε" />
-        <TextChoices field="kind" label="Είδος" value={p?.kind} options={labelled(PLANT_KINDS, PLANT_KIND_LABELS)} none="Δεν ορίστηκε" />
-        <TextChoices field="size" label="Μέγεθος" value={p?.size} options={labelled(PLANT_SIZES, PLANT_SIZE_LABELS)} none="Δεν ορίστηκε" />
+        {TOLERANCES.map((t) => (
+          <TextChoices
+            field={t.key}
+            label={t.label}
+            value={p?.[t.key]}
+            options={labelled(TOLERANCE_LEVELS, TOLERANCE_LABELS)}
+            none="Δεν ορίστηκε"
+          />
+        ))}
       </div>
 
       {/* The facts card */}
       <div class="card facts">
-        <div class="fact">
-          <span class="emoji" aria-hidden="true">
-            ☀️
-          </span>
-          <SunWindow label="Ώρες ήλιου τη μέρα" start={p?.sunStart} end={p?.sunEnd} />
-        </div>
-        <div class="fact">
-          <span class="emoji" aria-hidden="true">
-            🌱
-          </span>
-          <Choices field="difficulty" label="Δυσκολία" value={p?.difficulty ?? 1} options={DIFFICULTY} labels />
-        </div>
+        {SUN_BARS.map((bar) => (
+          <div class="fact">
+            <span class="emoji" aria-hidden="true">
+              ☀️
+            </span>
+            <SunWindow
+              label={bar.label}
+              startField={bar.start}
+              endField={bar.end}
+              start={p?.[bar.start]}
+              end={p?.[bar.end]}
+              min={SUN_MIN_HOUR}
+              max={SUN_MAX_HOUR}
+            />
+          </div>
+        ))}
+        <MultiChoices field="potSizes" label="Μέγεθος γλάστρας" values={p?.potSizes ?? []} options={labelled(POT_SIZES, POT_SIZE_LABELS)} />
+        <MultiChoices field="difficultyLevels" label="Δυσκολία" values={p?.difficultyLevels ?? []} options={labelled(EFFORT_LEVELS, DIFFICULTY_LABELS)} />
+        <MultiChoices field="timeNeeded" label="Χρόνος που χρειάζεται" values={p?.timeNeeded ?? []} options={labelled(EFFORT_LEVELS, TIME_NEEDED_LABELS)} />
+        <MultiChoices field="toxicity" label="Τοξικότητα" values={p?.toxicity ?? []} options={labelled(TOXICITY, TOXICITY_LABELS)} />
         <TraitFact emoji="📍" field="native" label="Προέλευση" value={p?.native} />
         <div class="fact">
           <span class="emoji" aria-hidden="true">
             ⏳
           </span>
-          <DurationField field="lifespan" label="Διάρκεια ζωής" value={p?.lifespan} unit="years" />
+          <RangeField
+            label="Διάρκεια ζωής"
+            min={{ field: 'lifespanMin', value: p?.lifespanMin }}
+            max={{ field: 'lifespanMax', value: p?.lifespanMax }}
+            lowest={1}
+            highest={999}
+            unit="χρόνια"
+          />
         </div>
       </div>
 
-      <RepeatableList
-        field="monthRanges"
-        title="📅 Εποχές"
-        itemLabel="Εποχή"
-        items={(p?.monthRanges ?? []).map(([from, to], id) => ({ id, from, to }))}
-        sortable
-        rowIds={false}
-        max={MAX_MONTH_RANGES}
-        shape="tuple"
-        skipEmpty
-        addAt="foot"
-        emptyText="Καμία εποχή ακόμα. Πρόσθεσε έως τρεις (από – έως μήνα)."
-        renderItem={(r) => <MonthPair from={r?.from} to={r?.to} />}
-      />
+      {SEASON_FIELDS.map((field) => (
+        <RepeatableList
+          field={field}
+          title={`📅 ${SEASON_LABELS[field]}`}
+          itemLabel="Περίοδος"
+          items={(p?.[field] ?? []).map(([from, to], id) => ({ id, from, to }))}
+          sortable
+          rowIds={false}
+          max={MAX_MONTH_RANGES}
+          shape="tuple"
+          skipEmpty
+          addAt="foot"
+          emptyText="Καμία περίοδος ακόμα. Πρόσθεσε έως τρεις (από – έως μήνα)."
+          renderItem={(r) => <MonthPair from={r?.from} to={r?.to} />}
+        />
+      ))}
 
       <RepeatableList
         field="lifecycles"
@@ -243,34 +246,17 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
         items={p?.lifecycles ?? []}
         sortable
         soft
-        groups={[
-          { key: 'seed', label: 'Από σπόρο' },
-          { key: 'plant', label: 'Από φυτό (μεταμφύτευση)' },
-        ]}
-        groupOf={(l) => (l.seed ? 'seed' : 'plant')}
-        variants={[
-          { key: 'seed', group: 'seed', label: 'Στάδιο σπόρου', render: () => <StageFields seed /> },
-          { key: 'plant', group: 'plant', label: 'Στάδιο φυτού', render: () => <StageFields seed={false} /> },
-        ]}
-        emptyText="Πρόσθεσε στάδια: πρώτα του σπόρου (αν ξεκινά από σπόρο), μετά του φυτού."
-        renderItem={(l) => <StageFields stage={l} seed={l?.seed ?? false} />}
+        groups={LIFECYCLE_TABS.map((key) => ({ key, label: LIFECYCLE_TAB_LABELS[key] }))}
+        groupOf={(l) => l.tab}
+        variants={LIFECYCLE_TABS.map((tab) => ({
+          key: tab,
+          group: tab,
+          label: STAGE_BADGE[tab],
+          render: () => <StageFields tab={tab} />,
+        }))}
+        emptyText="Πρόσθεσε στάδια: πρώτα του σπόρου (αν ξεκινά από σπόρο), μετά του φυτού και στο τέλος την περιποίηση."
+        renderItem={(l) => <StageFields stage={l} tab={l?.tab ?? 'plant'} />}
       />
-
-      <RepeatableList
-        field="tips"
-        title="Συμβουλές"
-        itemLabel="Συμβουλή"
-        items={p?.tips ?? []}
-        sortable
-        rowIds={false}
-        emptyText="Διάλεξε μια συμβουλή από τη βιβλιοθήκη ή γράψε μια νέα."
-        renderItem={(t) => <PickedTip tip={t} />}
-        variants={[
-          { key: 'pick', label: 'Υπάρχουσα', render: () => <PickedTip tip={null} /> },
-          { key: 'new', label: 'Νέα', render: () => <TitledText titleLabel="Τίτλος συμβουλής" /> },
-        ]}
-      />
-      <SearchOptions source="tips" options={options.tips} />
 
       <RepeatableList
         field="diseases"
@@ -283,17 +269,24 @@ function PlantForm({ item: p, options }: { item: Plant | null; options: PlantOpt
               <TextField field="title" value={d?.title} placeholder="Τι να προσέχεις (π.χ. Αφίδες)" required />
               <TextField field="label" value={d?.label} placeholder="Ετικέτα (προαιρετική)" nullable maxLength={100} />
             </div>
-            {/* Formatted text (no photos); older plain texts open as paragraphs with their blog links */}
-            <RichTextEditor
-              field="content"
-              label="Τι κάνει και πώς αντιμετωπίζεται"
-              value={d ? parseRichContent(d.content) : EMPTY_DOC}
-              placeholder="Τι κάνει και πώς αντιμετωπίζεται"
-              compact
-            />
+            {/* Formatted texts (no photos); older plain texts open as paragraphs with their blog links */}
+            {DISEASE_TEXTS.map(([field, label]) => (
+              <RichTextEditor
+                field={field}
+                label={label}
+                value={d?.[field] ? parseRichContent(d[field]!) : EMPTY_DOC}
+                placeholder={label}
+                compact
+              />
+            ))}
           </>
         )}
       />
+
+      <FormSection title="Ηξερες οτι / Μυστικό επιτυχίας">
+        <TextArea field="trivia" label="Ηξερες οτι" value={p?.trivia} rows={2} maxLength={2000} nullable />
+        <TextArea field="secret" label="Μυστικό επιτυχίας" value={p?.secret} rows={2} maxLength={2000} nullable />
+      </FormSection>
 
       <FormSection title="Περιγραφή">
         {/* Formatted text (no photos); empty = no description */}
@@ -331,19 +324,12 @@ export const plantsAdmin = adminResource({
     get: (ctx, id) => plantsRepo.get(ctx, id),
     save: savePlant,
     options: async (ctx): Promise<PlantOptions> => {
-      const [combinations, tips, blogs] = await Promise.all([
+      const [combinations, blogs] = await Promise.all([
         combinationsRepo.list(ctx, null, undefined),
-        tipsRepo.list(ctx, null, undefined),
         blogLinkOptions(ctx.db),
       ])
       return {
         combinations: combinations.items.map((c) => ({ value: c.id, label: c.title })),
-        tips: tips.items.map((t) => ({
-          value: t.id,
-          label: t.title,
-          hint: `${snippet(t.content, 80)} · σε ${t.plantCount} ${t.plantCount === 1 ? 'φυτό' : 'φυτά'}`,
-          data: { content: t.content },
-        })),
         blogs,
       }
     },

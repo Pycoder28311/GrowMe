@@ -10,7 +10,7 @@ export const toLifecycle = (l: typeof lifecycles.$inferSelect): Lifecycle => ({
   position: l.position,
   title: l.title,
   content: l.content,
-  seed: l.seed,
+  tab: l.tab,
   duration: l.duration,
 })
 

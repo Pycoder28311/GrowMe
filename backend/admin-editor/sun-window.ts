@@ -1,4 +1,5 @@
-// The sun bar (SunWindow in ui/sun-window.tsx): the hours a plant wants sun, on a 00:00–24:00 bar.
+// The sun bar (SunWindow in ui/sun-window.tsx): the hours a plant wants sun, on a bar from data-min to
+// data-max (00:00–24:00 by default); a form can have several bars, each with its own two inputs.
 // Drag an edge to change it, or the coloured span to move the whole window (pointer: mouse and
 // touch); the keyboard works on both. Whole hours, at least one. The two hidden inputs hold the
 // value (both empty = not set).
@@ -6,16 +7,18 @@ import { SUN_PART_LABELS, sunLength, sunPart } from '../../packages/shared/src/p
 
 type Window = { start: number; end: number }
 
-const HOURS = 24
-/** «Όρισε ώρες ήλιου» places this window */
+/** «Όρισε ώρες ήλιου» places this window (kept inside the bar) */
 const DEFAULT: Window = { start: 10, end: 16 }
+
+/** The hours a bar covers */
+const bounds = (bar: HTMLElement) => ({ min: Number(bar.dataset.min ?? 0), max: Number(bar.dataset.max ?? 24) })
 
 const clock = (hour: number) => `${String(hour).padStart(2, '0')}:00`
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value))
 
 const parts = (bar: HTMLElement) => ({
-  start: bar.querySelector<HTMLInputElement>('input[data-field="sunStart"]')!,
-  end: bar.querySelector<HTMLInputElement>('input[data-field="sunEnd"]')!,
+  start: bar.querySelector<HTMLInputElement>('input[data-sun-start]')!,
+  end: bar.querySelector<HTMLInputElement>('input[data-sun-end]')!,
   track: bar.querySelector<HTMLElement>('[data-track]')!,
   label: bar.querySelector<HTMLElement>('[data-sun-label]')!,
   handles: [...bar.querySelectorAll<HTMLElement>('[data-edge]')],
@@ -36,8 +39,9 @@ function render(bar: HTMLElement) {
     label.textContent = 'Δεν ορίστηκε'
     return
   }
-  track.style.setProperty('--from', `${(value.start / HOURS) * 100}%`)
-  track.style.setProperty('--to', `${(value.end / HOURS) * 100}%`)
+  const { min, max } = bounds(bar)
+  track.style.setProperty('--from', `${((value.start - min) / (max - min)) * 100}%`)
+  track.style.setProperty('--to', `${((value.end - min) / (max - min)) * 100}%`)
   for (const handle of handles) {
     const hour = handle.dataset.edge === 'start' ? value.start : value.end
     handle.setAttribute('aria-valuenow', String(hour))
@@ -57,11 +61,12 @@ function write(bar: HTMLElement, value: Window | null) {
   if (`${start.value}-${end.value}` !== before) start.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
-/** Moves one edge (`edge`) or the whole window (`span`) by `delta` hours, within the day */
-function moved(value: Window, part: 'start' | 'end' | 'span', delta: number): Window {
-  if (part === 'start') return { ...value, start: clamp(value.start + delta, 0, value.end - 1) }
-  if (part === 'end') return { ...value, end: clamp(value.end + delta, value.start + 1, HOURS) }
-  const shift = clamp(delta, -value.start, HOURS - value.end)
+/** Moves one edge (`edge`) or the whole window (`span`) by `delta` hours, within the bar */
+function moved(bar: HTMLElement, value: Window, part: 'start' | 'end' | 'span', delta: number): Window {
+  const { min, max } = bounds(bar)
+  if (part === 'start') return { ...value, start: clamp(value.start + delta, min, value.end - 1) }
+  if (part === 'end') return { ...value, end: clamp(value.end + delta, value.start + 1, max) }
+  const shift = clamp(delta, min - value.start, max - value.end)
   return { start: value.start + shift, end: value.end + shift }
 }
 
@@ -69,9 +74,10 @@ const barOf = (target: EventTarget | null) => (target as HTMLElement | null)?.cl
 const partOf = (el: HTMLElement) => (el.dataset.edge as 'start' | 'end' | undefined) ?? (el.hasAttribute('data-span') ? 'span' : null)
 
 /** The hour under the pointer, on the bar's track */
-function hourAt(track: HTMLElement, clientX: number) {
-  const box = track.getBoundingClientRect()
-  return Math.round(((clientX - box.left) / box.width) * HOURS)
+function hourAt(bar: HTMLElement, clientX: number) {
+  const { min, max } = bounds(bar)
+  const box = parts(bar).track.getBoundingClientRect()
+  return min + Math.round(((clientX - box.left) / box.width) * (max - min))
 }
 
 const KEYS: Record<string, number> = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1, PageDown: -3, PageUp: 3 }
@@ -90,18 +96,18 @@ export function setUpSunWindows() {
     event.preventDefault()
     el.setPointerCapture(event.pointerId)
     el.focus()
-    drag = { bar, part: partOf(el)!, from: value, startHour: hourAt(parts(bar).track, event.clientX) }
+    drag = { bar, part: partOf(el)!, from: value, startHour: hourAt(bar, event.clientX) }
     bar.classList.add('dragging')
   })
 
   document.addEventListener('pointermove', (event) => {
     if (!drag) return
-    const hour = hourAt(parts(drag.bar).track, event.clientX)
+    const hour = hourAt(drag.bar, event.clientX)
     const { from, part } = drag
     const next =
       part === 'span'
-        ? moved(from, 'span', hour - drag.startHour)
-        : moved(from, part, hour - (part === 'start' ? from.start : from.end))
+        ? moved(drag.bar, from, 'span', hour - drag.startHour)
+        : moved(drag.bar, from, part, hour - (part === 'start' ? from.start : from.end))
     write(drag.bar, next)
   })
 
@@ -119,9 +125,10 @@ export function setUpSunWindows() {
     const value = bar && read(bar)
     if (!bar || !part || !value) return
     let next: Window | null = null
-    if (event.key in KEYS) next = moved(value, part, KEYS[event.key])
-    else if (event.key === 'Home') next = moved(value, part, -HOURS)
-    else if (event.key === 'End') next = moved(value, part, HOURS)
+    const { min, max } = bounds(bar)
+    if (event.key in KEYS) next = moved(bar, value, part, KEYS[event.key])
+    else if (event.key === 'Home') next = moved(bar, value, part, min - max)
+    else if (event.key === 'End') next = moved(bar, value, part, max - min)
     if (!next) return
     event.preventDefault()
     write(bar, next)
@@ -132,7 +139,8 @@ export function setUpSunWindows() {
     const bar = barOf(button)
     if (!button || !bar) return
     const set = button.hasAttribute('data-sun-set')
-    write(bar, set ? DEFAULT : null)
+    const { min, max } = bounds(bar)
+    write(bar, set ? { start: clamp(DEFAULT.start, min, max - 1), end: clamp(DEFAULT.end, min + 1, max) } : null)
     bar.querySelector<HTMLElement>(set ? '[data-edge="start"]' : '[data-sun-set]')?.focus()
   })
 }

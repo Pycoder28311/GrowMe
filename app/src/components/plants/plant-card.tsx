@@ -53,8 +53,8 @@ export type PlantCardData = Pick<
 export const cardFromSummary = (plant: PlantSummary): PlantCardData => ({ ...plant, cover: plant.images[0]?.url ?? null });
 export const cardFromIndex = (plant: SearchPlant): PlantCardData => ({ ...plant, cover: plant.image });
 
-/** One search result: photo with its planting months on the left, details on the right. Opens the plant's page. */
-export function PlantCard({ plant }: { plant: PlantCardData }) {
+/** One search result: photo with its planting months on the left, details on the right. Opens the plant's page (or does `onPress`). */
+export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: () => void }) {
   const price = priceLabel(plant);
   const cover = plant.cover;
   // Only the fields this plant has values for, each with its icon (the card never shows wind)
@@ -69,7 +69,7 @@ export function PlantCard({ plant }: { plant: PlantCardData }) {
     <PressableScale
       accessibilityRole="link"
       accessibilityLabel={plant.name}
-      onPress={() => router.push({ pathname: '/plants/[id]', params: { id: String(plant.id) } })}
+      onPress={onPress ?? (() => router.push({ pathname: '/plants/[id]', params: { id: String(plant.id) } }))}
       pressedScale={0.98}
       style={styles.card}>
       <View style={styles.photo}>

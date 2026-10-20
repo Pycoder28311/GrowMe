@@ -1,33 +1,45 @@
-// A plant's fixed choices (difficulty, wind, kind, size, flags) with their Greek words, and the small
-// helpers that read its sun window, month ranges and durations. The dashboard, the app's plant page
+// A plant's fixed choices (difficulty, pot sizes, tolerance levels, flags...) with their Greek words, and
+// the small helpers that read its sun bars, seasons, lifespan and durations. The dashboard, the app's plant page
 // and its filters all use these, so a new flag or choice is added here once.
 
 /* ─────────────── Choices ─────────────── */
 
-/** Difficulty: 1 easy, 2 medium, 3 hard */
-export const DIFFICULTIES = [1, 2, 3] as const
-export type Difficulty = (typeof DIFFICULTIES)[number]
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = { 1: 'Εύκολο', 2: 'Μέτριο', 3: 'Δύσκολο' }
+/** How much effort a plant asks (difficulty, time needed): the same three levels */
+export const EFFORT_LEVELS = ['small', 'medium', 'big'] as const
+export type EffortLevel = (typeof EFFORT_LEVELS)[number]
+export const DIFFICULTY_LABELS: Record<EffortLevel, string> = { small: 'Εύκολο', medium: 'Μέτριο', big: 'Δύσκολο' }
+export const TIME_NEEDED_LABELS: Record<EffortLevel, string> = { small: 'Λίγος χρόνος', medium: 'Μέτριος χρόνος', big: 'Πολύς χρόνος' }
 
-/** How much wind a plant takes, strongest first */
-export const WIND_LEVELS = ['strong', 'moderate', 'light', 'sheltered'] as const
-export type WindLevel = (typeof WIND_LEVELS)[number]
-export const WIND_LABELS: Record<WindLevel, string> = {
-  strong: 'Αντέχει δυνατό αέρα',
-  moderate: 'Αντέχει μέτριο αέρα',
-  light: 'Λίγο αέρα',
-  sheltered: 'Θέλει προστατευμένο σημείο',
+/** Pot sizes by diameter (cm): small <20, medium 21–35, big 36–50, large >50 */
+export const POT_SIZES = ['small', 'medium', 'big', 'large'] as const
+export type PotSize = (typeof POT_SIZES)[number]
+export const POT_SIZE_LABELS: Record<PotSize, string> = {
+  small: 'Μικρή (<20 cm)',
+  medium: 'Μεσαία (21–35 cm)',
+  big: 'Μεγάλη (36–50 cm)',
+  large: 'Πολύ μεγάλη (>50 cm)',
 }
-/** What the short filter's «Αντέχει αέρα» means */
-export const WIND_TOLERANT: readonly WindLevel[] = ['strong', 'moderate']
 
-export const PLANT_KINDS = ['flowers', 'leaves', 'bush'] as const
-export type PlantKind = (typeof PLANT_KINDS)[number]
-export const PLANT_KIND_LABELS: Record<PlantKind, string> = { flowers: 'Ανθοφόρο', leaves: 'Φυλλώδες', bush: 'Θάμνος' }
+/** Who a plant is toxic to; `none` = safe for both */
+export const TOXICITY = ['cat', 'dog', 'none'] as const
+export type Toxicity = (typeof TOXICITY)[number]
+export const TOXICITY_LABELS: Record<Toxicity, string> = { cat: 'Γάτες', dog: 'Σκύλοι', none: 'Κανένα' }
 
-export const PLANT_SIZES = ['small', 'medium', 'large'] as const
-export type PlantSize = (typeof PLANT_SIZES)[number]
-export const PLANT_SIZE_LABELS: Record<PlantSize, string> = { small: 'Μικρό', medium: 'Μεσαίο', large: 'Μεγάλο' }
+/** How much frost, sea salt or wind a plant tolerates (null = not set); the page shows medium and big */
+export const TOLERANCE_LEVELS = ['small', 'medium', 'big'] as const
+export type ToleranceLevel = (typeof TOLERANCE_LEVELS)[number]
+export const TOLERANCE_LABELS: Record<ToleranceLevel, string> = { small: 'Λίγο', medium: 'Μέτρια', big: 'Πολύ' }
+export const TOLERANCES = [
+  { key: 'frostTolerance', label: 'Παγετός' },
+  { key: 'saltTolerance', label: 'Αλατονέφος' },
+  { key: 'windTolerance', label: 'Αέρας' },
+] as const
+export type ToleranceKey = (typeof TOLERANCES)[number]['key']
+
+/** The tabs of the lifecycle: stages from seed, stages from a ready plant, care */
+export const LIFECYCLE_TABS = ['seed', 'plant', 'care'] as const
+export type LifecycleTab = (typeof LIFECYCLE_TABS)[number]
+export const LIFECYCLE_TAB_LABELS: Record<LifecycleTab, string> = { seed: 'Από σπόρο', plant: 'Μεταφύτευση', care: 'Περιποίηση' }
 
 /* ─────────────── Yes/no flags ─────────────── */
 
@@ -42,9 +54,9 @@ export const PLANT_FLAGS = [
   { key: 'ornamental', label: 'Καλλωπιστικό', emoji: '🌸', yes: 'Καλλωπιστικό', no: null },
   { key: 'succulent', label: 'Παχύφυτο', emoji: '🌵', yes: 'Παχιά φύλλα', no: 'Λεπτά φύλλα' },
   { key: 'smallTree', label: 'Μικρό δέντρο', emoji: '🌳', yes: null, no: null },
+  { key: 'greenness', label: 'Πρασινάδα', emoji: '🌱', yes: 'Πρασινάδα', no: null },
+  { key: 'evergreen', label: 'Πράσινο όλο το χρόνο', emoji: '🌲', yes: 'Πράσινο όλο το χρόνο', no: null },
   { key: 'privacy', label: 'Ιδιωτικότητα (φράχτης)', emoji: '🏡', yes: 'Ιδιωτικότητα', no: null },
-  { key: 'nearSea', label: 'Κοντά στη θάλασσα', emoji: '🌊', yes: 'Κοντά στη θάλασσα', no: null },
-  { key: 'frostHardy', label: 'Αντέχει τον παγετό', emoji: '❄️', yes: 'Ανθεκτικό στον παγετό', no: null },
   { key: 'indoor', label: 'Εσωτερικός χώρος', emoji: '🏠', yes: null, no: null },
   { key: 'outdoor', label: 'Εξωτερικός χώρος', emoji: '🌤️', yes: null, no: null },
 ] as const satisfies readonly { key: string; label: string; emoji: string; yes: string | null; no: string | null }[]
@@ -52,6 +64,9 @@ export const PLANT_FLAGS = [
 export type PlantFlag = (typeof PLANT_FLAGS)[number]['key']
 export const PLANT_FLAG_KEYS = PLANT_FLAGS.map((f) => f.key) as PlantFlag[]
 export type PlantFlags = Record<PlantFlag, boolean>
+
+/** The exterior filter's usage checkboxes */
+export const PLANT_USAGE_FLAGS = ['food', 'climbing', 'aromatic', 'ornamental', 'smallTree', 'greenness', 'succulent'] as const satisfies readonly PlantFlag[]
 
 /** The flags that are yes unless the dashboard says otherwise (every other one starts as no) */
 export const PLANT_FLAGS_YES_BY_DEFAULT: readonly PlantFlag[] = ['indoor', 'outdoor']
@@ -108,13 +123,33 @@ export function durationLabel(text: string | null | undefined): string | null {
   return d.to === null ? `${d.from} ${d.from === 1 ? words.one : words.many}` : `${d.from}–${d.to} ${words.many}`
 }
 
-/* ─────────────── Sun window (clock hours 0–24) ─────────────── */
+/* ─────────────── Sun bars (clock hours 6–21) ─────────────── */
+
+export const SUN_MIN_HOUR = 6
+export const SUN_MAX_HOUR = 21
+
+/** A plant has two bars: hours of intense sun and hours of soft (non-intense) light */
+export const SUN_BARS = [
+  { key: 'intense', label: 'Έντονο φως', start: 'sunIntenseStart', end: 'sunIntenseEnd' },
+  { key: 'soft', label: 'Απαλό φως', start: 'sunSoftStart', end: 'sunSoftEnd' },
+] as const
+export type SunBarKey = (typeof SUN_BARS)[number]['key']
+export type SunBar = { start: number; end: number }
+export type SunFields = Record<(typeof SUN_BARS)[number]['start' | 'end'], number | null>
 
 export type SunPart = 'morning' | 'noon' | 'afternoon'
 export const SUN_PART_LABELS: Record<SunPart, string> = {
   morning: 'Πρωινός ήλιος',
   noon: 'Μεσημεριανός ήλιος',
   afternoon: 'Απογευματινός ήλιος',
+}
+
+/** One bar of a plant, or null when it isn't set */
+export function sunBar(plant: SunFields, key: SunBarKey): SunBar | null {
+  const bar = SUN_BARS.find((b) => b.key === key)!
+  const start = plant[bar.start]
+  const end = plant[bar.end]
+  return start === null || end === null ? null : { start, end }
 }
 
 /** Hours of sun in a window; null when it isn't set */
@@ -128,13 +163,27 @@ export function sunPart(start: number, end: number): SunPart {
   return middle <= 15 ? 'noon' : 'afternoon'
 }
 
+/* ─────────────── Lifespan (whole years) ─────────────── */
+
+/** «4–6 χρόνια», «1 χρόνος»; null when not set */
+export function lifespanLabel(min: number | null, max: number | null): string | null {
+  if (min === null || max === null) return null
+  return min === max ? `${min} ${min === 1 ? 'χρόνος' : 'χρόνια'}` : `${min}–${max} χρόνια`
+}
+
 /* ─────────────── Month ranges ─────────────── */
 
 /** [from, to] months, 1 = January; may wrap past December (e.g. [11, 2]) */
 export type MonthRange = [number, number]
 
-/** At most this many ranges per plant */
+/** At most this many ranges per season */
 export const MAX_MONTH_RANGES = 3
+
+/** A plant's seasons, each up to MAX_MONTH_RANGES ranges */
+export const SEASON_FIELDS = ['seedingSeason', 'plantingSeason'] as const
+export type SeasonField = (typeof SEASON_FIELDS)[number]
+export const SEASON_LABELS: Record<SeasonField, string> = { seedingSeason: 'Σπορά', plantingSeason: 'Φύτεμα' }
+export type PlantSeasons = Record<SeasonField, MonthRange[]>
 
 /** Every month in a range, in order: [11, 2] → [11, 12, 1, 2] */
 export function monthsOfRange([from, to]: MonthRange): number[] {

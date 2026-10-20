@@ -9,7 +9,9 @@ export const toDisease = (d: typeof diseases.$inferSelect): Disease => ({
   plantId: d.plantId,
   title: d.title,
   label: d.label,
-  content: d.content,
+  symptoms: d.symptoms,
+  what: d.what,
+  action: d.action,
 })
 
 /** The diseases of one plant (?plantId=); admins write */

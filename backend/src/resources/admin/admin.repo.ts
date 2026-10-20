@@ -8,7 +8,6 @@ import {
   plants,
   postReplies,
   posts,
-  tips,
   user,
 } from '../../db/schema'
 
@@ -19,7 +18,6 @@ import {
 const TABLES = [
   { key: 'users', label: 'Χρήστες', table: user, path: '/users' },
   { key: 'plants', label: 'Φυτά', table: plants, path: '/plants', create: true },
-  { key: 'tips', label: 'Συμβουλές', table: tips, path: '/tips', create: true },
   { key: 'combinations', label: 'Συνδυασμοί', table: combinations, path: '/combinations', create: true },
   { key: 'blogs', label: 'Άρθρα', table: blogs, path: '/blogs', create: true },
   { key: 'blogComments', label: 'Σχόλια άρθρων', table: blogComments, path: '/blog-comments' },

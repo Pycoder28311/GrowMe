@@ -3,41 +3,54 @@ import { visibleLength } from './blog-links'
 import { entityId, imageIds, queryId, type ImageRef } from './common'
 import { optionalRichText, richTextNoImages } from './rich-text'
 import {
-  DIFFICULTIES,
+  EFFORT_LEVELS,
+  LIFECYCLE_TABS,
   MAX_MONTH_RANGES,
+  POT_SIZES,
+  SUN_MAX_HOUR,
+  SUN_MIN_HOUR,
+  TOLERANCE_LEVELS,
+  TOXICITY,
   flagDefault,
   PLANT_FLAG_KEYS,
-  PLANT_KINDS,
-  PLANT_SIZES,
-  WIND_LEVELS,
   parseDuration,
-  type Difficulty,
-  type MonthRange,
+  type EffortLevel,
+  type LifecycleTab,
   type PlantFlag,
   type PlantFlags,
-  type PlantKind,
-  type PlantSize,
-  type WindLevel,
+  type PlantSeasons,
+  type PotSize,
+  type SunFields,
+  type ToleranceLevel,
+  type Toxicity,
 } from './plant-fields'
 
 const title = z.string().trim().min(1).max(200)
 const text = z.string().trim().min(1).max(10000)
 const month = z.number().int().min(1).max(12)
 const nonNegative = z.number().int().min(0)
+const years = z.number().int().min(1).max(999)
 
-/** min must not be larger than max when both are sent */
-const priceInOrder = (p: { priceMin?: number | null; priceMax?: number | null }) =>
-  p.priceMin == null || p.priceMax == null || p.priceMin <= p.priceMax
+const sunHour = z.number().int().min(SUN_MIN_HOUR).max(SUN_MAX_HOUR)
 
-const rangeMessage = { message: 'Minimum must not be larger than maximum' }
-
-/** The sun window: both hours or neither, and it ends after it starts (when both are sent) */
-const sunInOrder = (p: { sunStart?: number | null; sunEnd?: number | null }) =>
-  p.sunStart === undefined || p.sunEnd === undefined
+/** One sun bar: both hours or neither, and it ends after it starts (when both are sent) */
+const barInOrder = (start: keyof SunFields, end: keyof SunFields) => (p: Partial<SunFields>) => {
+  const [from, to] = [p[start], p[end]]
+  return from === undefined || to === undefined
     ? true
-    : (p.sunStart === null) === (p.sunEnd === null) && (p.sunStart === null || p.sunStart < p.sunEnd!)
+    : (from === null) === (to === null) && (from === null || from < to!)
+}
+const intenseInOrder = barInOrder('sunIntenseStart', 'sunIntenseEnd')
+const softInOrder = barInOrder('sunSoftStart', 'sunSoftEnd')
+const barMessage = (end: keyof SunFields) => ({ message: 'Set both hours, the end after the start', path: [end] })
 
-const sunMessage = { message: 'Set both hours, the end after the start', path: ['sunEnd'] }
+/** The lifespan in years: both or neither, min not larger than max */
+const lifespanInOrder = (p: { lifespanMin?: number | null; lifespanMax?: number | null }) =>
+  p.lifespanMin === undefined || p.lifespanMax === undefined
+    ? true
+    : (p.lifespanMin === null) === (p.lifespanMax === null) && (p.lifespanMin === null || p.lifespanMin <= p.lifespanMax!)
+
+const lifespanMessage = { message: 'Set both years, the minimum not larger than the maximum', path: ['lifespanMax'] }
 
 /** native: a short text, empty = not shown. It may hold blog links: 60 characters of what a reader
  * sees, the markers aside (the message matches the usual one) */
@@ -54,6 +67,23 @@ const duration = z
   .trim()
   .max(20)
   .refine((t) => parseDuration(t) !== null, { message: 'Use e.g. "4-6 weeks" or "2 years"' })
+
+/** A fixed list picked several at a time (each value at most once) */
+const choices = <const T extends readonly [string, ...string[]]>(values: T) =>
+  z
+    .array(z.enum(values))
+    .max(values.length)
+    .refine((list) => new Set(list).size === list.length, { message: 'Picked twice' })
+
+/** The toxicity list: «none» is alone */
+const toxicity = choices(TOXICITY).refine((list) => !list.includes('none') || list.length === 1, {
+  message: 'None can not be combined with cat or dog',
+})
+
+/** Up to MAX_MONTH_RANGES [from, to] ranges, in order; a range may wrap past December (Nov–Feb) */
+const seasonRanges = z.array(z.tuple([month, month])).max(MAX_MONTH_RANGES)
+
+const longText = z.string().trim().min(1).max(2000)
 
 /** What the dashboard suggests for the origin (any other text is fine too) */
 export const PLANT_TRAIT_SUGGESTIONS = {
@@ -72,51 +102,81 @@ const flagDefaults = Object.fromEntries(PLANT_FLAG_KEYS.map((key) => [key, z.boo
   z.ZodDefault<z.ZodBoolean>
 >
 
-const hour = z.number().int().min(0).max(24)
-
 const plantFields = z.object({
   combinationId: entityId.nullable(),
+  family: title.nullable(),
   name: title,
   scientificName: title,
   description: text.nullable(),
-  priceMin: nonNegative.nullable(), // in cents
-  priceMax: nonNegative.nullable(),
   native: trait,
+  trivia: longText.nullable(),
+  secret: longText.nullable(),
   ...flagFields,
-  wind: z.enum(WIND_LEVELS).nullable(),
-  kind: z.enum(PLANT_KINDS).nullable(),
-  size: z.enum(PLANT_SIZES).nullable(),
-  difficulty: z.literal(DIFFICULTIES), // 1 easy – 3 hard
-  sunStart: hour.nullable(), // clock hours, 0–24
-  sunEnd: hour.nullable(),
-  /** In order; each [from, to] may wrap past December (e.g. Nov–Feb) */
-  monthRanges: z.array(z.tuple([month, month])).max(MAX_MONTH_RANGES),
-  lifespan: duration.nullable(),
+  lifespanMin: years.nullable(),
+  lifespanMax: years.nullable(),
+  potSizes: choices(POT_SIZES),
+  difficultyLevels: choices(EFFORT_LEVELS),
+  timeNeeded: choices(EFFORT_LEVELS),
+  toxicity,
+  frostTolerance: z.enum(TOLERANCE_LEVELS).nullable(),
+  saltTolerance: z.enum(TOLERANCE_LEVELS).nullable(),
+  windTolerance: z.enum(TOLERANCE_LEVELS).nullable(),
+  /** The sun bars, clock hours (SUN_BARS) */
+  sunIntenseStart: sunHour.nullable(),
+  sunIntenseEnd: sunHour.nullable(),
+  sunSoftStart: sunHour.nullable(),
+  sunSoftEnd: sunHour.nullable(),
+  seedingSeason: seasonRanges,
+  plantingSeason: seasonRanges,
   imageIds,
 })
 
-export const plantCreate = plantFields
-  .extend({
-    combinationId: plantFields.shape.combinationId.default(null),
-    description: plantFields.shape.description.default(null),
-    priceMin: plantFields.shape.priceMin.default(null),
-    priceMax: plantFields.shape.priceMax.default(null),
-    native: plantFields.shape.native.default(null),
-    ...flagDefaults,
-    wind: plantFields.shape.wind.default(null),
-    kind: plantFields.shape.kind.default(null),
-    size: plantFields.shape.size.default(null),
-    sunStart: plantFields.shape.sunStart.default(null),
-    sunEnd: plantFields.shape.sunEnd.default(null),
-    monthRanges: plantFields.shape.monthRanges.default([]),
-    lifespan: plantFields.shape.lifespan.default(null),
-    imageIds: imageIds.default([]),
-  })
-  .refine(priceInOrder, rangeMessage)
-  .refine(sunInOrder, sunMessage)
+/** What a new plant gets for every field that may be left out */
+const plantDefaults = {
+  combinationId: null,
+  family: null,
+  description: null,
+  native: null,
+  trivia: null,
+  secret: null,
+  lifespanMin: null,
+  lifespanMax: null,
+  potSizes: [],
+  difficultyLevels: [],
+  timeNeeded: [],
+  toxicity: [],
+  frostTolerance: null,
+  saltTolerance: null,
+  windTolerance: null,
+  sunIntenseStart: null,
+  sunIntenseEnd: null,
+  sunSoftStart: null,
+  sunSoftEnd: null,
+  seedingSeason: [],
+  plantingSeason: [],
+  imageIds: [],
+} as const
+
+/** Every key of plantDefaults made optional with its default (flags have theirs from PLANT_FLAGS) */
+const withDefaults = <S extends z.ZodRawShape>(shape: S): { [K in keyof S]: z.ZodDefault<S[K]> | S[K] } =>
+  Object.fromEntries(
+    Object.entries(shape).map(([key, type]) => {
+      const withDefault = (value: unknown) => (type as z.ZodString).default(value as string)
+      if (key in plantDefaults) return [key, withDefault(plantDefaults[key as keyof typeof plantDefaults])]
+      if (PLANT_FLAG_KEYS.includes(key as PlantFlag)) return [key, withDefault(flagDefault(key as PlantFlag))]
+      return [key, type]
+    }),
+  ) as never
+
+export const plantCreate = z
+  .object(withDefaults(plantFields.shape))
+  .refine(intenseInOrder, barMessage('sunIntenseEnd'))
+  .refine(softInOrder, barMessage('sunSoftEnd'))
+  .refine(lifespanInOrder, lifespanMessage)
 
 /** Send only what changes; imageIds replaces the whole list */
-export const plantUpdate = plantFields.partial().refine(priceInOrder, rangeMessage).refine(sunInOrder, sunMessage)
+export const plantUpdate = plantFields.partial().refine(intenseInOrder, barMessage('sunIntenseEnd'))
+  .refine(softInOrder, barMessage('sunSoftEnd')).refine(lifespanInOrder, lifespanMessage)
 
 /** GET /api/plants?combinationId=3 (optional) */
 export const plantFilter = z.object({
@@ -128,39 +188,42 @@ export type PlantUpdate = z.infer<typeof plantUpdate>
 export type PlantFilter = z.infer<typeof plantFilter>
 
 /** A plant in lists: its own fields and images */
-export type PlantSummary = PlantFlags & {
-  id: number
-  combinationId: number | null
-  name: string
-  scientificName: string
-  description: string | null
-  priceMin: number | null
-  priceMax: number | null
-  /** e.g. «Ιθαγενές της Μεσογείου»; null = not shown */
-  native: string | null
-  wind: WindLevel | null
-  kind: PlantKind | null
-  size: PlantSize | null
-  difficulty: Difficulty
-  /** The sun window in clock hours (e.g. 10–16); both null when not set */
-  sunStart: number | null
-  sunEnd: number | null
-  monthRanges: MonthRange[]
-  /** e.g. «4-6 years» (see durationLabel) */
-  lifespan: string | null
-  images: ImageRef[]
-  createdAt: string
-}
+export type PlantSummary = PlantFlags &
+  PlantSeasons &
+  SunFields & {
+    id: number
+    combinationId: number | null
+    family: string | null
+    name: string
+    scientificName: string
+    description: string | null
+    /** e.g. «Ιθαγενές της Μεσογείου»; null = not shown */
+    native: string | null
+    /** Whole years; both null when not set */
+    lifespanMin: number | null
+    lifespanMax: number | null
+    potSizes: PotSize[]
+    difficultyLevels: EffortLevel[]
+    timeNeeded: EffortLevel[]
+    toxicity: Toxicity[]
+    frostTolerance: ToleranceLevel | null
+    saltTolerance: ToleranceLevel | null
+    windTolerance: ToleranceLevel | null
+    images: ImageRef[]
+    createdAt: string
+  }
 
 /** One plant with everything about it (GET /api/plants/:id, one query) */
 export type Plant = PlantSummary & {
+  /** «Ηξερες οτι» and «Μυστικο επιτυχιας» (only here, lists stay small) */
+  trivia: string | null
+  secret: string | null
   combination: Combination | null
   lifecycles: Lifecycle[]
-  tips: Tip[]
   diseases: Disease[]
 }
 
-/* ─────────────── Plant details: lifecycles, tips, diseases ─────────────── */
+/* ─────────────── Plant details: lifecycles, diseases ─────────────── */
 
 /** GET /api/lifecycles?plantId=1 (same for diseases) */
 export const plantChildFilter = z.object({
@@ -169,21 +232,21 @@ export const plantChildFilter = z.object({
 
 export type PlantChildFilter = z.infer<typeof plantChildFilter>
 
-/** A stage's time is counted from sowing (e.g. «6-12 months»); `seed` stages come before the plant is
- * sold ready to transplant */
+/** A stage's time is counted from sowing (e.g. «6-12 months», optional); a stage is on one tab: from
+ * seed, from a ready plant, or care */
 export const lifecycleCreate = z.object({
   plantId: entityId,
   position: nonNegative,
   title,
   content: text,
-  seed: z.boolean().default(false),
+  tab: z.enum(LIFECYCLE_TABS).default('plant'),
   duration: duration.nullable().default(null),
 })
 export const lifecycleUpdate = z.object({
   position: nonNegative.optional(),
   title: title.optional(),
   content: text.optional(),
-  seed: z.boolean().optional(),
+  tab: z.enum(LIFECYCLE_TABS).optional(),
   duration: duration.nullable().optional(),
 })
 export type LifecycleCreate = z.infer<typeof lifecycleCreate>
@@ -194,43 +257,61 @@ export type Lifecycle = {
   position: number
   title: string
   content: string
-  seed: boolean
+  tab: LifecycleTab
   duration: string | null
 }
 
-/* Tips are a library: one tip can be on many plants (in each plant's own order) */
-export const tipCreate = z.object({ title, content: text })
-export const tipUpdate = tipCreate.partial()
-/** The dashboard's tip form (title and text) */
-export const tipSave = tipCreate
-export type TipCreate = z.infer<typeof tipCreate>
-export type TipUpdate = z.infer<typeof tipUpdate>
-export type TipSave = z.infer<typeof tipSave>
-export type Tip = { id: number; title: string; content: string }
-/** A tip in the library's list: how many plants show it */
-export type TipSummary = Tip & { plantCount: number }
-
 const label = z.string().trim().min(1).max(100)
-export const diseaseCreate = z.object({ plantId: entityId, title, label: label.nullable().default(null), content: text })
-export const diseaseUpdate = z.object({ title: title.optional(), label: label.nullable().optional(), content: text.optional() })
+/** A disease: what you see, what it is, what to do (at least one is set) */
+const diseaseTexts = {
+  symptoms: text.nullable(),
+  what: text.nullable(),
+  action: text.nullable(),
+}
+const hasDiseaseText = (d: { symptoms?: unknown; what?: unknown; action?: unknown }) =>
+  !!(d.symptoms || d.what || d.action)
+const diseaseTextMessage = { message: 'Write at least one of the three texts', path: ['what'] }
+
+export const diseaseCreate = z
+  .object({
+    plantId: entityId,
+    title,
+    label: label.nullable().default(null),
+    symptoms: diseaseTexts.symptoms.default(null),
+    what: diseaseTexts.what.default(null),
+    action: diseaseTexts.action.default(null),
+  })
+  .refine(hasDiseaseText, diseaseTextMessage)
+export const diseaseUpdate = z.object({
+  title: title.optional(),
+  label: label.nullable().optional(),
+  symptoms: diseaseTexts.symptoms.optional(),
+  what: diseaseTexts.what.optional(),
+  action: diseaseTexts.action.optional(),
+})
 export type DiseaseCreate = z.infer<typeof diseaseCreate>
 export type DiseaseUpdate = z.infer<typeof diseaseUpdate>
-export type Disease = { id: number; plantId: number; title: string; label: string | null; content: string }
+export type Disease = {
+  id: number
+  plantId: number
+  title: string
+  label: string | null
+  symptoms: string | null
+  what: string | null
+  action: string | null
+}
 
 /* ─────────────── Admin dashboard: a plant with all its details in one save ─────────────── */
 
 /** With id: an existing row (updated); without: a new row. A row left out of the list is deleted. */
 const childId = entityId.optional()
 
-/** Seed stages first: the error points at the first seed stage after a plant stage */
-const seedStagesFirst = (rows: { seed: boolean }[], ctx: z.RefinementCtx) => {
-  const firstPlant = rows.findIndex((row) => !row.seed)
-  const late = firstPlant < 0 ? -1 : rows.findIndex((row, i) => i > firstPlant && row.seed)
-  if (late >= 0) ctx.addIssue({ code: 'custom', message: 'Seed stages go before the plant stages', path: [late, 'seed'] })
+/** Stages in tab order (seed, plant, care): the error points at the first stage that is out of order */
+const tabsInOrder = (rows: { tab: LifecycleTab }[], ctx: z.RefinementCtx) => {
+  const order = (tab: LifecycleTab) => LIFECYCLE_TABS.indexOf(tab)
+  const late = rows.findIndex((row, i) => i > 0 && order(row.tab) < order(rows[i - 1].tab))
+  if (late >= 0) ctx.addIssue({ code: 'custom', message: 'Stages go in tab order: seed, plant, care', path: [late, 'tab'] })
 }
-
-/** A tip row of the plant form: one from the library ({ tipId }) or a new one ({ title, content }) */
-const plantTipRow = z.union([z.object({ tipId: entityId }).strict(), z.object({ title, content: text }).strict()])
 
 /** The same id at most once in a list (`key` reads it from a row); the error points at the repeat (and `field` in it) */
 const uniqueBy =
@@ -247,7 +328,7 @@ const uniqueBy =
 
 /**
  * The plant form's body (PUT/POST /api/admin/plants). Every field is sent (nothing is optional);
- * the order of lifecycles, tips and imageIds is their position. The description and each «Τι να
+ * the order of lifecycles and imageIds is their position. The description and each «Τι να
  * προσέχεις» text are formatted texts from the editor (rich-text.ts, no photos); they are stored as
  * JSON text, and readers parse them with parseRichContent (older plain texts still read fine).
  */
@@ -255,19 +336,27 @@ export const plantSave = plantFields
   .extend({
     description: optionalRichText,
     lifecycles: z
-      .array(z.object({ id: childId, title, content: text, seed: z.boolean(), duration: duration.nullable() }))
+      .array(z.object({ id: childId, title, content: text, tab: z.enum(LIFECYCLE_TABS), duration: duration.nullable() }))
       .max(50)
-      .superRefine(seedStagesFirst),
-    tips: z
-      .array(plantTipRow)
-      .max(50)
-      .superRefine(uniqueBy((row) => ('tipId' in row ? row.tipId : undefined), 'Tip picked twice', 'tipId')),
+      .superRefine(tabsInOrder),
     diseases: z
-      .array(z.object({ id: childId, title, label: label.nullable(), content: richTextNoImages }))
+      .array(
+        z
+          .object({
+            id: childId,
+            title,
+            label: label.nullable(),
+            symptoms: optionalRichText,
+            what: optionalRichText,
+            action: optionalRichText,
+          })
+          .refine(hasDiseaseText, diseaseTextMessage),
+      )
       .max(50),
   })
-  .refine(priceInOrder, rangeMessage)
-  .refine(sunInOrder, sunMessage)
+  .refine(intenseInOrder, barMessage('sunIntenseEnd'))
+  .refine(softInOrder, barMessage('sunSoftEnd'))
+  .refine(lifespanInOrder, lifespanMessage)
 
 export type PlantSave = z.infer<typeof plantSave>
 

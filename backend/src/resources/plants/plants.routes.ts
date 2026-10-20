@@ -3,7 +3,7 @@ import { crudRoutes } from '../../lib/crud'
 import { plantsRepo } from './plants.repo'
 
 /**
- * GET /[?combinationId=] (paginated, summaries) · GET /:id (with lifecycles, tips, diseases, images)
+ * GET /[?combinationId=] (paginated, summaries) · GET /:id (with lifecycles, diseases, images)
  * · POST / · PATCH /:id · DELETE /:id (writes: admins only)
  */
 export default crudRoutes({
