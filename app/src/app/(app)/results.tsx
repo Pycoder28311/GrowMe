@@ -1,247 +1,199 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, SectionList, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useReducedMotion,
+  withTiming,
+} from 'react-native-reanimated';
 
-import { FilterSheet, type ButtonFrame } from '@/components/filters/filter-sheet';
-import { FiltersButton } from '@/components/filters/filters-button';
 import { useTopClearance } from '@/components/layout/app-shell';
 import { TopGradient } from '@/components/layout/top-gradient';
-import { cardFromIndex, cardFromSummary, PlantCard, type PlantCardData } from '@/components/plants/plant-card';
+import { PlantCard, type PlantCardData } from '@/components/plants/plant-card';
+import { SectionFilterSheet } from '@/components/results/section-filter-sheet';
+import { SectionTools } from '@/components/results/section-tools';
 import { AppText } from '@/components/ui/app-text';
-import { CategoryTabs } from '@/components/ui/category-tabs';
-import { PageSearchBar } from '@/components/search/page-search-bar';
-import { PillButton } from '@/components/ui/pill-button';
-import { PLACE_TABS } from '@/config/plant-filters';
-import { LIST_TUNING } from '@/lib/list-tuning';
-import { useExploreFilters } from '@/lib/explore-filters';
-import { matchPlants } from '@/lib/search-match';
-import { activeFilters, chosenCount, matchPlantFilters } from '@/lib/plant-filter-match';
-import { usePlants } from '@/lib/plants';
-import { useSearchIndex } from '@/lib/search';
-import { colors, size, space } from '@/theme';
+import { Icon } from '@/components/ui/icon';
+import { card } from '@/components/ui/styles';
+import { MOCK_INDOOR_PLANTS, MOCK_OUTDOOR_PLANTS } from '@/config/mock-results';
+import { chosenCount, NO_FILTERS, type SectionFilters, type SectionId } from '@/config/section-filters';
+import { colors, iconSize, radius, size, space } from '@/theme';
 
-/** Extra room between the corner buttons and the search bar */
-const BAR_GAP = space.sm;
+const OTHER: Record<SectionId, SectionId> = { indoor: 'outdoor', outdoor: 'indoor' };
 
-type Row = { card: PlantCardData; key: string };
+const TOGGLE_MS = 250;
+
+/** Lowercase without accents, so «ελια» finds «Ελιά» */
+const plain = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+
+type PlantSectionProps = {
+  title: string;
+  searchLabel: string;
+  plants: PlantCardData[];
+  /** How many filters are chosen in this section (for the button's badge) */
+  filterCount: number;
+  open: boolean;
+  onToggle: () => void;
+  /** The search bar or the filter button was used: the other section folds away */
+  onEngage: () => void;
+  /** The filter button: opens this section's filters */
+  onFilters: () => void;
+};
 
 /**
- * The plants. With no filter: the database's plants, newest first, more loading while scrolling.
- * With filters (the kind tabs, the Explore sheet or the Filters sheet): every plant matching all of
- * them, filtered on the phone from the search index, then «Σχετικά φυτά» matching some of them.
+ * One section of the page: its label (a button with an arrow that opens and closes the section), then, while
+ * open, a filter button and a search bar and its plants. Closed, only the label shows, as a white button.
+ */
+function PlantSection({ title, searchLabel, plants, filterCount, open, onToggle, onEngage, onFilters }: PlantSectionProps) {
+  const reduced = useReducedMotion();
+  const [query, setQuery] = useState('');
+  const shown = useMemo(() => {
+    const words = plain(query.trim());
+    return words ? plants.filter((p) => plain(`${p.name} ${p.scientificName}`).includes(words)) : plants;
+  }, [plants, query]);
+
+  // The arrow points down while open and turns to the side when closed
+  const arrow = useAnimatedStyle(() => ({
+    transform: [{ rotate: reduced ? (open ? '90deg' : '0deg') : withTiming(open ? '90deg' : '0deg', { duration: TOGGLE_MS }) }],
+  }));
+
+  return (
+    <Animated.View layout={reduced ? undefined : LinearTransition.duration(TOGGLE_MS)} style={styles.section}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ expanded: open }}
+        onPress={onToggle}
+        style={[styles.header, !open && styles.headerClosed]}>
+        <AppText size="big" bold accessibilityRole="header" style={styles.title}>
+          {title}
+        </AppText>
+        <Animated.View style={arrow}>
+          <Icon name="chevronRight" size={iconSize.big} color={colors.ink} bold />
+        </Animated.View>
+      </Pressable>
+
+      {open && (
+        <Animated.View entering={reduced ? undefined : FadeIn.duration(TOGGLE_MS)} exiting={reduced ? undefined : FadeOut.duration(TOGGLE_MS / 2)} style={styles.body}>
+          <SectionTools placeholder={searchLabel} value={query} onChangeText={setQuery} onSearchFocus={onEngage} onFilters={onFilters} filterCount={filterCount} />
+          <View style={styles.cards}>
+            {shown.map((plant) => (
+              // A mockup: the cards open nothing (their plants don't exist in the backend)
+              <PlantCard key={plant.id} plant={plant} onPress={() => {}} />
+            ))}
+            {shown.length === 0 && (
+              <AppText color={colors.inkMuted} style={styles.empty}>
+                Κανένα φυτό με αυτό το όνομα.
+              </AppText>
+            )}
+          </View>
+        </Animated.View>
+      )}
+    </Animated.View>
+  );
+}
+
+/**
+ * The plants page, a mockup with fake plants (config/mock-results.ts, nothing from the backend): a section
+ * of indoor plants and, below it, one of outdoor plants. Each has a filter button and a search bar under its
+ * label. Using one section's search bar or filter button folds the other section into a button with an arrow,
+ * which opens it again (and closes it) when tapped.
  */
 export default function ResultsScreen() {
   const topClearance = useTopClearance();
-  const { filters, setFilters } = useExploreFilters();
-  const filtering = activeFilters(filters).length > 0;
-  const placeTab = filters.place?.[0] ?? 'all';
+  const [closed, setClosed] = useState<Record<SectionId, boolean>>({ indoor: false, outdoor: false });
 
-  const paged = usePlants();
-  const { index, error: indexError, load } = useSearchIndex();
-  useEffect(load, [load]);
-  const plants = useMemo(() => index?.plants ?? [], [index]);
-  const result = useMemo(() => (filtering ? matchPlantFilters(plants, filters) : null), [filtering, plants, filters]);
-
-  // The search bar's text: the list below shows the plants matching it (inside the chosen filters)
-  const [query, setQuery] = useState('');
-  const searching = query.trim().length > 0;
-  const searched = useMemo(
-    () => (searching ? matchPlants(result ? result.matches : plants, query) : []),
-    [searching, result, plants, query],
-  );
-
-  const filtersButtonRef = useRef<View>(null);
-  // Set while the filters sheet is open: where the button is, so the sheet's Submit button covers it exactly
-  const [filtersFrame, setFiltersFrame] = useState<ButtonFrame | null>(null);
-  const openFilters = () =>
-    filtersButtonRef.current?.measureInWindow((x, y, width, height) => setFiltersFrame({ x, y, width, height }));
-
-  const tabs = (
-    <View style={styles.tabs}>
-      <CategoryTabs
-        variant="scroll"
-        tabs={PLACE_TABS}
-        activeId={placeTab}
-        onChange={(id) => setFilters({ ...filters, place: id === 'all' ? [] : [id] })}
-      />
-    </View>
-  );
-
-  const clearButton = <PillButton label="Καθαρισμός φίλτρων" onPress={() => setFilters({})} />;
-  // Top clears the corner buttons; bottom leaves room for the floating filters button
-  // (the tabs sit as far under the corner buttons as the first plant is under them)
-  const listStyle = [styles.list, { paddingTop: topClearance + space.md - space.sm + BAR_GAP + size.touch + space.sm }];
+  const engage = (id: SectionId) => setClosed({ [id]: false, [OTHER[id]]: true } as Record<SectionId, boolean>);
+  // Each section's filters, and the section whose filters sheet is open
+  const [filters, setFilters] = useState<Record<SectionId, SectionFilters>>({ indoor: NO_FILTERS, outdoor: NO_FILTERS });
+  const [sheet, setSheet] = useState<SectionId | null>(null);
+  const openFilters = (id: SectionId) => {
+    engage(id);
+    setSheet(id);
+  };
+  const toggle = (id: SectionId) => setClosed((current) => ({ ...current, [id]: !current[id] }));
 
   return (
     <View style={styles.page}>
       <TopGradient />
-      {searching ? (
-        <FlatList
-          {...LIST_TUNING}
-          data={searched}
-          keyExtractor={(plant) => String(plant.id)}
-          renderItem={({ item }) => <PlantCard plant={cardFromIndex(item)} />}
-          ItemSeparatorComponent={() => <View style={styles.gap} />}
-          ListHeaderComponent={tabs}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            index ? (
-              <AppText color={colors.inkMuted} style={styles.empty}>
-                Κανένα φυτό με αυτό το όνομα.
-              </AppText>
-            ) : indexError ? (
-              <View style={styles.footer}>
-                <AppText color={colors.inkMuted} style={styles.empty}>
-                  Η αναζήτηση δεν είναι διαθέσιμη τώρα.
-                </AppText>
-                <PillButton label="Δοκίμασε ξανά" onPress={load} />
-              </View>
-            ) : (
-              <ActivityIndicator color={colors.primary} style={styles.footer} />
-            )
-          }
-          contentContainerStyle={listStyle}
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.list, { paddingTop: topClearance + space.md - space.sm }]}>
+        <PlantSection
+          title="Φυτά εσωτερικού χώρου"
+          searchLabel="Αναζήτηση σε φυτά εσωτερικού χώρου"
+          plants={MOCK_INDOOR_PLANTS}
+          open={!closed.indoor}
+          onToggle={() => toggle('indoor')}
+          onEngage={() => engage('indoor')}
+          filterCount={chosenCount(filters.indoor, 'indoor')}
+          onFilters={() => openFilters('indoor')}
         />
-      ) : !filtering ? (
-        <FlatList
-          {...LIST_TUNING}
-          data={paged.plants}
-          keyExtractor={(plant) => String(plant.id)}
-          renderItem={({ item }) => <PlantCard plant={cardFromSummary(item)} />}
-          ItemSeparatorComponent={() => <View style={styles.gap} />}
-          ListHeaderComponent={tabs}
-          onEndReached={paged.loadMore}
-          onEndReachedThreshold={0.5}
-          ListEmptyComponent={
-            paged.loading || paged.error ? null : (
-              <AppText color={colors.inkMuted} style={styles.empty}>
-                Δεν υπάρχουν φυτά ακόμα.
-              </AppText>
-            )
-          }
-          ListFooterComponent={
-            paged.loading ? (
-              <ActivityIndicator color={colors.primary} style={styles.footer} />
-            ) : paged.error ? (
-              <View style={styles.footer}>
-                <AppText color={colors.inkMuted} style={styles.empty}>
-                  Δεν ήταν δυνατή η φόρτωση των φυτών.
-                </AppText>
-                <PillButton label="Δοκίμασε ξανά" onPress={paged.plants.length ? paged.loadMore : paged.refresh} />
-              </View>
-            ) : null
-          }
-          contentContainerStyle={listStyle}
+        <PlantSection
+          title="Φυτά εξωτερικού χώρου"
+          searchLabel="Αναζήτηση σε φυτά εξωτερικού χώρου"
+          plants={MOCK_OUTDOOR_PLANTS}
+          open={!closed.outdoor}
+          onToggle={() => toggle('outdoor')}
+          onEngage={() => engage('outdoor')}
+          filterCount={chosenCount(filters.outdoor, 'outdoor')}
+          onFilters={() => openFilters('outdoor')}
         />
-      ) : (
-        <SectionList<Row>
-          {...LIST_TUNING}
-          sections={[
-            { key: 'matches', data: (result?.matches ?? []).map((p) => ({ card: cardFromIndex(p), key: `m${p.id}` })) },
-            {
-              key: 'related',
-              data: (result?.related ?? []).map(({ plant }) => ({ card: cardFromIndex(plant), key: `r${plant.id}` })),
-            },
-          ]}
-          keyExtractor={(row) => row.key}
-          renderItem={({ item }) => <PlantCard plant={item.card} />}
-          ItemSeparatorComponent={() => <View style={styles.gap} />}
-          stickySectionHeadersEnabled={false}
-          renderSectionHeader={({ section }) =>
-            section.key === 'related' && section.data.length > 0 ? (
-              <View style={styles.relatedHeader}>
-                <AppText bold accessibilityRole="header">
-                  Σχετικά φυτά
-                </AppText>
-                <AppText size="small" color={colors.inkMuted}>
-                  Ταιριάζουν σε μερικά από τα φίλτρα σου (τα περισσότερα πρώτα)
-                </AppText>
-              </View>
-            ) : null
-          }
-          ListHeaderComponent={
-            <>
-              {tabs}
-              {index && result && result.matches.length === 0 && (
-                <View style={styles.noMatches}>
-                  <AppText color={colors.inkMuted}>
-                    {result.related.length > 0 ? 'Κανένα φυτό με όλα τα φίλτρα.' : 'Κανένα φυτό με αυτά τα φίλτρα.'}
-                  </AppText>
-                  {clearButton}
-                </View>
-              )}
-            </>
-          }
-          ListFooterComponent={
-            !index ? (
-              indexError ? (
-                <View style={styles.footer}>
-                  <AppText color={colors.inkMuted} style={styles.empty}>
-                    Δεν ήταν δυνατή η φόρτωση των φυτών.
-                  </AppText>
-                  <PillButton label="Δοκίμασε ξανά" onPress={load} />
-                </View>
-              ) : (
-                <ActivityIndicator color={colors.primary} style={styles.footer} />
-              )
-            ) : null
-          }
-          contentContainerStyle={listStyle}
+      </ScrollView>
+
+      {sheet && (
+        <SectionFilterSheet
+          section={sheet}
+          filters={filters[sheet]}
+          onSubmit={(next) => setFilters((current) => ({ ...current, [sheet]: next }))}
+          onClose={() => setSheet(null)}
         />
       )}
-
-      <PageSearchBar top={topClearance + BAR_GAP} value={query} onChangeText={setQuery} />
-
-      {/* Stays in view at the bottom while the list scrolls; becomes Submit while the sheet is open */}
-      {/* Hidden while the sheet's copy of it, in the same place, turns over */}
-      <View ref={filtersButtonRef} collapsable={false} style={[styles.filtersBar, filtersFrame && styles.hidden]}>
-        <FiltersButton onPress={openFilters} count={chosenCount({ ...filters, place: [] })} />
-      </View>
-
-      {filtersFrame && <FilterSheet buttonFrame={filtersFrame} plants={plants} onClose={() => setFiltersFrame(null)} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hidden: {
-    opacity: 0,
-  },
   page: {
     flex: 1,
   },
   list: {
+    gap: space.lg,
     paddingHorizontal: space.md,
-    paddingBottom: size.touch + space.md * 2,
+    paddingBottom: space.lg,
   },
-  // Plus the tabs' own bottom padding: as far below them as they are under the corner buttons
-  tabs: {
-    marginBottom: space.sm,
+  section: {
+    gap: space.sm,
   },
-  gap: {
-    height: space.sm,
+  // The label and its arrow; closed, a white button like the cards
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+    minHeight: size.touch,
+  },
+  headerClosed: {
+    ...card,
+    paddingHorizontal: space.md,
+    borderRadius: radius.sm,
+  },
+  title: {
+    flex: 1,
+  },
+  body: {
+    gap: space.sm,
+  },
+  cards: {
+    gap: space.sm,
   },
   empty: {
-    marginTop: space.lg,
     textAlign: 'center',
-  },
-  footer: {
-    alignItems: 'center',
-    gap: space.sm,
-    marginTop: space.lg,
-  },
-  noMatches: {
-    alignItems: 'center',
-    gap: space.sm,
-    marginBottom: space.md,
-  },
-  relatedHeader: {
-    gap: space.xs,
-    marginTop: space.lg,
-    marginBottom: space.sm,
-  },
-  filtersBar: {
-    position: 'absolute',
-    right: space.md,
-    bottom: space.md,
   },
 });
