@@ -1,20 +1,20 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { LIFECYCLE_TAB_DEFS } from '@/config/plant-page';
-import { colors, radius, shadow, space } from '@/theme';
+import { tabDef } from '@/config/plant-page';
+import { botanical, radius, space } from '@/theme';
 
 import type { StageGroup } from './stage-groups';
 
 /**
  * The life cycle's tab buttons («Από σπόρο» | «Μεταφύτευση» | «Περιποίηση»), one per group the plant has:
- * the tab picked is lit (its colour on the outline and the words), the others are plain white.
+ * the tab picked is filled with its colour (cream words), the others show their group's soft tint.
  */
 export function TabButtons({ groups, lit, onPick }: { groups: readonly StageGroup[]; lit: number; onPick: (index: number) => void }) {
   return (
     <View accessibilityRole="tablist" style={styles.row}>
       {groups.map((group, index) => {
-        const { label, color } = LIFECYCLE_TAB_DEFS.find((def) => def.tab === group.tab)!;
+        const { label, color, tone } = tabDef(group.tab);
         const on = index === lit;
         return (
           <Pressable
@@ -23,8 +23,12 @@ export function TabButtons({ groups, lit, onPick }: { groups: readonly StageGrou
             accessibilityState={{ selected: on }}
             aria-selected={on}
             onPress={() => onPick(index)}
-            style={({ pressed }) => [styles.button, on && { borderColor: color }, pressed && styles.pressed]}>
-            <AppText bold={on} color={on ? color : colors.inkMuted}>
+            style={({ pressed }) => [
+              styles.button,
+              on ? { backgroundColor: color, borderColor: color } : { backgroundColor: tone.background },
+              pressed && styles.pressed,
+            ]}>
+            <AppText bold={on} color={on ? botanical.cream : botanical.ink}>
               {label}
             </AppText>
           </Pressable>
@@ -45,11 +49,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 44,
     paddingHorizontal: space.sm,
-    borderRadius: radius.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: colors.surface,
-    boxShadow: shadow.tile,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: botanical.line,
   },
   pressed: {
     opacity: 0.8,

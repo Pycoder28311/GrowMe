@@ -15,7 +15,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { PHOTO_HEIGHT, THUMB_SIZE, THUMBS_CENTER } from '@/components/plants/photo-header';
 import type { Rect } from '@/config/search-motion';
-import { colors, radius, shadow, size, space } from '@/theme';
+import { photoSource } from '@/lib/photo-source';
+import { botanical, radius, shadow, size, space } from '@/theme';
 
 /** At most this many thumbnails */
 const MAX_THUMBS = 6;
@@ -105,7 +106,7 @@ function Thumb({ uri, i, count, active, scrollY, docked, rest, stack, size, inPi
             : onPick()
         }
         style={[styles.thumb, { width: size, height: size }, (active || (inPile && i < PILE_VISIBLE)) && styles.thumbActive]}>
-        <Image source={{ uri }} contentFit="cover" style={StyleSheet.absoluteFill} />
+        <Image source={photoSource(uri)} contentFit="cover" style={StyleSheet.absoluteFill} />
       </Pressable>
     </Animated.View>
   );
@@ -196,11 +197,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: radius.sm,
     borderWidth: 2,
-    borderColor: colors.surface,
-    backgroundColor: colors.surface,
+    borderColor: botanical.cream,
+    backgroundColor: botanical.cream,
     boxShadow: shadow.card,
   },
   thumbActive: {
-    borderColor: colors.primary,
+    borderColor: botanical.terracotta,
   },
 });

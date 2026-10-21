@@ -16,6 +16,8 @@ import {
 } from '@growme/shared';
 
 import { FACT_ICONS, TOLERANCE_ICONS, type PlantIcon } from '@/config/plant-icons';
+import type { IconName } from '@/components/ui/icon';
+import { botanical, tileTone, type TileTone } from '@/theme/botanical';
 import { colors } from '@/theme/colors';
 
 // What the plant page shows besides its tiles, as data: each list feeds one small component, so a new
@@ -81,33 +83,55 @@ const SENTENCES: Record<ToleranceKey, { medium: string; big: string }> = {
   windTolerance: { medium: 'Αντέχει μέτριο αέρα', big: 'Αντέχει δυνατό αέρα' },
 };
 
-/** Frost, sea salt and wind rows: only the plants that tolerate them a medium or a big deal */
+/** Each row's colours (the tiles' tones): frost the sage one, sea salt the blush one, wind the sand one */
+const ROW_TONES: Record<ToleranceKey, number> = { frostTolerance: 5, saltTolerance: 1, windTolerance: 0 };
+
+/**
+ * Frost, sea salt and wind rows: only the plants that tolerate them a medium or a big deal. Each has its title
+ * («Παγετός»), the sentence, how much as dots (2 of 3 for medium, 3 of 3 for big) and its colours.
+ */
 export const restrictionRows = (plant: PlantSummary) =>
-  TOLERANCES.flatMap(({ key }) => {
+  TOLERANCES.flatMap(({ key, label }) => {
     const level = plant[key];
     return level === 'medium' || level === 'big'
-      ? [{ key, icon: TOLERANCE_ICONS[key], text: SENTENCES[key][level], level: TOLERANCE_LABELS[level] }]
+      ? [
+          {
+            key,
+            icon: TOLERANCE_ICONS[key],
+            title: label,
+            text: SENTENCES[key][level],
+            levelLabel: TOLERANCE_LABELS[level],
+            dots: level === 'big' ? 3 : 2,
+            tone: tileTone(ROW_TONES[key]),
+          },
+        ]
       : [];
   });
 
 /* ─────────────── Notes and the three watch-out blocks ─────────────── */
 
+/** The two notes: their icon and their colours (butter for the trivia, rose for the secret) */
 export const NOTES = [
-  { key: 'trivia', title: 'Ηξερες οτι' },
-  { key: 'secret', title: 'Μυστικό επιτυχίας' },
-] as const satisfies readonly { key: 'trivia' | 'secret'; title: string }[];
+  { key: 'trivia', title: 'Ηξερες οτι', icon: 'ornamental', tone: 2 },
+  { key: 'secret', title: 'Μυστικό επιτυχίας', icon: 'key', tone: 4 },
+] as const satisfies readonly { key: 'trivia' | 'secret'; title: string; icon: IconName; tone: number }[];
 
+/** The three static blocks of «Τι να προσέχεις»: their icon and colours (rose, sand, sage) */
 export const WATCH_OUT_ITEMS = [
-  { key: 'symptoms', title: 'Τι βλέπω' },
-  { key: 'what', title: 'Τι είναι' },
-  { key: 'action', title: 'Τι κάνω' },
-] as const satisfies readonly { key: 'symptoms' | 'what' | 'action'; title: string }[];
+  { key: 'symptoms', title: 'Τι βλέπω', icon: 'search', tone: 4 },
+  { key: 'what', title: 'Τι είναι', icon: 'book', tone: 0 },
+  { key: 'action', title: 'Τι κάνω', icon: 'leaf', tone: 5 },
+] as const satisfies readonly { key: 'symptoms' | 'what' | 'action'; title: string; icon: IconName; tone: number }[];
 
 /* ─────────────── Lifecycle tabs ─────────────── */
 
-/** The tabs, in order: label and the colour of the lit button */
-export const LIFECYCLE_TAB_DEFS: readonly { tab: LifecycleTab; label: string; color: string }[] = LIFECYCLE_TABS.map((tab) => ({
-  tab,
-  label: LIFECYCLE_TAB_LABELS[tab],
-  color: { seed: colors.seed, plant: colors.primary, care: colors.accent }[tab],
-}));
+/** The tabs, in order: label, the colour of the lit button, and its group's tint (sand, sage, blush) */
+export const LIFECYCLE_TAB_DEFS: readonly { tab: LifecycleTab; label: string; color: string; tone: TileTone }[] =
+  LIFECYCLE_TABS.map((tab) => ({
+    tab,
+    label: LIFECYCLE_TAB_LABELS[tab],
+    color: { seed: colors.seed, plant: botanical.olive, care: botanical.terracotta }[tab],
+    tone: tileTone({ seed: 0, plant: 5, care: 1 }[tab]),
+  }));
+
+export const tabDef = (tab: LifecycleTab) => LIFECYCLE_TAB_DEFS.find((def) => def.tab === tab)!;

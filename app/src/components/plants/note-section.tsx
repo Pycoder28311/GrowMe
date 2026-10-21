@@ -1,23 +1,68 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { AppText } from '@/components/ui/app-text';
+import { FlowerShape, PaperGrain } from '@/components/ui/flower-shapes';
+import { Icon } from '@/components/ui/icon';
 import { LinkedText } from '@/components/ui/linked-text';
-import { Section } from '@/components/ui/section';
 import { NOTES, type PlantPageData } from '@/config/plant-page';
+import { botanical, iconSize, serif, smallCaps, space, tileTone } from '@/theme';
 
-/** A plant's short text under a title («Ηξερες οτι», «Μυστικό επιτυχίας»); nothing when the plant has none */
+/**
+ * A plant's short text («Ηξερες οτι», «Μυστικό επιτυχίας») as a card in the tiles' style: its warm tint with
+ * paper grain and a painted flower in the corner, the icon in its accent circle beside a small uppercase
+ * title, then the text in an italic serif, like a quote. Nothing when the plant has none.
+ */
 export function NoteSection({ plant, note }: { plant: PlantPageData; note: (typeof NOTES)[number] }) {
   const text = plant[note.key];
   if (!text) return null;
+  const tone = tileTone(note.tone);
   return (
-    <Section title={note.title}>
+    <View style={[styles.card, { backgroundColor: tone.background }]}>
+      <FlowerShape size={120} color={tone.shape} opacity={0.85} rotate={18} style={styles.flower} />
+      <PaperGrain />
+      <View style={styles.head}>
+        <View style={[styles.circle, { backgroundColor: tone.circle }]}>
+          <Icon name={note.icon} size={iconSize.normal} color={tone.icon} />
+        </View>
+        <AppText accessibilityRole="header" color={botanical.inkMuted} style={smallCaps}>
+          {note.title}
+        </AppText>
+      </View>
       <LinkedText style={styles.text}>{text}</LinkedText>
-    </Section>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  card: {
+    gap: space.sm + 2,
+    padding: space.md,
+    // Room on the right for the flower
+    paddingRight: space.lg + space.md,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  flower: {
+    right: -48,
+    bottom: -44,
+  },
+  head: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  circle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   text: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontFamily: serif,
+    fontStyle: 'italic',
+    fontSize: 18,
+    lineHeight: 26,
+    color: botanical.ink,
   },
 });

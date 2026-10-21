@@ -3,15 +3,17 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
-import { colors, radius, shadow, space } from '@/theme';
+import { LongLeafShape, PaperGrain } from '@/components/ui/flower-shapes';
+import { tabDef } from '@/config/plant-page';
+import { botanical, serif, smallCaps, space } from '@/theme';
 
 import { firstLine, type StageGroup } from './stage-groups';
 
 /** Where (in a group's progress) it stops separating from its neighbours and starts going behind */
 const APART = 0.3;
-const R = radius.md;
+const R = 20;
 
-/** One stage: title and its time on one line, then the start of its text */
+/** One stage: its title in the serif and its time in a small pill, then the start of its text */
 function StageRow({ stage, first }: { stage: Lifecycle; first: boolean }) {
   const duration = durationLabel(stage.duration);
   const line = firstLine(stage.content);
@@ -19,17 +21,19 @@ function StageRow({ stage, first }: { stage: Lifecycle; first: boolean }) {
   return (
     <View style={[styles.row, !first && styles.divider]}>
       <View style={styles.titleRow}>
-        <AppText bold style={styles.title}>
+        <AppText color={botanical.ink} style={styles.title}>
           {stage.title}
         </AppText>
         {duration && (
-          <AppText size="small" color={colors.inkMuted}>
-            {duration}
-          </AppText>
+          <View style={styles.duration}>
+            <AppText color={botanical.inkMuted} style={smallCaps}>
+              {duration}
+            </AppText>
+          </View>
         )}
       </View>
       {line !== '' && (
-        <AppText size="small" color={colors.inkMuted} numberOfLines={2}>
+        <AppText color={botanical.inkMuted} numberOfLines={2} style={styles.line}>
           {line}
         </AppText>
       )}
@@ -79,6 +83,7 @@ function GroupHalf({ group, index, count, position, heights }: { group: StageGro
       ],
     };
   });
+  const { tone } = tabDef(group.tab);
   const shade = useAnimatedStyle(() => ({ opacity: interpolate(progress(position.get(), index), [APART, 1], [0, 0.25], 'clamp') }));
 
   return (
@@ -87,7 +92,10 @@ function GroupHalf({ group, index, count, position, heights }: { group: StageGro
         const height = event.nativeEvent.layout.height;
         if (height > 0) heights.set(heights.get().map((h, i) => (i === index ? height : h)));
       }}
-      style={[styles.half, index > 0 && styles.joint, style]}>
+      style={[styles.half, { backgroundColor: tone.background }, index > 0 && styles.joint, style]}>
+      {/* The group's tint, a painted leaf in its accent at the top right, paper grain */}
+      <LongLeafShape size={110} color={tone.shape} rotate={-50} opacity={0.55} style={styles.leaf} />
+      <PaperGrain />
       {group.stages.map(([, stage], i) => (
         <StageRow key={stage.id} stage={stage} first={i === 0} />
       ))}
@@ -129,15 +137,18 @@ export function StagesBox({ groups, position, heights }: StagesBoxProps) {
 const styles = StyleSheet.create({
   half: {
     paddingHorizontal: space.md,
-    backgroundColor: colors.surface,
-    boxShadow: shadow.tile,
+    overflow: 'hidden',
   },
-  // The line between the two halves while they are joined
+  // The line between two groups while they are joined
   joint: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(31, 61, 36, 0.12)',
+    borderTopColor: 'rgba(43, 42, 32, 0.12)',
   },
-  // Darkens the seed half as it goes behind (rounded like the half once it has split off)
+  leaf: {
+    right: -34,
+    top: -38,
+  },
+  // Darkens a group as it goes behind (rounded like the group once it has split off)
   shade: {
     ...StyleSheet.absoluteFill,
     borderRadius: R,
@@ -145,18 +156,32 @@ const styles = StyleSheet.create({
   },
   row: {
     gap: space.xs,
-    paddingVertical: space.sm + 2,
+    paddingVertical: space.md - 2,
   },
   divider: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(31, 61, 36, 0.15)',
+    borderTopColor: 'rgba(43, 42, 32, 0.1)',
   },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     gap: space.sm,
   },
+  // The stage's name in the serif, like the tiles' values
   title: {
     flex: 1,
+    fontFamily: serif,
+    fontSize: 19,
+    lineHeight: 24,
+  },
+  duration: {
+    paddingHorizontal: space.sm,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(251, 247, 241, 0.75)',
+  },
+  line: {
+    fontSize: 15,
+    lineHeight: 21,
   },
 });

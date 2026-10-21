@@ -7,7 +7,8 @@ import { AppText } from '@/components/ui/app-text';
 import { ArrowButton } from '@/components/ui/arrow-button';
 import { Icon } from '@/components/ui/icon';
 import type { PlantCardItem } from '@/lib/plants';
-import { colors, iconSize, radius, shadow, size, space } from '@/theme';
+import { PaperGrain } from '@/components/ui/flower-shapes';
+import { botanical, iconSize, serif, size, space, tileTone } from '@/theme';
 
 const GAP = space.sm;
 /** How much of a card the photo takes */
@@ -15,30 +16,34 @@ const PHOTO_RATIO = 0.62;
 
 const openPlant = (id: number) => router.push({ pathname: '/plants/[id]', params: { id: String(id) } });
 
-/** One plant in a carousel: photo, name, a line of text, «Δες περισσότερα» (the whole card opens it) */
-function PlantSlide({ plant, width }: { plant: PlantCardItem; width: number }) {
+/**
+ * One plant in a carousel, in the tiles' style (its warm tint in turn, paper grain): photo, name in the serif,
+ * a line of text, «Δες περισσότερα» as an olive pill (the whole card opens it)
+ */
+function PlantSlide({ plant, width, index }: { plant: PlantCardItem; width: number; index: number }) {
   return (
     <Pressable
       accessibilityRole="link"
       accessibilityLabel={`${plant.name}: δες περισσότερα`}
       onPress={() => openPlant(plant.id)}
-      style={({ pressed }) => [styles.card, { width }, pressed && styles.pressed]}>
+      style={({ pressed }) => [styles.card, { width, backgroundColor: tileTone(index).background }, pressed && styles.pressed]}>
+      <PaperGrain />
       <View style={[styles.photo, { height: width * PHOTO_RATIO }]}>
         {plant.image && <Image source={{ uri: plant.image }} contentFit="cover" style={StyleSheet.absoluteFill} />}
       </View>
       <View style={styles.words}>
-        <AppText bold numberOfLines={1}>
+        <AppText color={botanical.ink} numberOfLines={1} style={styles.name}>
           {plant.name}
         </AppText>
-        <AppText size="small" color={colors.inkMuted} numberOfLines={2}>
+        <AppText size="small" color={botanical.inkMuted} numberOfLines={2}>
           {plant.text}
         </AppText>
       </View>
       <View style={styles.more}>
-        <AppText size="small" bold color={colors.primary}>
+        <AppText size="small" bold color={botanical.cream}>
           Δες περισσότερα
         </AppText>
-        <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
+        <Icon name="chevronRight" size={iconSize.small} color={botanical.cream} bold />
       </View>
     </Pressable>
   );
@@ -76,8 +81,8 @@ export function PlantCarousel({ plants }: { plants: PlantCardItem[] }) {
         onMomentumScrollEnd={(event) => setIndex(Math.round(event.nativeEvent.contentOffset.x / step))}
         // The last card can reach the left edge too
         contentContainerStyle={[styles.row, { paddingRight: screenWidth - space.md - cardWidth }]}>
-        {plants.map((plant) => (
-          <PlantSlide key={plant.id} plant={plant} width={cardWidth} />
+        {plants.map((plant, i) => (
+          <PlantSlide key={plant.id} plant={plant} width={cardWidth} index={i} />
         ))}
       </ScrollView>
 
@@ -116,21 +121,26 @@ const styles = StyleSheet.create({
   card: {
     gap: space.sm,
     padding: space.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.surface,
-    boxShadow: shadow.tile,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   pressed: {
     opacity: 0.85,
   },
   photo: {
     overflow: 'hidden',
-    borderRadius: radius.sm,
-    backgroundColor: '#d4d4d8',
+    borderRadius: 14,
+    backgroundColor: botanical.sand,
   },
   words: {
     gap: 2,
     minHeight: 54,
+    paddingHorizontal: space.xs,
+  },
+  name: {
+    fontFamily: serif,
+    fontSize: 19,
+    lineHeight: 24,
   },
   more: {
     flexDirection: 'row',
@@ -138,8 +148,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.xs,
     paddingVertical: space.sm,
-    borderRadius: radius.sm,
-    backgroundColor: colors.primarySoft,
+    borderRadius: 999,
+    backgroundColor: botanical.olive,
   },
   arrow: {
     position: 'absolute',

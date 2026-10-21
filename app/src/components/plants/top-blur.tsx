@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-import { colors } from '@/theme';
+import { botanical } from '@/theme';
 
 /** Over how much scroll it fades in, once the photos have passed under it */
 const FADE_IN = 40;
@@ -45,7 +45,7 @@ export function TopBlur({ scrollY, height, from }: { scrollY: SharedValue<number
         <Defs>
           <LinearGradient id={washId} x1="0" y1="0" x2="0" y2="1">
             {WASH.map((opacity, i) => (
-              <Stop key={i} offset={i / (WASH.length - 1)} stopColor={colors.page} stopOpacity={opacity} />
+              <Stop key={i} offset={i / (WASH.length - 1)} stopColor={botanical.page} stopOpacity={opacity} />
             ))}
           </LinearGradient>
         </Defs>

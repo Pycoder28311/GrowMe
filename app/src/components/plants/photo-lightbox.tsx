@@ -18,6 +18,7 @@ import { ArrowButton } from '@/components/ui/arrow-button';
 import { Icon } from '@/components/ui/icon';
 import { raisedTile } from '@/components/ui/styles';
 import type { Rect } from '@/config/search-motion';
+import { photoSource } from '@/lib/photo-source';
 import { alpha, colors, iconSize, radius, space } from '@/theme';
 
 const SLIDE_MS = 380;
@@ -176,7 +177,7 @@ export function PhotoLightbox({
               style={StyleSheet.absoluteFill}>
               <Image
                 key={index}
-                source={{ uri: photos[index] }}
+                source={photoSource(photos[index])}
                 contentFit="cover"
                 onLoad={(event) => {
                   const { width, height } = event.source;

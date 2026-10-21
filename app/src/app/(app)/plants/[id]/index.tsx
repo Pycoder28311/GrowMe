@@ -1,12 +1,11 @@
 import { lifespanLabel, parseRichContent } from '@growme/shared';
 import { useLocalSearchParams } from 'expo-router';
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
 } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { useTopClearance } from '@/components/layout/app-shell';
@@ -30,13 +29,14 @@ import { SectionBar, type PageSection } from '@/components/plants/section-bar';
 import { TopBlur } from '@/components/plants/top-blur';
 import { WatchOutSection } from '@/components/plants/watch-out-section';
 import { AppText } from '@/components/ui/app-text';
+import { FlowerShape, LeafShape, PaperGrain } from '@/components/ui/flower-shapes';
 import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
 import { NOTES, restrictionRows, type PlantPageData } from '@/config/plant-page';
 import { usePageSections } from '@/lib/page-sections';
 import { useCombinationPlants, usePlant } from '@/lib/plants';
 import { previewOf } from '@/lib/result-preview';
-import { colors, radius, shadow, size, space } from '@/theme';
+import { botanical, colors, radius, sectionTitle, serif, size, space, tileTone } from '@/theme';
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
 function sectionsOf(plant: PlantPageData | null, combinations: boolean): PageSection[] {
@@ -50,43 +50,6 @@ function sectionsOf(plant: PlantPageData | null, combinations: boolean): PageSec
     combinations && { id: 'combinations', label: 'Συνδυασμοί' },
     { id: 'ask', label: 'Ερώτηση' },
   ].filter((section): section is PageSection => !!section);
-}
-
-/** How tall the soft edge between the page's colour and a white band is */
-const BAND_EDGE = 56;
-
-/** The fade's opacity from start to end: a smoothstep curve, slow at both ends */
-const EDGE_EASE = Array.from({ length: 9 }, (_, i) => {
-  const t = i / 8;
-  return t * t * (3 - 2 * t);
-});
-
-/** A short gradient at a white band's edge, from transparent to its white, so the two colours meet softly */
-function BandEdge({ side }: { side: 'top' | 'bottom' }) {
-  const id = `band-edge-${side}-${useId().replace(/:/g, '')}`;
-  const top = side === 'top';
-  return (
-    <Svg
-      pointerEvents="none"
-      width="100%"
-      height={BAND_EDGE}
-      style={[styles.bandEdge, top ? { top: -BAND_EDGE } : { bottom: -BAND_EDGE }]}>
-      <Defs>
-        <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          {/* Eased (not a straight line), so there is no visible start or end to the fade */}
-          {EDGE_EASE.map((opacity, i) => (
-            <Stop
-              key={i}
-              offset={i / (EDGE_EASE.length - 1)}
-              stopColor={colors.surface}
-              stopOpacity={top ? opacity : 1 - opacity}
-            />
-          ))}
-        </LinearGradient>
-      </Defs>
-      <Rect x={0} y={0} width="100%" height={BAND_EDGE} fill={`url(#${id})`} />
-    </Svg>
-  );
 }
 
 /** A section of the page: reports where it is (for the bar, the reveals and the description button) */
@@ -154,7 +117,7 @@ export default function PlantScreen() {
   }
 
   const lifespan = lifespanLabel(plant.lifespanMin, plant.lifespanMax);
-  const restrictions = restrictionRows(plant).map(({ key, icon, text }) => ({ key, icon, text }));
+  const restrictions = restrictionRows(plant);
   const photos = plant.images.map((image) => image.url);
   const askAbout = { id: plant.id, name: plant.name, image: photos[0] ?? null };
   // «Δες την περιγραφή» while the description is still below the screen
@@ -190,20 +153,22 @@ export default function PlantScreen() {
 
         <Block onLayout={register('info')}>
           <View style={styles.titleBlock}>
+            {/* The big flat flower behind the lifespan pill, half off the screen's right edge */}
+            <FlowerShape size={170} color={botanical.coral} center={botanical.terracotta} rotate={12} opacity={0.9} style={styles.titleFlower} />
             <ChipRow plant={plant} />
             <View style={styles.titleRow}>
-              <AppText size="big" bold accessibilityRole="header" style={styles.name}>
+              <AppText accessibilityRole="header" color={botanical.ink} style={styles.name}>
                 {plant.name}
               </AppText>
               {lifespan && (
                 <View style={styles.pricePill}>
-                  <AppText bold color={colors.accent} style={styles.price}>
+                  <AppText bold color={botanical.terracotta} style={styles.price}>
                     {lifespan}
                   </AppText>
                 </View>
               )}
             </View>
-            <AppText color={colors.inkMuted} style={styles.scientific}>
+            <AppText color={botanical.ink} style={styles.scientific}>
               {plant.scientificName}
             </AppText>
           </View>
@@ -235,12 +200,11 @@ export default function PlantScreen() {
         )}
         {plant.description && (
           <Block onLayout={register('description')}>
-            {/* A white band across the whole width, square */}
-            <View style={styles.descriptionBand}>
-              {/* A short fade from the page's colour into the white, above and below */}
-              <BandEdge side="top" />
-              <BandEdge side="bottom" />
-              <Section title="Περιγραφή">
+            {/* A card in the tiles' style: the sand tint, paper grain, a painted geranium leaf in a corner */}
+            <View style={[styles.descriptionCard, { backgroundColor: tileTone(0).background }]}>
+              <LeafShape size={150} color={botanical.leaf} rotate={-20} opacity={0.5} style={styles.descriptionLeaf} />
+              <PaperGrain />
+              <Section title="Περιγραφή" titleStyle={sectionTitle}>
                 {/* The editor's formatted text (or an older plain one with blog links) */}
                 <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
               </Section>
@@ -251,7 +215,7 @@ export default function PlantScreen() {
         {/* The other plants of its combination */}
         {combination.length > 0 && (
           <Block onLayout={register('combinations')}>
-            <Section title="Συνδυασμοί με αυτό το φυτό">
+            <Section title="Συνδυασμοί με αυτό το φυτό" titleStyle={sectionTitle}>
               <PlantCarousel plants={combination} />
             </Section>
           </Block>
@@ -259,7 +223,7 @@ export default function PlantScreen() {
 
         {/* Last: a question about this plant, posted linked to it */}
         <Block onLayout={register('ask')}>
-          <AskCard plant={askAbout} />
+          <AskCard plant={askAbout} cardStyle={styles.askCard} />
         </Block>
       </Animated.ScrollView>
 
@@ -295,7 +259,7 @@ export default function PlantScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.page,
+    backgroundColor: botanical.page,
   },
   page: {
     paddingBottom: space.lg,
@@ -306,19 +270,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingTop: space.lg,
   },
-  // Out to the screen's edges (past the blocks' side padding), the text keeping its margins
-  descriptionBand: {
-    // Extra room above, from the section before it (the fade reaches into it)
-    marginTop: space.lg,
-    marginHorizontal: -space.md,
-    paddingHorizontal: space.md,
-    paddingVertical: space.md,
-    backgroundColor: colors.surface,
+  descriptionCard: {
+    padding: space.md,
+    paddingBottom: space.lg,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  bandEdge: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+  descriptionLeaf: {
+    right: -50,
+    bottom: -56,
+  },
+  // The question card in the page's cream, without its shadow
+  askCard: {
+    borderRadius: 20,
+    borderColor: botanical.line,
+    backgroundColor: botanical.cream,
+    boxShadow: 'none',
   },
   titleRow: {
     flexDirection: 'row',
@@ -326,27 +293,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.md,
   },
-  // The plant's name, price and scientific name: a size up from the usual title, body and small text
+  // The plant's name in a big uppercase serif, the scientific name in italics under it (the mockup's «GERANIUM»)
   name: {
     flexShrink: 1,
-    fontSize: 30,
-    lineHeight: 36,
+    fontFamily: serif,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  // A white pill with a shadow, like the life cycle's years, so it stands out from the page's colour
+  // A cream pill over the flower, the lifespan in terracotta
   pricePill: {
     paddingHorizontal: space.md,
-    paddingVertical: space.xs,
+    paddingVertical: space.xs + 2,
     borderRadius: radius.full,
-    backgroundColor: colors.surface,
-    boxShadow: shadow.tile,
+    backgroundColor: botanical.cream,
   },
   price: {
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: 18,
+    lineHeight: 24,
   },
   scientific: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontFamily: serif,
+    fontStyle: 'italic',
+    fontSize: 19,
+    lineHeight: 24,
+  },
+  titleFlower: {
+    right: -space.md - 70,
+    top: 6,
   },
   titleBlock: {
     gap: space.sm,

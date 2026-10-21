@@ -4,7 +4,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { dateRows, type PlantPageData } from '@/config/plant-page';
 import { plantingPeriod } from '@/config/plant-traits';
-import { colors, iconSize, space } from '@/theme';
+import { botanical, iconSize, smallCaps, space } from '@/theme';
 
 /** One line per date range the plant has (seeding, planting, flowering, fruiting): «Σπορά: ΜΑΡ – ΑΠΡ, ΣΕΠ – ΟΚΤ» */
 export function DateRows({ plant }: { plant: PlantPageData }) {
@@ -14,12 +14,14 @@ export function DateRows({ plant }: { plant: PlantPageData }) {
     <View style={styles.list}>
       {rows.map((row) => (
         <View key={row.key} style={styles.row}>
-          <Icon name={row.icon.icon} size={iconSize.big} color={colors.ink} />
+          <View style={styles.circle}>
+            <Icon name={row.icon.icon} size={iconSize.normal} color={botanical.cream} />
+          </View>
           <AppText style={styles.text}>
-            <AppText color={colors.inkMuted} style={styles.text}>
+            <AppText color={botanical.inkMuted} style={[styles.text, smallCaps]}>
               {row.label}:{' '}
             </AppText>
-            <AppText bold style={styles.text}>
+            <AppText bold color={botanical.ink} style={styles.text}>
               {row.ranges.map((range) => plantingPeriod(range).label).join(', ')}
             </AppText>
           </AppText>
@@ -31,16 +33,26 @@ export function DateRows({ plant }: { plant: PlantPageData }) {
 
 const styles = StyleSheet.create({
   list: {
-    gap: space.xs,
+    gap: space.sm,
+  },
+  // The mockup's olive circle with a cream calendar
+  circle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: botanical.olive,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
   },
-  // A size up from the body text
   text: {
-    fontSize: 18,
-    lineHeight: 24,
+    flexShrink: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0.4,
   },
 });

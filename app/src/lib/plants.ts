@@ -35,7 +35,8 @@ const fetchPlant = (id: number) => {
 
 /** Starts a plant's request now (the search result's tap), for the page to use when it opens */
 export function prefetchPlant(id: number) {
-  if (started.has(id)) return;
+  // The mockup's pages never use it
+  if (USE_MOCK_PLANTS || started.has(id)) return;
   const request = plantsApi.get(id).then((plant) => {
     opened.set(id, plant);
     return plant;

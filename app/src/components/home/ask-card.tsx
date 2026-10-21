@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -101,7 +101,18 @@ function FlyingPiece({ piece, target, delay, onDone }: { piece: Piece; target: {
  * question field with the plane beside it, and the title, photo and plant buttons appear on the tap
  * (and go again when the user taps elsewhere). `onPosted` gets the new post.
  */
-export function AskCard({ plant, composer, onPosted }: { plant?: PostPlant; composer?: boolean; onPosted?: (post: Post) => void }) {
+export function AskCard({
+  plant,
+  composer,
+  onPosted,
+  cardStyle,
+}: {
+  plant?: PostPlant;
+  composer?: boolean;
+  onPosted?: (post: Post) => void;
+  /** A page's own look for the card (e.g. the plant page's cream) */
+  cardStyle?: StyleProp<ViewStyle>;
+}) {
   const [showTitle, setShowTitle] = useState(false);
   const [title, setTitle] = useState('');
   const [question, setQuestion] = useState('');
@@ -243,7 +254,7 @@ export function AskCard({ plant, composer, onPosted }: { plant?: PostPlant; comp
         }}
         style={styles.form}>
 
-      <View ref={cardRef} collapsable={false} style={[floating ? styles.floatingCard : styles.card, compact && floating && styles.compactCard, compact && !floating && styles.compactCard]}>
+      <View ref={cardRef} collapsable={false} style={[floating ? styles.floatingCard : styles.card, compact && floating && styles.compactCard, compact && !floating && styles.compactCard, !floating && cardStyle]}>
         {showTitle && (
           <Animated.View entering={FadeIn.duration(200)}>
             <TextInput

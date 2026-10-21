@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { headerChips, type PlantPageData } from '@/config/plant-page';
-import { alpha, colors, radius, space } from '@/theme';
+import { botanical, radius, smallCaps, space } from '@/theme';
 
 /** The small pills above the plant's name: family, genus, native area… (config/plant-page.ts HEADER_CHIPS) */
 export function ChipRow({ plant }: { plant: PlantPageData }) {
@@ -12,7 +12,7 @@ export function ChipRow({ plant }: { plant: PlantPageData }) {
     <View style={styles.row}>
       {chips.map((chip) => (
         <View key={chip.key} style={styles.chip}>
-          <AppText size="small" color={colors.inkMuted} numberOfLines={1}>
+          <AppText color={botanical.inkMuted} numberOfLines={1} style={smallCaps}>
             {chip.text}
           </AppText>
         </View>
@@ -29,8 +29,8 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: space.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: radius.full,
-    backgroundColor: alpha(colors.ink, 0.06),
+    backgroundColor: botanical.sand,
   },
 });

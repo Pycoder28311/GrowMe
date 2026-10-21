@@ -1,14 +1,13 @@
 import type { SearchBlog, SearchPlant } from '@growme/shared';
 import { Image } from 'expo-image';
-import { useId } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { PlantBackground } from '@/components/plants/plant-background';
-import { EDGE_BORDER, FADE, FADE_COLOR, PHOTO_HEADER_HEIGHT, PHOTO_HEIGHT } from '@/components/plants/photo-header';
+import { CURVE_HEIGHT, PHOTO_HEADER_HEIGHT, PHOTO_HEIGHT } from '@/components/plants/photo-header';
+import { CurvedEdge } from '@/components/ui/flower-shapes';
 import { AppText } from '@/components/ui/app-text';
 import { Skeleton } from '@/components/ui/skeleton';
-import { colors, radius, size, space } from '@/theme';
+import { botanical, colors, radius, size, space } from '@/theme';
 
 /** Photo height at the top of an article (its page and the loading page share it) */
 export const BLOG_PHOTO_HEIGHT = size.touch * 4;
@@ -20,7 +19,6 @@ export const BLOG_PHOTO_HEIGHT = size.touch * 4;
  */
 export function PlantSkeleton({ plant, topClearance }: { plant?: SearchPlant; topClearance: number }) {
   const width = useWindowDimensions().width;
-  const fadeId = `skeleton-fade-${useId().replace(/:/g, '')}`;
   // A plant known to have no photo starts under the corner buttons, like its page
   const noPhoto = !!plant && !plant.image;
   return (
@@ -35,18 +33,10 @@ export function PlantSkeleton({ plant, topClearance }: { plant?: SearchPlant; to
           ) : (
             <Skeleton height={PHOTO_HEIGHT} style={styles.square} />
           )}
-          {/* The photo melts into the page, as on the real page */}
-          <Svg pointerEvents="none" width={width} height={FADE} style={[styles.fade, { top: PHOTO_HEIGHT - FADE }]}>
-            <Defs>
-              <LinearGradient id={fadeId} x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={FADE_COLOR} stopOpacity={0} />
-                <Stop offset="0.7" stopColor={FADE_COLOR} stopOpacity={0.85} />
-                <Stop offset="1" stopColor={FADE_COLOR} stopOpacity={1} />
-              </LinearGradient>
-            </Defs>
-            <Rect x={0} y={0} width={width} height={FADE} fill={`url(#${fadeId})`} />
-          </Svg>
-          <View pointerEvents="none" style={[styles.edge, { top: PHOTO_HEIGHT - EDGE_BORDER }]} />
+          {/* The curved line where the photo meets the page, as on the real page */}
+          <View pointerEvents="none" style={[styles.photoEdge, { height: PHOTO_HEIGHT, width }]}>
+            <CurvedEdge width={width} height={CURVE_HEIGHT} color={botanical.page} />
+          </View>
         </View>
       )}
 
@@ -124,21 +114,15 @@ export function BlogSkeleton({ blog, topClearance }: { blog?: SearchBlog; topCle
 const styles = StyleSheet.create({
   plant: {
     flex: 1,
-    backgroundColor: colors.page,
+    backgroundColor: botanical.page,
   },
   square: {
     borderRadius: 0,
   },
-  fade: {
+  photoEdge: {
     position: 'absolute',
     left: 0,
-  },
-  edge: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: EDGE_BORDER,
-    backgroundColor: colors.surface,
+    top: 0,
   },
   round: {
     borderRadius: radius.md,

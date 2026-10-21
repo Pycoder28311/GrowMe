@@ -1,19 +1,17 @@
 import { Image } from 'expo-image';
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { ArrowButton } from '@/components/ui/arrow-button';
-import { colors, quietGray, size, space } from '@/theme';
+import { BlobShape, CurvedEdge } from '@/components/ui/flower-shapes';
+import { photoSource } from '@/lib/photo-source';
+import { botanical, size, space } from '@/theme';
 
 /** Photo height: a little over a third of a phone screen */
 export const PHOTO_HEIGHT = 280;
-/** The fade at the photos' bottom edge */
-export const FADE = 55;
-/** The gray the photos fade into, and the thick white border under them, where they meet the page's background */
-export const FADE_COLOR = quietGray;
-export const EDGE_BORDER = 14;
+/** How tall the curved edge between the photos and the page is */
+export const CURVE_HEIGHT = 46;
 /** Where the thumbnails' centres sit: on the fade, near the photos' bottom (PhotoStack) */
 export const THUMBS_CENTER = PHOTO_HEIGHT - 18;
 /** The thumbnails' size (smaller when many have to fit in a row) */
@@ -39,15 +37,14 @@ type PhotoHeaderProps = {
 };
 
 /**
- * The plant's photos across the top, swipeable with ‹ ›, fading into the page through a gradient
- * of the page's colour (the thumbnails sit on that edge, drawn by PhotoStack over the page). Scrolling down
+ * The plant's photos across the top, swipeable with ‹ ›, meeting the page in a curved cream line (the
+ * thumbnails sit on that edge, drawn by PhotoStack over the page). Scrolling down
  * moves them up at half the page's speed (same size), so the page slides over them, fading out, until
  * the page's colour covers the screen.
  */
 export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: PhotoHeaderProps) {
   const width = useWindowDimensions().width;
   const scrollRef = useRef<ScrollView>(null);
-  const fadeId = `fade-${useId().replace(/:/g, '')}`;
 
   const show = (next: number) => onIndexChange(Math.min(photos.length - 1, Math.max(0, next)));
 
@@ -77,7 +74,7 @@ export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: Ph
           {photos.map((photo, i) => (
             <Image
               key={i}
-              source={{ uri: photo }}
+              source={photoSource(photo)}
               contentFit="cover"
               accessibilityLabel={`${label}, φωτογραφία ${i + 1} από ${photos.length}`}
               style={{ width, height: PHOTO_HEIGHT }}
@@ -85,19 +82,11 @@ export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: Ph
           ))}
         </ScrollView>
 
-        {/* The photos melt into the page */}
-        <Svg pointerEvents="none" width={width} height={FADE} style={styles.fade}>
-          <Defs>
-            <LinearGradient id={fadeId} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={FADE_COLOR} stopOpacity={0} />
-              <Stop offset="0.7" stopColor={FADE_COLOR} stopOpacity={0.85} />
-              <Stop offset="1" stopColor={FADE_COLOR} stopOpacity={1} />
-            </LinearGradient>
-          </Defs>
-          <Rect x={0} y={0} width={width} height={FADE} fill={`url(#${fadeId})`} />
-        </Svg>
-
-        <View pointerEvents="none" style={styles.edge} />
+        {/* A curved line where the photos meet the page (no fade) */}
+        <CurvedEdge width={width} height={CURVE_HEIGHT} color={botanical.page} />
+        {/* The mockup's organic shapes on the photos' lower corners: terracotta at the left, coral at the right */}
+        <BlobShape size={170} color={botanical.terracotta} style={styles.blobLeft} />
+        <BlobShape size={130} color={botanical.coral} opacity={0.9} style={styles.blobRight} />
 
         {photos.length > 1 && (
           <>
@@ -126,18 +115,13 @@ const styles = StyleSheet.create({
   photos: {
     height: PHOTO_HEIGHT,
   },
-  fade: {
-    position: 'absolute',
-    left: 0,
-    bottom: 0,
+  blobLeft: {
+    left: -110,
+    bottom: -60,
   },
-  edge: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: EDGE_BORDER,
-    backgroundColor: colors.surface,
+  blobRight: {
+    right: -80,
+    bottom: 10,
   },
   arrow: {
     position: 'absolute',

@@ -18,7 +18,7 @@ import { FACT_ICONS, type PlantIcon } from '@/config/plant-icons';
 import { type Season } from '@/config/plant-traits';
 
 // The plant page's info squares (after the sunlight square): which ones a plant shows, their words, and
-// the small animation (or animations, one per value) on each. A new square is one entry in TILE_DEFS.
+// the one small animation on each (a tile with several values shows the most telling one's). A new square is one entry in TILE_DEFS.
 
 /** One animation on a tile (see components/plants/tile-art) */
 export type TileArt =
@@ -33,14 +33,14 @@ export type TileArt =
   | { kind: 'toxicity'; value: Toxicity };
 
 /** `label`: what the tile is about («Δυσκολία»); `value`: the plant's value, in bold */
-export type InfoTile = { key: string; icon: PlantIcon; label: string; value: string; arts: TileArt[] };
+export type InfoTile = { key: string; icon: PlantIcon; label: string; value: string; art: TileArt | null };
 
 type TileDef = {
   key: string;
   icon: PlantIcon;
   label: string;
   /** The tile's value and animations for a plant, or null when the plant has nothing for it */
-  build: (plant: PlantSummary) => { value: string; arts: TileArt[] } | null;
+  build: (plant: PlantSummary) => { value: string; art: TileArt | null } | null;
 };
 
 /** The levels a plant is marked with, easiest first */
@@ -69,7 +69,7 @@ export const TILE_DEFS: readonly TileDef[] = [
       if (!hardest) return null;
       return {
         value: levelsOf(difficultyLevels).map((level) => DIFFICULTY_LABELS[level]).join(', '),
-        arts: [{ kind: 'difficulty', value: (EFFORT_LEVELS.indexOf(hardest) + 1) as 1 | 2 | 3 }],
+        art: { kind: 'difficulty', value: (EFFORT_LEVELS.indexOf(hardest) + 1) as 1 | 2 | 3 },
       };
     },
   },
@@ -82,7 +82,8 @@ export const TILE_DEFS: readonly TileDef[] = [
       if (on.length === 0) return null;
       return {
         value: on.map((key) => PLANT_FLAGS.find((flag) => flag.key === key)!.label).join(', '),
-        arts: on.flatMap((key) => USAGE_ART[key] ?? []),
+        // The first usage that has a drawing
+        art: on.map((key) => USAGE_ART[key]).find((art) => art) ?? null,
       };
     },
   },
@@ -95,7 +96,7 @@ export const TILE_DEFS: readonly TileDef[] = [
       if (!hardest) return null;
       return {
         value: levelsOf(timeNeeded).map((level) => TIME_NEEDED_LABELS[level]).join(', '),
-        arts: [{ kind: 'timeNeeded', level: hardest }],
+        art: { kind: 'timeNeeded', level: hardest },
       };
     },
   },
@@ -108,7 +109,8 @@ export const TILE_DEFS: readonly TileDef[] = [
       if (values.length === 0) return null;
       return {
         value: values.map((value) => TOXICITY_LABELS[value]).join(', '),
-        arts: values.map((value) => ({ kind: 'toxicity', value })),
+        // One drawing: the first animal (or the check for «none»)
+        art: { kind: 'toxicity', value: values[0] },
       };
     },
   },
@@ -119,8 +121,11 @@ export const TILE_DEFS: readonly TileDef[] = [
     build: ({ potSizes }) => {
       const sizes = POT_SIZES.filter((size) => potSizes.includes(size));
       if (sizes.length === 0) return null;
-      const arts = [...new Set(sizes.map((size) => POT_ART[size]))].map((value): TileArt => ({ kind: 'size', value }));
-      return { value: sizes.map((size) => POT_SIZE_LABELS[size]).join(', '), arts };
+      // The sizes without their diameters (those are in the filter), and the biggest one's drawing
+      return {
+        value: sizes.map((size) => POT_SIZE_LABELS[size].replace(/\s*\(.*\)/, '')).join(', '),
+        art: { kind: 'size', value: POT_ART[sizes[sizes.length - 1]] },
+      };
     },
   },
 ];
