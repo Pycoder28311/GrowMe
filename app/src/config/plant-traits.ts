@@ -108,13 +108,3 @@ export const useTrait = ({ food }: PlantFields): Trait | null =>
 /** e.g. 📍 Ιθαγενές της Μεσογείου */
 export const originTrait = ({ native }: PlantFields): Trait | null =>
   native ? { emoji: '📍', label: native } : null;
-
-/** The planting seasons' label (several joined) and the first one's icon; null when none is set */
-export function seasonTrait({ plantingSeason }: PlantFields): Trait | null {
-  if (plantingSeason.length === 0) return null;
-  const periods = plantingSeason.map(plantingPeriod);
-  return {
-    emoji: periods[0].emoji,
-    label: periods.map((period) => period.label).join(', '),
-  };
-}

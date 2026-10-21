@@ -1,30 +1,28 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { LIFECYCLE_TAB_DEFS } from '@/config/plant-page';
 import { colors, radius, shadow, space } from '@/theme';
 
 import type { StageGroup } from './stage-groups';
 
-const BUTTONS: { group: StageGroup; label: string; color: string }[] = [
-  { group: 'seed', label: 'Από σπόρο', color: colors.seed },
-  { group: 'plant', label: 'Μεταμφύτευση', color: colors.primary },
-];
-
 /**
- * The life cycle's two big buttons, «Από σπόρο» | «Μεταμφύτευση»: the group picked is lit (its colour on the outline and the words), the other one is plain white
+ * The life cycle's tab buttons («Από σπόρο» | «Μεταφύτευση» | «Περιποίηση»), one per group the plant has:
+ * the tab picked is lit (its colour on the outline and the words), the others are plain white.
  */
-export function GroupButtons({ lit, onPick }: { lit: StageGroup; onPick: (group: StageGroup) => void }) {
+export function TabButtons({ groups, lit, onPick }: { groups: readonly StageGroup[]; lit: number; onPick: (index: number) => void }) {
   return (
     <View accessibilityRole="tablist" style={styles.row}>
-      {BUTTONS.map(({ group, label, color }) => {
-        const on = group === lit;
+      {groups.map((group, index) => {
+        const { label, color } = LIFECYCLE_TAB_DEFS.find((def) => def.tab === group.tab)!;
+        const on = index === lit;
         return (
           <Pressable
-            key={group}
+            key={group.tab}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             aria-selected={on}
-            onPress={() => onPick(group)}
+            onPress={() => onPick(index)}
             style={({ pressed }) => [styles.button, on && { borderColor: color }, pressed && styles.pressed]}>
             <AppText bold={on} color={on ? color : colors.inkMuted}>
               {label}

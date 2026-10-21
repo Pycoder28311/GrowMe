@@ -1,4 +1,4 @@
-import { parseRichContent, type Plant } from '@growme/shared';
+import { lifespanLabel, parseRichContent } from '@growme/shared';
 import { useLocalSearchParams } from 'expo-router';
 import { useId, useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
@@ -13,8 +13,10 @@ import { useTopClearance } from '@/components/layout/app-shell';
 import { AskCard } from '@/components/home/ask-card';
 import { usePageHeader } from '@/components/layout/page-header';
 import { LightUpText } from '@/components/motion/light-up-text';
-import { Reveal } from '@/components/motion/reveal';
 import { DESCRIPTION_BUTTON_HEIGHT, DescriptionButton } from '@/components/plants/description-button';
+import { ChipRow } from '@/components/plants/chip-row';
+import { DateRows } from '@/components/plants/date-rows';
+import { InfoRows } from '@/components/plants/info-rows';
 import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
 import { PHOTO_GONE_AT, PHOTO_HEIGHT, PHOTO_RISE, PhotoHeader } from '@/components/plants/photo-header';
 import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lightbox';
@@ -22,30 +24,27 @@ import { PlantSkeleton } from '@/components/search/page-skeleton';
 import { PlantBackground } from '@/components/plants/plant-background';
 import { PhotoStack } from '@/components/plants/photo-stack';
 import { PlantCarousel } from '@/components/plants/plant-carousel';
-import { PlantingMonths, PlantTiles } from '@/components/plants/plant-tiles';
+import { NoteSection } from '@/components/plants/note-section';
+import { PlantTiles } from '@/components/plants/plant-tiles';
 import { SectionBar, type PageSection } from '@/components/plants/section-bar';
-import { SunBar } from '@/components/plants/sun-graph';
-import { TipsList } from '@/components/plants/tips-list';
 import { TopBlur } from '@/components/plants/top-blur';
-import { TraitRows } from '@/components/plants/trait-rows';
-import { WatchOutList } from '@/components/plants/watch-out-list';
+import { WatchOutSection } from '@/components/plants/watch-out-section';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
-import { priceLabel } from '@/config/plant-traits';
+import { NOTES, restrictionRows, type PlantPageData } from '@/config/plant-page';
 import { usePageSections } from '@/lib/page-sections';
 import { useCombinationPlants, usePlant } from '@/lib/plants';
 import { previewOf } from '@/lib/result-preview';
 import { colors, radius, shadow, size, space } from '@/theme';
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
-function sectionsOf(plant: Plant | null, combinations: boolean): PageSection[] {
+function sectionsOf(plant: PlantPageData | null, combinations: boolean): PageSection[] {
   if (!plant) return [];
   return [
     plant.images.length > 0 && { id: 'images', label: 'Φωτογραφίες' },
     { id: 'info', label: 'Πληροφορίες' },
     plant.lifecycles.length > 0 && { id: 'lifecycle', label: 'Κύκλος ζωής' },
-    plant.tips.length > 0 && { id: 'tips', label: 'Συμβουλές' },
     plant.diseases.length > 0 && { id: 'watch-out', label: 'Τι να προσέχεις' },
     plant.description && { id: 'description', label: 'Περιγραφή' },
     combinations && { id: 'combinations', label: 'Συνδυασμοί' },
@@ -154,7 +153,8 @@ export default function PlantScreen() {
     );
   }
 
-  const price = priceLabel(plant);
+  const lifespan = lifespanLabel(plant.lifespanMin, plant.lifespanMax);
+  const restrictions = restrictionRows(plant).map(({ key, icon, text }) => ({ key, icon, text }));
   const photos = plant.images.map((image) => image.url);
   const askAbout = { id: plant.id, name: plant.name, image: photos[0] ?? null };
   // «Δες την περιγραφή» while the description is still below the screen
@@ -189,15 +189,16 @@ export default function PlantScreen() {
         )}
 
         <Block onLayout={register('info')}>
-          <View>
+          <View style={styles.titleBlock}>
+            <ChipRow plant={plant} />
             <View style={styles.titleRow}>
               <AppText size="big" bold accessibilityRole="header" style={styles.name}>
                 {plant.name}
               </AppText>
-              {price && (
+              {lifespan && (
                 <View style={styles.pricePill}>
                   <AppText bold color={colors.accent} style={styles.price}>
-                    {price}
+                    {lifespan}
                   </AppText>
                 </View>
               )}
@@ -206,20 +207,18 @@ export default function PlantScreen() {
               {plant.scientificName}
             </AppText>
           </View>
-          <PlantingMonths plant={plant} />
-          {/* Over the sun box's sky, which rises behind the last row */}
-          <View style={styles.overSky}>
-            <PlantTiles plant={plant} playing={tilesPlaying} />
-          </View>
-          <SunBar start={plant.sunStart} end={plant.sunEnd} />
-          <TraitRows plant={plant} withLifespan={plant.lifecycles.length === 0} />
+          <DateRows plant={plant} />
+          <PlantTiles plant={plant} playing={tilesPlaying} />
+          <InfoRows rows={restrictions} />
+          {NOTES.map((note) => (
+            <NoteSection key={note.key} plant={plant} note={note} />
+          ))}
         </Block>
 
         {plant.lifecycles.length > 0 && (
           <Block onLayout={register('lifecycle')}>
             <LifecycleCard
               stages={plant.lifecycles}
-              lifespan={plant.lifespan}
               // The buttons just under the corner buttons
               onReveal={(y) =>
                 scrollRef.current?.scrollTo({ y: Math.max(0, page.scrollY.current + y - topClearance - space.sm) })
@@ -228,19 +227,10 @@ export default function PlantScreen() {
           </Block>
         )}
 
-        {/* Optional sections: shown only when the plant has them, revealed the first time they come into view */}
-        {plant.tips.length > 0 && (
-          <Block onLayout={register('tips')}>
-            <Reveal from="behind" visible={seen.has('tips')}>
-              <Section title="Συμβουλές">
-                <TipsList tips={plant.tips} />
-              </Section>
-            </Reveal>
-          </Block>
-        )}
+        {/* Optional sections: shown only when the plant has them */}
         {plant.diseases.length > 0 && (
           <Block onLayout={register('watch-out')}>
-            <WatchOutList items={plant.diseases} />
+            <WatchOutSection plant={plant} />
           </Block>
         )}
         {plant.description && (
@@ -358,8 +348,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
-  overSky: {
-    zIndex: 1,
+  titleBlock: {
+    gap: space.sm,
   },
   notFound: {
     alignItems: 'center',

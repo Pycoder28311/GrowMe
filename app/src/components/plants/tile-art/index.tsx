@@ -1,6 +1,6 @@
 import type { TileArt } from '@/config/plant-tiles';
 
-import { AromaticArt, ClimbingArt, DifficultyArt, FoodArt, KindArt, OrnamentalArt, SizeArt, SucculentArt } from './plants';
+import { AromaticArt, ClimbingArt, DifficultyArt, FoodArt, KindArt, OrnamentalArt, SizeArt, SucculentArt, TimeArt, ToxicityArt } from './plants';
 import { FrostArt, SeasonArt, WindArt } from './weather';
 
 export { ART } from './layer';
@@ -30,5 +30,9 @@ export function TileArtView({ art, playing }: { art: TileArt; playing: boolean }
       return <DifficultyArt difficulty={art.value} playing={playing} />;
     case 'size':
       return <SizeArt size={art.value} playing={playing} />;
+    case 'timeNeeded':
+      return <TimeArt level={art.level} playing={playing} />;
+    case 'toxicity':
+      return <ToxicityArt value={art.value} playing={playing} />;
   }
 }

@@ -2,6 +2,8 @@ import { parseRichContent, plainTextOf, type Plant, type PlantSummary } from '@g
 import { useEffect, useMemo, useState } from 'react';
 
 import { plantsApi } from '@/api/plants';
+import { USE_MOCK_PLANTS } from '@/config/app';
+import { MOCK_PLANTS, mockPlant } from '@/config/mock-plants';
 import { useApiItem, usePagedList } from '@/lib/use-api';
 
 /** The plants list from the API, newest first, a page at a time */
@@ -18,7 +20,10 @@ const opened = new Map<number, Plant>();
 const started = new Map<number, { at: number; request: Promise<Plant> }>();
 const STARTED_FRESH_MS = 20_000;
 
+const fetchMockPlant = (id: number): Promise<Plant> => Promise.resolve(mockPlant(id));
+
 const fetchPlant = (id: number) => {
+  if (id < 0) return fetchMockPlant(id);
   const early = started.get(id);
   started.delete(id);
   if (early && Date.now() - early.at < STARTED_FRESH_MS) return early.request;
@@ -45,7 +50,8 @@ export function prefetchPlant(id: number) {
  * right away (state 'ready') while it reloads.
  */
 export function usePlant(id: number) {
-  const { item, state, ...rest } = useApiItem(fetchPlant, id);
+  // The mockup: a plant of config/mock-plants.ts (negative ids always are), no request
+  const { item, state, ...rest } = useApiItem(USE_MOCK_PLANTS ? fetchMockPlant : fetchPlant, id);
   const kept = state === 'loading' ? opened.get(id) : undefined;
   return { plant: item ?? kept ?? null, state: kept ? ('ready' as const) : state, ...rest };
 }
@@ -78,6 +84,15 @@ export function useCombinationPlants(combinationId: number | null, exceptId: num
   }, [combinationId]);
 
   return useMemo(() => {
+    // The mockup: the other mock plants stand in for the combination
+    if (USE_MOCK_PLANTS) {
+      return MOCK_PLANTS.filter((plant) => plant.id !== exceptId).map((plant) => ({
+        id: plant.id,
+        name: plant.name,
+        text: plant.scientificName,
+        image: null,
+      }));
+    }
     if (combinationId === null) return [];
     const plants = loaded?.id === combinationId ? loaded.plants : (combinationPlants.get(combinationId) ?? []);
     return plants

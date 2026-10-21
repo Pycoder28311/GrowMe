@@ -1,6 +1,11 @@
 import type { IconName } from '@/components/ui/icon';
 
 export const APP_NAME = 'Grow Here';
+/**
+ * The plant page shows the fake plants of config/mock-plants.ts (every id opens one) instead of the backend's.
+ * On in the plant-page redesign branch; off, or delete the mock file, to read from the API.
+ */
+export const USE_MOCK_PLANTS = true;
 export const APP_TAGLINE = 'Βρες τα φυτά που ταιριάζουν στο μπαλκόνι σου!';
 
 export type NavId = 'home' | 'messages' | 'results' | 'wiki' | 'profile';

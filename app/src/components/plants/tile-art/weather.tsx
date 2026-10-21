@@ -1,4 +1,3 @@
-import type { WindLevel } from '@growme/shared';
 import { StyleSheet } from 'react-native';
 import { interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import { Circle, G, Line, Path, Rect } from 'react-native-svg';
@@ -8,6 +7,8 @@ import type { Season } from '@/config/plant-traits';
 import { ArtBox, ink, Layer, pivot, useLoop } from './layer';
 
 type ArtProps = { playing: boolean };
+
+export type WindLevel = 'strong' | 'moderate' | 'light' | 'sheltered';
 
 /* ─────────────── Wind ─────────────── */
 

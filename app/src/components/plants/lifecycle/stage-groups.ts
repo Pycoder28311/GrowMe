@@ -1,24 +1,16 @@
-import { stripBlogLinks, type Lifecycle } from '@growme/shared';
+import { LIFECYCLE_TABS, stripBlogLinks, type Lifecycle, type LifecycleTab } from '@growme/shared';
 
-// A life cycle's stages come in two groups, seed stages first (the dashboard keeps them in that order):
-// from seed (before the plant is sold ready to plant) and from the plant itself (after transplanting).
+// A life cycle's stages come in groups, one per tab (LIFECYCLE_TABS: from seed, from the plant after
+// transplanting, care), in that order (the dashboard keeps them so). A tab with no stage has no group.
 
-export type StageGroup = 'seed' | 'plant';
+export type StageGroup = { tab: LifecycleTab; stages: [number, Lifecycle][] };
 
-export const groupOf = (stage: Lifecycle): StageGroup => (stage.seed ? 'seed' : 'plant');
-
-/** Where each group starts in the list (undefined when the plant has no stage of it) */
-export function firstOfGroup(stages: readonly Lifecycle[]): Partial<Record<StageGroup, number>> {
-  const seed = stages.findIndex((stage) => stage.seed);
-  const plant = stages.findIndex((stage) => !stage.seed);
-  return { ...(seed >= 0 && { seed }), ...(plant >= 0 && { plant }) };
-}
-
-/** The label on the line where each group starts */
-export const GROUP_LABELS: Record<StageGroup, string> = {
-  seed: '🌰 Από σπόρο',
-  plant: '🪴 Μεταμφύτευση',
-};
+/** The groups the plant has stages for, in tab order; each stage with its index in the life cycle */
+export const groupStages = (stages: readonly Lifecycle[]): StageGroup[] =>
+  LIFECYCLE_TABS.flatMap((tab) => {
+    const rows = stages.flatMap((stage, index): [number, Lifecycle][] => (stage.tab === tab ? [[index, stage]] : []));
+    return rows.length > 0 ? [{ tab, stages: rows }] : [];
+  });
 
 /** A stage text's first line, as a reader sees it (blog links as plain words); '' when empty */
 export function firstLine(content: string): string {

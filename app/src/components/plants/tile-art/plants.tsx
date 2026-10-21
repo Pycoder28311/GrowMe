@@ -1,4 +1,4 @@
-import type { PlantKind, PlantSize } from '@growme/shared';
+import type { EffortLevel, Toxicity } from '@growme/shared';
 import { StyleSheet } from 'react-native';
 import { interpolate, useAnimatedStyle } from 'react-native-reanimated';
 import { Circle, Ellipse, G, Line, Path } from 'react-native-svg';
@@ -6,6 +6,9 @@ import { Circle, Ellipse, G, Line, Path } from 'react-native-svg';
 import { ArtBox, ink, Layer, pivot, useLoop } from './layer';
 
 type ArtProps = { playing: boolean };
+
+export type PlantKind = 'flowers' | 'leaves' | 'bush';
+export type PlantSize = 'small' | 'medium' | 'large';
 
 /* ─────────────── Βρώσιμο ─────────────── */
 
@@ -389,6 +392,51 @@ export function DifficultyArt({ difficulty, playing }: ArtProps & { difficulty: 
   if (difficulty === 1) return <WateringCan playing={playing} />;
   if (difficulty === 2) return <TwoDrops playing={playing} />;
   return <Gauge playing={playing} />;
+}
+
+/* ─────────────── Time needed ─────────────── */
+
+/** Time needed: an hourglass that tips over now and then; the sand shows how much (little, some, a lot) */
+export function TimeArt({ level, playing }: ArtProps & { level: EffortLevel }) {
+  const t = useLoop(playing, 2400);
+  const glass = useAnimatedStyle(() => ({ transform: [{ rotate: `${interpolate(t.get(), [0, 1], [-12, 12])}deg` }] }));
+  const sand = { small: 6, medium: 11, big: 16 }[level];
+  return (
+    <ArtBox>
+      <Layer style={[styles.centerPivot, glass]}>
+        <Path d="M16 8 H40 M16 48 H40" stroke={ink.wood} strokeWidth={3} strokeLinecap="round" />
+        <Path d="M18 8 L18 14 L28 28 L18 42 L18 48 M38 8 L38 14 L28 28 L38 42 L38 48" stroke={ink.steel} strokeWidth={2} fill="none" strokeLinejoin="round" />
+        <Path d={`M${28 - sand} ${46} L28 ${46 - sand} L${28 + sand} 46 Z`} fill={ink.orange} />
+        <Path d="M28 28 V40" stroke={ink.orange} strokeWidth={1.6} />
+      </Layer>
+    </ArtBox>
+  );
+}
+
+/* ─────────────── Toxicity ─────────────── */
+
+/** Toxicity: a paw print that pulses with a cross when it is toxic for that animal, a green check for «none» */
+export function ToxicityArt({ value, playing }: ArtProps & { value: Toxicity }) {
+  const t = useLoop(playing, 1200);
+  const paw = useAnimatedStyle(() => ({ transform: [{ scale: interpolate(t.get(), [0, 1], [0.94, 1.04]) }] }));
+  const safe = value === 'none';
+  const colour = safe ? ink.leaf : ink.orange;
+  return (
+    <ArtBox>
+      <Layer style={[styles.centerPivot, paw]}>
+        <Ellipse cx={28} cy={36} rx={11} ry={9} fill={colour} />
+        <Ellipse cx={15} cy={24} rx={4} ry={5.5} fill={colour} />
+        <Ellipse cx={24} cy={16} rx={4} ry={5.5} fill={colour} />
+        <Ellipse cx={34} cy={16} rx={4} ry={5.5} fill={colour} />
+        <Ellipse cx={42} cy={24} rx={4} ry={5.5} fill={colour} />
+        {safe ? (
+          <Path d="M21 36 L26 41 L36 30" stroke={ink.white} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <Path d="M22 30 L34 42 M34 30 L22 42" stroke={ink.white} strokeWidth={3} strokeLinecap="round" />
+        )}
+      </Layer>
+    </ArtBox>
+  );
 }
 
 const styles = StyleSheet.create({

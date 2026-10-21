@@ -1,21 +1,13 @@
 import { durationLabel, type Lifecycle } from '@growme/shared';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  type AnimatedRef,
-  type SharedValue,
-} from 'react-native-reanimated';
+import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
 import { colors, radius, shadow, space } from '@/theme';
 
-import { firstLine } from './stage-groups';
+import { firstLine, type StageGroup } from './stage-groups';
 
-/** The gap the halves open before the seed half goes behind */
-const GAP = 12;
-/** Where (in `split`) the halves stop separating and the seed half starts going behind */
+/** Where (in a group's progress) it stops separating from its neighbours and starts going behind */
 const APART = 0.3;
 const R = radius.md;
 
@@ -46,97 +38,90 @@ function StageRow({ stage, first }: { stage: Lifecycle; first: boolean }) {
 }
 
 type StagesBoxProps = {
-  /** [index in the life cycle, stage] of each group */
-  seed: [number, Lifecycle][];
-  plant: [number, Lifecycle][];
-  /** 0 joined → 1 the seed half pushed behind and the plant half in its place */
-  split: SharedValue<number>;
-  /** 1 once the seed half is out of the layout (the end of the split) */
-  collapsed: SharedValue<number>;
-  /** The seed half's height while it is shown */
-  seedHeight: SharedValue<number>;
-  /** Measured on the UI thread (which group is lit) */
-  seedRef: AnimatedRef<Animated.View>;
-  plantRef: AnimatedRef<Animated.View>;
+  groups: readonly StageGroup[];
+  /** Which group is in front: 0 is the first; between two whole numbers, the first of them is sinking behind */
+  position: SharedValue<number>;
+  /** The groups' heights while shown (set by the groups as they are measured) */
+  heights: SharedValue<number[]>;
 };
 
-/**
- * A life cycle's stages in one white rounded box, seed stages on top, the plant's own below.
- * When it splits, the halves separate, the seed half sinks behind and fades, the plant half moves up
- * to where the seed half started; then the seed half leaves the layout in the same frame as the plant
- * half's offset is reset, so nothing jumps. The reverse brings it back.
- */
-export function StagesBox({ seed, plant, split, collapsed, seedHeight, seedRef, plantRef }: StagesBoxProps) {
-  const both = seed.length > 0 && plant.length > 0;
+const progress = (position: number, index: number) => {
+  'worklet';
+  return Math.min(1, Math.max(0, position - index));
+};
 
-  const seedStyle = useAnimatedStyle(() => {
-    const s = split.get();
-    const corner = interpolate(s, [0, APART], [both ? 0 : R, R], 'clamp');
+/** One group of stages in the box: it sinks behind and fades as `position` passes its index */
+function GroupHalf({ group, index, count, position, heights }: { group: StageGroup; index: number; count: number; position: SharedValue<number>; heights: SharedValue<number[]> }) {
+  const style = useAnimatedStyle(() => {
+    const pos = position.get();
+    const hs = heights.get();
+    const p = progress(pos, index);
+    // The groups before this one are moving up: this one follows them (until they leave the layout)
+    let offset = 0;
+    let earlier = 0;
+    for (let k = 0; k < index; k++) {
+      const pk = progress(pos, k);
+      if (pk < 1) offset -= (hs[k] ?? 0) * pk;
+      earlier = Math.max(earlier, pk);
+    }
+    const top = index === 0 ? R : interpolate(earlier, [0, APART], [0, R], 'clamp');
+    const bottom = index === count - 1 ? R : interpolate(p, [0, APART], [0, R], 'clamp');
     return {
-      maxHeight: collapsed.get() ? 0 : 100000,
-      opacity: interpolate(s, [APART, 1], [1, 0], 'clamp'),
-      borderBottomLeftRadius: corner,
-      borderBottomRightRadius: corner,
+      maxHeight: p >= 1 ? 0 : 100000,
+      opacity: interpolate(p, [APART, 1], [1, 0], 'clamp'),
+      borderTopLeftRadius: top,
+      borderTopRightRadius: top,
+      borderBottomLeftRadius: bottom,
+      borderBottomRightRadius: bottom,
       transform: [
-        { translateY: interpolate(s, [APART, 1], [0, seedHeight.get() * 0.3], 'clamp') },
-        { scale: interpolate(s, [APART, 1], [1, 0.9], 'clamp') },
+        { translateY: offset + interpolate(p, [APART, 1], [0, (hs[index] ?? 0) * 0.3], 'clamp') },
+        { scale: interpolate(p, [APART, 1], [1, 0.9], 'clamp') },
       ],
     };
   });
-  const shade = useAnimatedStyle(() => ({ opacity: interpolate(split.get(), [APART, 1], [0, 0.25], 'clamp') }));
+  const shade = useAnimatedStyle(() => ({ opacity: interpolate(progress(position.get(), index), [APART, 1], [0, 0.25], 'clamp') }));
 
-  /** Where the plant half is, against its place in the layout: down by the gap, then up over the seed half */
-  const plantOffset = (s: number) => {
-    'worklet';
-    if (collapsed.get()) return 0;
-    return s <= APART ? interpolate(s, [0, APART], [0, GAP]) : interpolate(s, [APART, 1], [GAP, -seedHeight.get()]);
-  };
+  return (
+    <Animated.View
+      onLayout={(event) => {
+        const height = event.nativeEvent.layout.height;
+        if (height > 0) heights.set(heights.get().map((h, i) => (i === index ? height : h)));
+      }}
+      style={[styles.half, index > 0 && styles.joint, style]}>
+      {group.stages.map(([, stage], i) => (
+        <StageRow key={stage.id} stage={stage} first={i === 0} />
+      ))}
+      <Animated.View pointerEvents="none" style={[styles.shade, shade]} />
+    </Animated.View>
+  );
+}
 
-  const plantStyle = useAnimatedStyle(() => {
-    const s = split.get();
-    const corner = interpolate(s, [0, APART], [both ? 0 : R, R], 'clamp');
-    return { borderTopLeftRadius: corner, borderTopRightRadius: corner, transform: [{ translateY: plantOffset(s) }] };
-  });
-
-  // The box's own height follows the halves frame by frame, so what is below it on the page moves up
-  // (and back down) smoothly with them instead of jumping when the seed half leaves the layout
-  const plantHeight = useSharedValue(0);
+/**
+ * A life cycle's stages in one white rounded box, a group on top of the next (seed, plant, care). When a
+ * later tab is picked the groups before it sink behind and fade, and the rest move up to where the first
+ * one started; a group leaves the layout in the same frame as the ones after it stop being offset, so
+ * nothing jumps. The box's height follows frame by frame, so what is below it on the page moves with it.
+ */
+export function StagesBox({ groups, position, heights }: StagesBoxProps) {
   const boxStyle = useAnimatedStyle(() => {
-    if (!both || seedHeight.get() === 0 || plantHeight.get() === 0) return {};
-    const shownSeed = collapsed.get() ? 0 : seedHeight.get();
-    return { height: shownSeed + plantOffset(split.get()) + plantHeight.get() };
+    const hs = heights.get();
+    if (groups.length < 2 || hs.slice(0, groups.length).some((h) => h === 0)) return {};
+    const pos = position.get();
+    let total = 0;
+    let offset = 0;
+    for (let i = 0; i < groups.length; i++) {
+      const p = progress(pos, i);
+      if (p < 1) total += hs[i];
+      if (i < groups.length - 1 && p < 1) offset -= hs[i] * p;
+    }
+    return { height: total + offset };
   });
 
   return (
     <Animated.View style={boxStyle}>
-      {seed.length > 0 && (
-        <Animated.View
-          ref={seedRef}
-          onLayout={(event) => {
-            const height = event.nativeEvent.layout.height;
-            if (height > 0) seedHeight.set(height);
-          }}
-          style={[styles.half, styles.top, seedStyle]}>
-          {seed.map(([, stage], i) => (
-            <StageRow key={stage.id} stage={stage} first={i === 0} />
-          ))}
-          <Animated.View pointerEvents="none" style={[styles.shade, shade]} />
-        </Animated.View>
-      )}
-      {plant.length > 0 && (
-        // Later in the tree, so it passes over the seed half
-        <Animated.View
-          ref={plantRef}
-          onLayout={(event) => {
-            const height = event.nativeEvent.layout.height;
-            if (height > 0) plantHeight.set(height);
-          }}
-          style={[styles.half, styles.bottom, both && styles.joint, plantStyle]}>
-          {plant.map(([, stage], i) => (
-            <StageRow key={stage.id} stage={stage} first={i === 0} />
-          ))}
-        </Animated.View>
-      )}
+      {groups.map((group, index) => (
+        <GroupHalf key={group.tab} group={group} index={index} count={groups.length} position={position} heights={heights} />
+      ))}
     </Animated.View>
   );
 }
@@ -146,14 +131,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     backgroundColor: colors.surface,
     boxShadow: shadow.tile,
-  },
-  top: {
-    borderTopLeftRadius: R,
-    borderTopRightRadius: R,
-  },
-  bottom: {
-    borderBottomLeftRadius: R,
-    borderBottomRightRadius: R,
   },
   // The line between the two halves while they are joined
   joint: {

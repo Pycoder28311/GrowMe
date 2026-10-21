@@ -1,4 +1,4 @@
-import type { PlantFlag, PlantKind } from '@growme/shared';
+import type { PlantFlag, ToleranceKey } from '@growme/shared';
 
 import type { IconName } from '@/components/ui/icon';
 
@@ -15,20 +15,18 @@ export const FLAG_ICONS: Record<PlantFlag, PlantIcon> = {
   succulent: { icon: 'succulent', tint: '#dff2f1' },
   smallTree: { icon: 'tree', tint: '#e8f0dc' },
   privacy: { icon: 'fence', tint: '#ece8f8' },
-  nearSea: { icon: 'sea', tint: '#ddeefa' },
-  frostHardy: { icon: 'frost', tint: '#e4f2fb' },
+  greenness: { icon: 'leaf', tint: '#e3f1e6' },
+  evergreen: { icon: 'tree', tint: '#e8f0dc' },
   indoor: { icon: 'home', tint: '#f4ead6' },
   outdoor: { icon: 'sun', tint: '#fdf0cf' },
 };
 
-export const KIND_ICONS: Record<PlantKind, PlantIcon> = {
-  flowers: { icon: 'flower', tint: '#fbe3e8' },
-  leaves: { icon: 'leaf', tint: '#e3f1e6' },
-  bush: { icon: 'tree', tint: '#e8f0dc' },
+/** Frost, sea salt and wind tolerance */
+export const TOLERANCE_ICONS: Record<ToleranceKey, PlantIcon> = {
+  frostTolerance: { icon: 'frost', tint: '#e4f2fb' },
+  saltTolerance: { icon: 'sea', tint: '#ddeefa' },
+  windTolerance: { icon: 'wind', tint: '#e8eef5' },
 };
-
-export const WIND_ICON: PlantIcon = { icon: 'wind', tint: '#e8eef5' };
-export const SIZE_ICON: PlantIcon = { icon: 'ruler', tint: '#f5efdc' };
 
 /** The facts card's rows and the origin */
 export const FACT_ICONS = {
@@ -37,6 +35,12 @@ export const FACT_ICONS = {
   season: { icon: 'calendar', tint: '#fbe3e8' },
   lifespan: { icon: 'hourglass', tint: '#efe9f8' },
   origin: { icon: 'location', tint: '#e3f1e6' },
+  timeNeeded: { icon: 'clock', tint: '#efe9f8' },
+  toxicity: { icon: 'paw', tint: '#fde8d4' },
+  potSize: { icon: 'ruler', tint: '#f5efdc' },
+  usage: { icon: 'leaf', tint: '#e3f1e6' },
+  family: { icon: 'flower', tint: '#fbe3e8' },
+  watchOut: { icon: 'privacy', tint: '#fde8d4' },
 } as const satisfies Record<string, PlantIcon>;
 
 /** The icons' own colour (light gray, so the tinted circle carries the colour) */

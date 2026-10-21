@@ -49,6 +49,8 @@ const ICONS = {
   wind: { ios: 'wind', android: 'air', web: 'air' },
   flower: { ios: 'camera.macro', android: 'local_florist', web: 'local_florist' },
   ruler: { ios: 'ruler', android: 'straighten', web: 'straighten' },
+  paw: { ios: 'pawprint', android: 'pets', web: 'pets' },
+  clock: { ios: 'clock', android: 'schedule', web: 'schedule' },
 } satisfies Record<string, SymbolViewProps['name']>;
 
 export type IconName = keyof typeof ICONS;
