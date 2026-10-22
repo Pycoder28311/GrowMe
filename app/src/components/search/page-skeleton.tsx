@@ -2,12 +2,12 @@ import type { SearchBlog, SearchPlant } from '@growme/shared';
 import { Image } from 'expo-image';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { PlantBackground } from '@/components/plants/plant-background';
+import { BotanicalBackground } from '@/components/layout/botanical-background';
 import { CURVE_HEIGHT, PHOTO_HEADER_HEIGHT, PHOTO_HEIGHT } from '@/components/plants/photo-header';
 import { CurvedEdge } from '@/components/ui/flower-shapes';
 import { AppText } from '@/components/ui/app-text';
 import { Skeleton } from '@/components/ui/skeleton';
-import { botanical, colors, radius, size, space } from '@/theme';
+import { botanical, colors, radius, size, space, titleFont } from '@/theme';
 
 /** Photo height at the top of an article (its page and the loading page share it) */
 export const BLOG_PHOTO_HEIGHT = size.touch * 4;
@@ -23,7 +23,7 @@ export function PlantSkeleton({ plant, topClearance }: { plant?: SearchPlant; to
   const noPhoto = !!plant && !plant.image;
   return (
     <View style={styles.plant}>
-      <PlantBackground />
+      <BotanicalBackground />
       {noPhoto ? (
         <View style={{ height: topClearance - space.lg }} />
       ) : (
@@ -44,7 +44,7 @@ export function PlantSkeleton({ plant, topClearance }: { plant?: SearchPlant; to
         <View>
           <View style={styles.titleRow}>
             {plant ? (
-              <AppText size="big" bold style={styles.name}>
+              <AppText size="big" bold style={[styles.name, titleFont]}>
                 {plant.name}
               </AppText>
             ) : (
@@ -92,7 +92,7 @@ export function BlogSkeleton({ blog, topClearance }: { blog?: SearchBlog; topCle
         <View style={styles.blogTitleRow}>
           <View style={styles.blogTitle}>
             {blog ? (
-              <AppText size="big" bold>
+              <AppText size="big" bold style={titleFont}>
                 {blog.name}
               </AppText>
             ) : (

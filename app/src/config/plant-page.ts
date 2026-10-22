@@ -83,7 +83,7 @@ const SENTENCES: Record<ToleranceKey, { medium: string; big: string }> = {
   windTolerance: { medium: 'Αντέχει μέτριο αέρα', big: 'Αντέχει δυνατό αέρα' },
 };
 
-/** Each row's colours (the tiles' tones): frost the sage one, sea salt the blush one, wind the sand one */
+/** Each row's colours (the page's three tones): frost the yellow one, sea salt the pink one, wind the beige one */
 const ROW_TONES: Record<ToleranceKey, number> = { frostTolerance: 5, saltTolerance: 1, windTolerance: 0 };
 
 /**
@@ -110,13 +110,13 @@ export const restrictionRows = (plant: PlantSummary) =>
 
 /* ─────────────── Notes and the three watch-out blocks ─────────────── */
 
-/** The two notes: their icon and their colours (butter for the trivia, rose for the secret) */
+/** The two notes: their icon and their colours (yellow for the trivia, pink for the secret) */
 export const NOTES = [
   { key: 'trivia', title: 'Ηξερες οτι', icon: 'ornamental', tone: 2 },
   { key: 'secret', title: 'Μυστικό επιτυχίας', icon: 'key', tone: 4 },
 ] as const satisfies readonly { key: 'trivia' | 'secret'; title: string; icon: IconName; tone: number }[];
 
-/** The three static blocks of «Τι να προσέχεις»: their icon and colours (rose, sand, sage) */
+/** The three static blocks of «Τι να προσέχεις»: their icon and colours (pink, beige, yellow) */
 export const WATCH_OUT_ITEMS = [
   { key: 'symptoms', title: 'Τι βλέπω', icon: 'search', tone: 4 },
   { key: 'what', title: 'Τι είναι', icon: 'book', tone: 0 },
@@ -125,13 +125,13 @@ export const WATCH_OUT_ITEMS = [
 
 /* ─────────────── Lifecycle tabs ─────────────── */
 
-/** The tabs, in order: label, the colour of the lit button, and its group's tint (sand, sage, blush) */
+/** The tabs, in order: label, the colour of the dot by its stages' titles, and its group's tint (all the beige one, so the stages read as one box) */
 export const LIFECYCLE_TAB_DEFS: readonly { tab: LifecycleTab; label: string; color: string; tone: TileTone }[] =
   LIFECYCLE_TABS.map((tab) => ({
     tab,
     label: LIFECYCLE_TAB_LABELS[tab],
     color: { seed: colors.seed, plant: botanical.olive, care: botanical.terracotta }[tab],
-    tone: tileTone({ seed: 0, plant: 5, care: 1 }[tab]),
+    tone: tileTone(0),
   }));
 
 export const tabDef = (tab: LifecycleTab) => LIFECYCLE_TAB_DEFS.find((def) => def.tab === tab)!;

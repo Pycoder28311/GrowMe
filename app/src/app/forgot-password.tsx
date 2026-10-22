@@ -5,11 +5,13 @@ import { StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/button';
+import { BotanicalBackground } from '@/components/layout/botanical-background';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { authClient } from '@/lib/auth-client';
+import { colors, PAGE_DECORATIONS, radius } from '@/theme';
 
 export default function ForgotPasswordScreen() {
     const theme = useTheme();
@@ -35,6 +37,7 @@ export default function ForgotPasswordScreen() {
 
     return (
         <ThemedView style={styles.container}>
+            <BotanicalBackground decorations={PAGE_DECORATIONS} />
             <SafeAreaView style={styles.form}>
                 <ThemedText type="subtitle">Forgot password</ThemedText>
                 {sent ? (
@@ -80,7 +83,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         paddingHorizontal: Spacing.three,
         paddingVertical: Spacing.two,
-        borderRadius: Spacing.two,
+        borderRadius: radius.sm,
     },
-    error: { color: '#e5484d' },
+    error: { color: colors.danger },
 });

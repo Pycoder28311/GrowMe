@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   scrim: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: alpha('#000000', 0.35),
+    backgroundColor: alpha(colors.overlay, 0.35),
   },
   bar: {
     backgroundColor: alpha(colors.surface, 0.97),

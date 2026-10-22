@@ -1,6 +1,6 @@
 import type { SearchPlant } from '@growme/shared';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   FadeIn,
   FadeOut,
@@ -19,10 +19,11 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { card } from '@/components/ui/styles';
 import type { SectionId, Selection } from '@/config/section-filters';
+import { useBackgroundScrollHandler } from '@/lib/background-motion';
 import { useExploreFilters } from '@/lib/explore-filters';
 import { chosenCount, matchPlantFilters } from '@/lib/plant-filter-match';
 import { useSearchIndex } from '@/lib/search';
-import { colors, iconSize, radius, size, space } from '@/theme';
+import { colors, iconSize, radius, size, space, titleFont } from '@/theme';
 
 const OTHER: Record<SectionId, SectionId> = { indoor: 'outdoor', outdoor: 'indoor' };
 
@@ -96,7 +97,7 @@ function PlantSection({
         accessibilityState={{ expanded: open }}
         onPress={onToggle}
         style={[styles.header, !open && styles.headerClosed]}>
-        <AppText size="big" bold accessibilityRole="header" style={styles.title}>
+        <AppText size="big" bold accessibilityRole="header" style={[styles.title, titleFont]}>
           {title}
         </AppText>
         <Animated.View style={arrow}>
@@ -149,6 +150,7 @@ function PlantSection({
  */
 export default function ResultsScreen() {
   const topClearance = useTopClearance();
+  const backgroundScroll = useBackgroundScrollHandler();
   const [closed, setClosed] = useState<Record<SectionId, boolean>>({ indoor: false, outdoor: false });
 
   const engage = (id: SectionId) => setClosed({ [id]: false, [OTHER[id]]: true } as Record<SectionId, boolean>);
@@ -182,7 +184,9 @@ export default function ResultsScreen() {
   return (
     <View style={styles.page}>
       <TopGradient />
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={backgroundScroll}
+        scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.list, { paddingTop: topClearance + space.md - space.sm }]}>
         <PlantSection
@@ -213,7 +217,7 @@ export default function ResultsScreen() {
           filterCount={chosenCount(filters.outdoor, 'outdoor')}
           onFilters={() => openFilters('outdoor')}
         />
-      </ScrollView>
+      </Animated.ScrollView>
 
       {sheet && (
         <SectionFilterSheet

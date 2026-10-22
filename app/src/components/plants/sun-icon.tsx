@@ -2,7 +2,9 @@ import type { SunPart } from '@growme/shared';
 import { View } from 'react-native';
 import Svg, { Circle, G, Line, Path } from 'react-native-svg';
 
-const COLORS: Record<SunPart, string> = { morning: '#ffc93c', noon: '#ffb000', afternoon: '#f5862e' };
+import { sunColors } from '@/theme';
+
+const COLORS: Record<SunPart, string> = { morning: sunColors.morning, noon: sunColors.noon, afternoon: sunColors.afternoon };
 
 /**
  * The sun for the part of the day a plant wants it: rising over the horizon (morning), high with all
@@ -31,7 +33,7 @@ export function SunIcon({ part, size = 32 }: { part: SunPart; size?: number }) {
               </G>
             ))}
             <Path d="M8 21 A8 8 0 0 1 24 21 Z" fill={color} />
-            <Line x1={3} y1={21.5} x2={29} y2={21.5} stroke="#8a96a3" strokeWidth={2} strokeLinecap="round" />
+            <Line x1={3} y1={21.5} x2={29} y2={21.5} stroke={sunColors.horizon} strokeWidth={2} strokeLinecap="round" />
             {/* Up for the morning, down for the afternoon */}
             <Path
               d={part === 'morning' ? 'M16 30 L16 25 M13.5 27.5 L16 25 L18.5 27.5' : 'M16 25 L16 30 M13.5 27.5 L16 30 L18.5 27.5'}

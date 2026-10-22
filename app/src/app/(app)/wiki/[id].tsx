@@ -1,7 +1,8 @@
 import { parseRichContent } from '@growme/shared';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { useTopClearance } from '@/components/layout/app-shell';
 import { BlogSkeleton, BLOG_PHOTO_HEIGHT } from '@/components/search/page-skeleton';
@@ -13,9 +14,10 @@ import { PostCarousel } from '@/components/wiki/post-carousel';
 import { ReadTimeBadge } from '@/components/wiki/read-time-badge';
 import { RichText } from '@/components/wiki/rich-text';
 import { ShareButtons } from '@/components/wiki/share-buttons';
+import { useBackgroundScrollHandler } from '@/lib/background-motion';
 import { blogPreviewOf } from '@/lib/result-preview';
 import { publishedDate, readMinutes, useBlog, useBlogs } from '@/lib/blogs';
-import { colors, space } from '@/theme';
+import { colors, space, titleFont } from '@/theme';
 
 // Photo height at the top of the post
 const PHOTO_HEIGHT = BLOG_PHOTO_HEIGHT;
@@ -24,6 +26,7 @@ const PHOTO_HEIGHT = BLOG_PHOTO_HEIGHT;
 export default function Article() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
+  const backgroundScroll = useBackgroundScrollHandler();
   const { blog: post, state, retry } = useBlog(Number(id));
   // The newest articles, for "Υπόλοιπα άρθρα"
   const { blogs } = useBlogs();
@@ -48,7 +51,9 @@ export default function Article() {
   return (
     // The photo starts at the very top, under the corner buttons; without one the title clears them
     <View style={styles.root}>
-    <ScrollView
+    <Animated.ScrollView
+      onScroll={backgroundScroll}
+      scrollEventThrottle={16}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[styles.page, !cover && { paddingTop: topClearance }]}>
       {cover && (
@@ -58,7 +63,7 @@ export default function Article() {
       <View style={styles.body}>
         <View style={styles.titleRow}>
           <View style={styles.titleText}>
-            <AppText size="big" bold accessibilityRole="header">
+            <AppText size="big" bold accessibilityRole="header" style={titleFont}>
               {post.name}
             </AppText>
             <AppText size="small" color={colors.inkMuted}>
@@ -87,7 +92,7 @@ export default function Article() {
           </Section>
         )}
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
     </View>
   );
 }

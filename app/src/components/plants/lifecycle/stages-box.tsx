@@ -3,30 +3,37 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
-import { LongLeafShape, PaperGrain } from '@/components/ui/flower-shapes';
+import { LongLeafOutlineShape, PaperGrain } from '@/components/ui/flower-shapes';
 import { tabDef } from '@/config/plant-page';
-import { botanical, serif, smallCaps, space } from '@/theme';
+import { botanical, radius, serif, smallCaps, space, tileGrain, tileShadowStyle, tileTone } from '@/theme';
 
 import { firstLine, type StageGroup } from './stage-groups';
 
 /** Where (in a group's progress) it stops separating from its neighbours and starts going behind */
 const APART = 0.3;
-const R = 20;
+const R = radius.md;
+/** The leaf's size and place, as on the rows below the squares (their height is 68) */
+const LEAF = 68 * 1.7;
 
-/** One stage: its title in the serif and its time in a small pill, then the start of its text */
-function StageRow({ stage, first }: { stage: Lifecycle; first: boolean }) {
+/**
+ * One stage: a dot in its group's colour, its title in the serif and its time in a small solid pill (`pill`, over
+ * the leaf), then the start of its text. A line above it, except the first, stops short of the leaf.
+ */
+function StageRow({ stage, first, color, pill }: { stage: Lifecycle; first: boolean; color: string; pill: string }) {
   const duration = durationLabel(stage.duration);
   const line = firstLine(stage.content);
 
   return (
-    <View style={[styles.row, !first && styles.divider]}>
+    <View style={styles.row}>
+      {!first && <View style={styles.divider} />}
       <View style={styles.titleRow}>
+        <View style={[styles.dot, { backgroundColor: color }]} />
         <AppText color={botanical.ink} style={styles.title}>
           {stage.title}
         </AppText>
         {duration && (
-          <View style={styles.duration}>
-            <AppText color={botanical.inkMuted} style={smallCaps}>
+          <View style={[styles.duration, { backgroundColor: pill }]}>
+            <AppText color={botanical.ink} style={smallCaps}>
               {duration}
             </AppText>
           </View>
@@ -83,7 +90,7 @@ function GroupHalf({ group, index, count, position, heights }: { group: StageGro
       ],
     };
   });
-  const { tone } = tabDef(group.tab);
+  const { tone, color } = tabDef(group.tab);
   const shade = useAnimatedStyle(() => ({ opacity: interpolate(progress(position.get(), index), [APART, 1], [0, 0.25], 'clamp') }));
 
   return (
@@ -93,11 +100,12 @@ function GroupHalf({ group, index, count, position, heights }: { group: StageGro
         if (height > 0) heights.set(heights.get().map((h, i) => (i === index ? height : h)));
       }}
       style={[styles.half, { backgroundColor: tone.background }, index > 0 && styles.joint, style]}>
-      {/* The group's tint, a painted leaf in its accent at the top right, paper grain */}
-      <LongLeafShape size={110} color={tone.shape} rotate={-50} opacity={0.55} style={styles.leaf} />
-      <PaperGrain />
+      {/* The group's tint, a faint outlined leaf with a soft green inner shadow half out past the right edge like the
+          rows' leaves, paper grain, then the stages over it (their time pills in front; their lines stop short of it) */}
+      <LongLeafOutlineShape size={LEAF} color={tone.shape} glow={botanical.leaf} glowSpread={0.35} rotate={-62} opacity={0.45} style={styles.leaf} />
+      <PaperGrain opacity={tileGrain} />
       {group.stages.map(([, stage], i) => (
-        <StageRow key={stage.id} stage={stage} first={i === 0} />
+        <StageRow key={stage.id} stage={stage} first={i === 0} color={color} pill={tone.circle} />
       ))}
       <Animated.View pointerEvents="none" style={[styles.shade, shade]} />
     </Animated.View>
@@ -126,7 +134,8 @@ export function StagesBox({ groups, position, heights }: StagesBoxProps) {
   });
 
   return (
-    <Animated.View style={boxStyle}>
+    // The squares' shadow, round the whole box
+    <Animated.View style={[styles.boxShadow, boxStyle]}>
       {groups.map((group, index) => (
         <GroupHalf key={group.tab} group={group} index={index} count={groups.length} position={position} heights={heights} />
       ))}
@@ -135,6 +144,11 @@ export function StagesBox({ groups, position, heights }: StagesBoxProps) {
 }
 
 const styles = StyleSheet.create({
+  boxShadow: {
+    borderRadius: R,
+    backgroundColor: tileTone(0).background,
+    ...tileShadowStyle,
+  },
   half: {
     paddingHorizontal: space.md,
     overflow: 'hidden',
@@ -142,25 +156,35 @@ const styles = StyleSheet.create({
   // The line between two groups while they are joined
   joint: {
     borderTopWidth: 1,
-    borderTopColor: 'rgba(43, 42, 32, 0.12)',
+    borderTopColor: botanical.line,
   },
   leaf: {
-    right: -34,
-    top: -38,
+    right: -68 * 0.55,
+    top: -68 * 0.35,
   },
   // Darkens a group as it goes behind (rounded like the group once it has split off)
   shade: {
     ...StyleSheet.absoluteFill,
     borderRadius: R,
-    backgroundColor: '#000000',
+    backgroundColor: botanical.shade,
   },
   row: {
     gap: space.xs,
     paddingVertical: space.md - 2,
   },
+  // The line above a stage, ending before the leaf's part of the group
   divider: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(43, 42, 32, 0.1)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: LEAF * 0.45,
+    height: 1,
+    backgroundColor: botanical.lineSoft,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: radius.full,
   },
   titleRow: {
     flexDirection: 'row',
@@ -177,8 +201,7 @@ const styles = StyleSheet.create({
   duration: {
     paddingHorizontal: space.sm,
     paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: 'rgba(251, 247, 241, 0.75)',
+    borderRadius: radius.full,
   },
   line: {
     fontSize: 15,

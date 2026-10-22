@@ -11,7 +11,7 @@ import Animated, {
 
 import { AppText } from '@/components/ui/app-text';
 import { OutlinedText } from '@/components/ui/outlined-text';
-import type { FontSize } from '@/theme';
+import { colors, type FontSize } from '@/theme';
 
 const LETTER_DELAY_MS = 40;
 /** One letter's pop: quick, past full size once, then settled (no repeated bouncing) */
@@ -57,7 +57,7 @@ function Letter({ letter, index, size, bold, color, letterStyle, outline }: Lett
   return (
     <Animated.View importantForAccessibility="no" style={style}>
       {outline ? (
-        <OutlinedText size={size} bold={bold} color={color ?? '#000000'} outline={outline} style={letterStyle}>
+        <OutlinedText size={size} bold={bold} color={color ?? colors.ink} outline={outline} style={letterStyle}>
           {letter}
         </OutlinedText>
       ) : (

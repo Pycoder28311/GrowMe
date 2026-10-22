@@ -10,33 +10,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
 
+import { artColors } from '@/theme';
+
 // The info tiles' small animations: each drawing is a few SVG layers stacked in one square, and
 // each layer moves on its own (rotate, translate, scale around its own pivot). Drawn on a 56×56 grid.
 
 /** The drawings' grid and size on screen */
 export const ART = 56;
 
-/** Shared colours of the drawings */
-export const ink = {
-  leaf: '#6fb04a',
-  leafDark: '#3f8a3a',
-  stem: '#5b8a3c',
-  wood: '#8a8f98',
-  pot: '#ef8a2f',
-  potDark: '#c4651c',
-  tomato: '#e8731f',
-  gray: '#a3a8b0',
-  grayLight: '#d4d7dc',
-  steel: '#8a96a3',
-  sun: '#f59a23',
-  sky: '#7cc99a',
-  snow: '#8fd1ad',
-  petal: '#f2994a',
-  flowerCentre: '#fdc88a',
-  petalLight: '#f8c48f',
-  orange: '#ef8a2f',
-  white: '#ffffff',
-} as const;
+/** Shared colours of the drawings (config/botanical-theme.ts) */
+export const ink = artColors;
 
 /**
  * A 0 → 1 clock that loops while `playing` (`bounce`: back and forth, eased; else 0 → 1 again, linear).

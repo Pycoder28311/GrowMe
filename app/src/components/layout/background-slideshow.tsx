@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { BACKGROUND_PHOTOS, type BackgroundPhoto } from '@/config/background-photos';
-import { useBackgroundBlur } from '@/lib/background-blur';
+import { useBackgroundBlur } from '@/lib/background-motion';
 import { alpha, colors } from '@/theme';
 
 const SLIDE_DURATION_MS = 6000;
@@ -89,22 +89,17 @@ export function BackgroundSlideshow() {
       {/* Soft white wash plus a glow behind the title, text and buttons */}
       <View style={styles.wash} />
       <View style={styles.glow} />
-      {/* Warm tint so photos with white walls never look plain white: strongest at the top */}
+      {/* Warm cream tint (the botanical page's) so photos with white walls never look plain white: strongest at the top */}
       <View style={styles.warm} />
     </View>
   );
-}
-
-/** Calm warm wash behind lists */
-export function PlainBackground() {
-  return <View pointerEvents="none" style={styles.plain} />;
 }
 
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFill,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.page,
   },
   wash: {
     ...StyleSheet.absoluteFill,
@@ -116,10 +111,6 @@ const styles = StyleSheet.create({
   },
   warm: {
     ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `linear-gradient(to bottom, ${alpha(colors.accent, 0.3)}, ${alpha(colors.accent, 0.1)} 50%)`,
-  },
-  plain: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `linear-gradient(to bottom, ${alpha(colors.accent, 0.35)}, ${alpha(colors.accent, 0.08)} 40%, ${colors.surface})`,
+    experimental_backgroundImage: `linear-gradient(to bottom, ${alpha(colors.page, 0.5)}, ${alpha(colors.page, 0.15)} 50%)`,
   },
 });

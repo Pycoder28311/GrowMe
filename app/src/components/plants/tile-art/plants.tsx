@@ -19,7 +19,7 @@ function Tomato({ gray = false }: { gray?: boolean }) {
       <Line x1={28} y1={10} x2={28} y2={22} stroke={gray ? ink.gray : ink.stem} strokeWidth={2} strokeLinecap="round" />
       <Circle cx={28} cy={34} r={13} fill={gray ? ink.grayLight : ink.tomato} />
       <Path d="M22 22 L28 25 L34 22 L31 27 L25 27 Z" fill={gray ? ink.gray : ink.leafDark} />
-      {!gray && <Ellipse cx={22} cy={30} rx={2.4} ry={4} fill="#ffb36b" opacity={0.7} />}
+      {!gray && <Ellipse cx={22} cy={30} rx={2.4} ry={4} fill={ink.glow} opacity={0.7} />}
     </>
   );
 }
@@ -100,10 +100,10 @@ function Rosette({ playing }: ArtProps) {
       <Layer style={[styles.potPivot, rosette]}>
         {[-60, -30, 0, 30, 60].map((angle) => (
           <G key={angle} transform={`rotate(${angle} 28 39)`}>
-            <Ellipse cx={28} cy={27} rx={5.5} ry={11} fill={angle === 0 ? ink.leafDark : '#7fbf8e'} />
+            <Ellipse cx={28} cy={27} rx={5.5} ry={11} fill={angle === 0 ? ink.leafDark : ink.leafSoft} />
           </G>
         ))}
-        <Ellipse cx={28} cy={33} rx={4} ry={6} fill="#a5d6a7" />
+        <Ellipse cx={28} cy={33} rx={4} ry={6} fill={ink.leafPale} />
       </Layer>
     </ArtBox>
   );
@@ -211,7 +211,7 @@ export function AromaticArt({ playing }: ArtProps) {
           <Path
             key={x}
             d={`M${x} 24 Q${x - 4} 19 ${x} 15 Q${x + 4} 11 ${x} 6`}
-            stroke="#f2994a"
+            stroke={ink.petal}
             strokeWidth={1.8}
             fill="none"
             strokeLinecap="round"
@@ -231,7 +231,7 @@ function TurningFlower({ playing }: ArtProps) {
   return (
     <ArtBox>
       <Layer style={[styles.centerPivot, petals]}>
-        <Flower petal="#f2994a" />
+        <Flower petal={ink.petal} />
       </Layer>
       <Layer>
         <Circle cx={28} cy={28} r={6} fill={ink.flowerCentre} />
@@ -280,7 +280,7 @@ function Bush({ playing }: ArtProps) {
       <Layer style={[styles.bushPivot, bush]}>
         <Circle cx={18} cy={36} r={11} fill={ink.leaf} />
         <Circle cx={38} cy={36} r={11} fill={ink.leaf} />
-        <Circle cx={28} cy={25} r={13} fill="#82bf5a" />
+        <Circle cx={28} cy={25} r={13} fill={ink.leaf} />
         <Circle cx={24} cy={22} r={2} fill={ink.leafDark} />
         <Circle cx={34} cy={30} r={2} fill={ink.leafDark} />
         <Circle cx={17} cy={37} r={2} fill={ink.leafDark} />

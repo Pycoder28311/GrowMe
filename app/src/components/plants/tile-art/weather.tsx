@@ -66,12 +66,12 @@ function Sheltered({ playing }: ArtProps) {
       <Layer>
         <Path d="M0 26 Q4 24 8 26" stroke={ink.sky} strokeWidth={2} fill="none" strokeLinecap="round" />
         <Path d="M0 38 Q4 36 8 38" stroke={ink.sky} strokeWidth={2} fill="none" strokeLinecap="round" />
-        <Rect x={10} y={18} width={14} height={36} rx={2} fill="#d4d7dc" />
-        <Line x1={10} y1={27} x2={24} y2={27} stroke="#a3a8b0" strokeWidth={1} />
-        <Line x1={10} y1={36} x2={24} y2={36} stroke="#a3a8b0" strokeWidth={1} />
-        <Line x1={10} y1={45} x2={24} y2={45} stroke="#a3a8b0" strokeWidth={1} />
-        <Line x1={17} y1={18} x2={17} y2={27} stroke="#a3a8b0" strokeWidth={1} />
-        <Line x1={17} y1={36} x2={17} y2={45} stroke="#a3a8b0" strokeWidth={1} />
+        <Rect x={10} y={18} width={14} height={36} rx={2} fill={ink.grayLight} />
+        <Line x1={10} y1={27} x2={24} y2={27} stroke={ink.gray} strokeWidth={1} />
+        <Line x1={10} y1={36} x2={24} y2={36} stroke={ink.gray} strokeWidth={1} />
+        <Line x1={10} y1={45} x2={24} y2={45} stroke={ink.gray} strokeWidth={1} />
+        <Line x1={17} y1={18} x2={17} y2={27} stroke={ink.gray} strokeWidth={1} />
+        <Line x1={17} y1={36} x2={17} y2={45} stroke={ink.gray} strokeWidth={1} />
       </Layer>
       <Layer style={[styles.shelterPivot, plant]}>
         <Line x1={39} y1={54} x2={39} y2={32} stroke={ink.stem} strokeWidth={2} strokeLinecap="round" />
@@ -150,8 +150,8 @@ function FallingLeaf({ playing }: ArtProps) {
     <ArtBox>
       <Layer style={[styles.centerPivot, leaf]}>
         <Path d="M28 16 Q38 20 36 30 Q32 38 28 40 Q24 38 20 30 Q18 20 28 16 Z" fill={ink.orange} />
-        <Path d="M28 18 L28 44" stroke="#c4651c" strokeWidth={1.4} strokeLinecap="round" />
-        <Path d="M28 26 L33 23 M28 31 L23 28 M28 34 L32 32" stroke="#c4651c" strokeWidth={1} strokeLinecap="round" />
+        <Path d="M28 18 L28 44" stroke={ink.potDark} strokeWidth={1.4} strokeLinecap="round" />
+        <Path d="M28 26 L33 23 M28 31 L23 28 M28 34 L32 32" stroke={ink.potDark} strokeWidth={1} strokeLinecap="round" />
       </Layer>
     </ArtBox>
   );

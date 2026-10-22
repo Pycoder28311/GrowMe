@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { useTopClearance } from '@/components/layout/app-shell';
 import { TopGradient } from '@/components/layout/top-gradient';
@@ -9,6 +10,7 @@ import { CategoryTabs } from '@/components/ui/category-tabs';
 import { PillButton } from '@/components/ui/pill-button';
 import { PostCard } from '@/components/wiki/post-card';
 import { WIKI_TABS, type WikiTabId } from '@/config/wiki-posts';
+import { useBackgroundScrollHandler } from '@/lib/background-motion';
 import { useBlogs } from '@/lib/blogs';
 import { LIST_TUNING } from '@/lib/list-tuning';
 import { colors, space } from '@/theme';
@@ -19,13 +21,16 @@ import { colors, space } from '@/theme';
  */
 export default function WikiScreen() {
   const topClearance = useTopClearance();
+  const backgroundScroll = useBackgroundScrollHandler();
   const [tabId, setTabId] = useState<WikiTabId>('all');
   const { blogs, loading, error, loadMore, refresh } = useBlogs(tabId === 'all' ? undefined : tabId);
 
   return (
     <View style={styles.page}>
     <TopGradient />
-    <FlatList
+    <Animated.FlatList
+      onScroll={backgroundScroll}
+      scrollEventThrottle={16}
       {...LIST_TUNING}
       data={blogs}
       keyExtractor={(post) => String(post.id)}

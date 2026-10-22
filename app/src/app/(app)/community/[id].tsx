@@ -1,7 +1,8 @@
 import type { PostReply } from '@growme/shared';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { postRepliesApi } from '@/api/posts';
 import { BottomComposer } from '@/components/discussion/bottom-composer';
@@ -11,6 +12,7 @@ import { ReplyLevel } from '@/components/discussion/reply-thread';
 import { useTopClearance } from '@/components/layout/app-shell';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
+import { useBackgroundScrollHandler } from '@/lib/background-motion';
 import { timeAgo } from '@/lib/format';
 import { usePost, usePostThread } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
@@ -30,6 +32,7 @@ export default function CommunityPostScreen() {
 function CommunityPost() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const topClearance = useTopClearance();
+  const backgroundScroll = useBackgroundScrollHandler();
   const { post, state, retry, update } = usePost(Number(id));
   const reactions = useReactions('post', post ? [post] : []);
   const thread = usePostThread(Number(id));
@@ -66,7 +69,11 @@ function CommunityPost() {
 
   return (
     <View style={styles.page}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingTop: topClearance }]}>
+      <Animated.ScrollView
+        onScroll={backgroundScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.content, { paddingTop: topClearance }]}>
         <View style={styles.block}>
           <DiscussionItem
             author={post.author.name}
@@ -97,7 +104,7 @@ function CommunityPost() {
             <AppText color={colors.inkMuted}>Γράψε την πρώτη απάντηση!</AppText>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* The bottom field answers this post */}
       <BottomComposer placeholder="Γράψε απάντηση..." onSend={reply} />

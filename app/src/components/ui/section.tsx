@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { space } from '@/theme';
+import { space, titleFont } from '@/theme';
 
 /** A titled group on a page or sheet (e.g. "Εποχή" and its options, or a plant's tips) */
 export function Section({
@@ -17,7 +17,7 @@ export function Section({
 }) {
   return (
     <View>
-      <AppText bold accessibilityRole="header" style={[children ? styles.title : undefined, titleStyle]}>
+      <AppText bold accessibilityRole="header" style={[children ? styles.title : undefined, titleFont, titleStyle]}>
         {title}
       </AppText>
       {children}

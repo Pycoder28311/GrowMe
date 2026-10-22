@@ -1,3 +1,5 @@
+import { botanicalRadius } from '@/config/botanical-theme';
+
 /** Padding, margins and gaps (px), on a 4px grid */
 export const space = {
   /** Icon next to text */
@@ -10,16 +12,20 @@ export const space = {
   lg: 24,
 } as const;
 
-/** Corner radius (px) */
+/** Corner radius (px): the plant page's scale (config/botanical-theme.ts) */
 export const radius = {
+  /** Tags and small badges */
+  tag: botanicalRadius.xs,
   /** Small separate elements: search results and their list headers */
-  xs: 8,
+  xs: botanicalRadius.sm,
   /** Buttons */
-  sm: 12,
-  /** Cards */
-  md: 16,
+  sm: botanicalRadius.md,
+  /** Cards, rows, blocks and tiles */
+  md: botanicalRadius.tile,
+  /** The circle behind an icon */
+  circle: botanicalRadius.circle,
   /** Chips, tabs, badges (fully round) */
-  full: 9999,
+  full: botanicalRadius.full,
 } as const;
 
 export type Space = keyof typeof space;

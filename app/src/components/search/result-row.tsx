@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { colors, radius, size, space } from '@/theme';
+import { colors, radius, size, space, titleFont } from '@/theme';
 
 export type SearchResult = { type: 'plant'; item: SearchPlant } | { type: 'blog'; item: SearchBlog };
 
@@ -22,7 +22,7 @@ export function ResultRowContent({ result }: { result: SearchResult }) {
         </View>
       )}
       <View style={styles.text}>
-        <AppText bold numberOfLines={1}>
+        <AppText bold numberOfLines={1} style={titleFont}>
           {item.name}
         </AppText>
         <AppText size="small" color={colors.inkMuted} numberOfLines={1} style={result.type === 'plant' && styles.italic}>

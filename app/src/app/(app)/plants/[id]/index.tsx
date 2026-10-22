@@ -20,7 +20,7 @@ import { LifecycleCard } from '@/components/plants/lifecycle/lifecycle-card';
 import { PHOTO_GONE_AT, PHOTO_HEIGHT, PHOTO_RISE, PhotoHeader } from '@/components/plants/photo-header';
 import { PhotoLightbox, type LightboxPhoto } from '@/components/plants/photo-lightbox';
 import { PlantSkeleton } from '@/components/search/page-skeleton';
-import { PlantBackground } from '@/components/plants/plant-background';
+import { BotanicalBackground, EdgeDrift } from '@/components/layout/botanical-background';
 import { PhotoStack } from '@/components/plants/photo-stack';
 import { PlantCarousel } from '@/components/plants/plant-carousel';
 import { NoteSection } from '@/components/plants/note-section';
@@ -29,14 +29,14 @@ import { SectionBar, type PageSection } from '@/components/plants/section-bar';
 import { TopBlur } from '@/components/plants/top-blur';
 import { WatchOutSection } from '@/components/plants/watch-out-section';
 import { AppText } from '@/components/ui/app-text';
-import { FlowerShape, LeafShape, PaperGrain } from '@/components/ui/flower-shapes';
+import { FlowerShape, PaperGrain } from '@/components/ui/flower-shapes';
 import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
 import { NOTES, restrictionRows, type PlantPageData } from '@/config/plant-page';
 import { usePageSections } from '@/lib/page-sections';
 import { useCombinationPlants, usePlant } from '@/lib/plants';
 import { previewOf } from '@/lib/result-preview';
-import { botanical, colors, radius, sectionTitle, serif, size, space, tileTone } from '@/theme';
+import { botanical, colors, radius, sectionTitle, serif, size, space, tileGrain, tileShadowStyle, tileTone, TITLE_FLOWER } from '@/theme';
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
 function sectionsOf(plant: PlantPageData | null, combinations: boolean): PageSection[] {
@@ -127,7 +127,7 @@ export default function PlantScreen() {
 
   return (
     <View style={styles.root}>
-      <PlantBackground />
+      <BotanicalBackground scrollY={scroll} />
       {/* The photos start at the very top, under the corner buttons; without photos the title clears them */}
       <Animated.ScrollView
         ref={scrollRef as never}
@@ -153,8 +153,11 @@ export default function PlantScreen() {
 
         <Block onLayout={register('info')}>
           <View style={styles.titleBlock}>
-            {/* The big flat flower behind the lifespan pill, half off the screen's right edge */}
-            <FlowerShape size={170} color={botanical.coral} center={botanical.terracotta} rotate={12} opacity={0.9} style={styles.titleFlower} />
+            {/* The big flat flower behind the lifespan pill, half off the screen's right edge: pushed further out
+                near the top or bottom of the screen like the background's shapes, and turning a little as the page scrolls */}
+            <EdgeDrift scrollY={scroll} side="right" size={TITLE_FLOWER.size} turn={TITLE_FLOWER.turn} style={styles.titleFlower}>
+              <FlowerShape size={TITLE_FLOWER.size} color={botanical.coral} center={botanical.terracotta} rotate={12} opacity={0.9} style={styles.fill} />
+            </EdgeDrift>
             <ChipRow plant={plant} />
             <View style={styles.titleRow}>
               <AppText accessibilityRole="header" color={botanical.ink} style={styles.name}>
@@ -200,14 +203,15 @@ export default function PlantScreen() {
         )}
         {plant.description && (
           <Block onLayout={register('description')}>
-            {/* A card in the tiles' style: the sand tint, paper grain, a painted geranium leaf in a corner */}
-            <View style={[styles.descriptionCard, { backgroundColor: tileTone(0).background }]}>
-              <LeafShape size={150} color={botanical.leaf} rotate={-20} opacity={0.5} style={styles.descriptionLeaf} />
-              <PaperGrain />
-              <Section title="Περιγραφή" titleStyle={sectionTitle}>
-                {/* The editor's formatted text (or an older plain one with blog links) */}
-                <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
-              </Section>
+            {/* A card in the tiles' style: the beige tint and paper grain */}
+            <View style={[styles.descriptionShadow, { backgroundColor: tileTone(0).background }]}>
+              <View style={[styles.descriptionCard, { backgroundColor: tileTone(0).background }]}>
+                <PaperGrain opacity={tileGrain} />
+                <Section title="Περιγραφή" titleStyle={sectionTitle}>
+                  {/* The editor's formatted text (or an older plain one with blog links) */}
+                  <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
+                </Section>
+              </View>
             </View>
           </Block>
         )}
@@ -270,19 +274,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingTop: space.lg,
   },
+  // The squares' shadow, on an outer view (the card clips its grain)
+  descriptionShadow: {
+    borderRadius: radius.md,
+    ...tileShadowStyle,
+  },
   descriptionCard: {
     padding: space.md,
     paddingBottom: space.lg,
-    borderRadius: 20,
+    borderRadius: radius.md,
     overflow: 'hidden',
-  },
-  descriptionLeaf: {
-    right: -50,
-    bottom: -56,
   },
   // The question card in the page's cream, without its shadow
   askCard: {
-    borderRadius: 20,
+    borderRadius: radius.md,
     borderColor: botanical.line,
     backgroundColor: botanical.cream,
     boxShadow: 'none',
@@ -308,6 +313,7 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs + 2,
     borderRadius: radius.full,
     backgroundColor: botanical.cream,
+    ...tileShadowStyle,
   },
   price: {
     fontSize: 18,
@@ -322,6 +328,10 @@ const styles = StyleSheet.create({
   titleFlower: {
     right: -space.md - 70,
     top: 6,
+  },
+  fill: {
+    left: 0,
+    top: 0,
   },
   titleBlock: {
     gap: space.sm,

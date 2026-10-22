@@ -3,14 +3,15 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BackgroundSlideshow, PlainBackground } from '@/components/layout/background-slideshow';
+import { BackgroundSlideshow } from '@/components/layout/background-slideshow';
+import { BotanicalBackground } from '@/components/layout/botanical-background';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { PageHeaderProvider, PageHeaderSlot } from '@/components/layout/page-header';
 import { TopCorners } from '@/components/search/search-bar';
 import { OutlinedText } from '@/components/ui/outlined-text';
 import { APP_NAME, type NavId } from '@/config/app';
-import { BackgroundBlurProvider } from '@/lib/background-blur';
-import { colors, size, space } from '@/theme';
+import { BackgroundMotionProvider, useBackgroundScroll } from '@/lib/background-motion';
+import { botanical, colors, PAGE_DECORATIONS, size, space } from '@/theme';
 
 type AppShellProps = {
   children: ReactNode;
@@ -22,13 +23,18 @@ type AppShellProps = {
   showTitle?: boolean;
   /** Pages with their own button in that corner (the posts' send button, the results' filters button) don't show that note */
   hideSignInNote?: boolean;
-  /** 'scene' for the photo slideshow, 'plain' for a calm warm wash behind lists */
+  /** 'scene' for the photo slideshow (home), 'plain' for the botanical paper and its drifting flowers */
   background: 'scene' | 'plain';
 };
 
 /** Distance from the screen top where page content starts, below the floating corner buttons */
 export function useTopClearance() {
   return useSafeAreaInsets().top + space.md + size.touch + space.sm;
+}
+
+/** The botanical background, its flowers drifting with the page's scroll (useBackgroundScroll) */
+function ShellBackground() {
+  return <BotanicalBackground scrollY={useBackgroundScroll()} decorations={PAGE_DECORATIONS} />;
 }
 
 /** The frame around every signed-in page: background, the leaf and search corners, and the bottom nav */
@@ -38,11 +44,11 @@ export function AppShell({ children, activeNavId, onNavigate, signedIn, hideSign
 
   return (
     // Pages can blur the background photos (e.g. the home page while scrolling)
-    <BackgroundBlurProvider>
+    <BackgroundMotionProvider>
       <PageHeaderProvider>
         <View style={styles.root}>
           <StatusBar style="dark" />
-          {background === 'scene' ? <BackgroundSlideshow /> : <PlainBackground />}
+          {background === 'scene' ? <BackgroundSlideshow /> : <ShellBackground />}
           {/* Pages scroll on their own, so the nav can sit at the bottom without overlapping them */}
           <View style={styles.main}>{children}</View>
           <BottomNav activeId={activeNavId} onNavigate={onNavigate} signedIn={signedIn || !!hideSignInNote} />
@@ -60,7 +66,7 @@ export function AppShell({ children, activeNavId, onNavigate, signedIn, hideSign
           <TopCorners top={cornerTop} onHome={() => onNavigate('home')} />
         </View>
       </PageHeaderProvider>
-    </BackgroundBlurProvider>
+    </BackgroundMotionProvider>
   );
 }
 
@@ -77,7 +83,7 @@ const styles = StyleSheet.create({
   },
   root: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: botanical.page,
   },
   main: {
     flex: 1,

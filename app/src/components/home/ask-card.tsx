@@ -27,7 +27,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
 import { firstSentence } from '@/lib/posts';
 import { goToSignIn, useSignedInId } from '@/lib/sign-in-gate';
-import { alpha, colors, fontFamily, fontSize, formGray, iconSize, quietGray, radius, shadow, size, space } from '@/theme';
+import { alpha, botanical, colors, fontFamily, fontSize, formGray, iconSize, quietGray, radius, shadow, size, space, titleFont } from '@/theme';
 
 const MAX_PHOTOS = 4;
 /** The plant link row's height (the photo button's is size.touch) */
@@ -240,7 +240,7 @@ export function AskCard({
   return (
     <View style={styles.root}>
       {!composer && (
-        <AppText size="big" bold accessibilityRole="header" style={styles.title}>
+        <AppText size="big" bold accessibilityRole="header" style={[styles.title, titleFont]}>
           Ρώτησέ μας ό,τι θες!
         </AppText>
       )}
@@ -324,7 +324,7 @@ export function AskCard({
                   accessibilityLabel={`Αφαίρεση φωτογραφίας ${index + 1}`}
                   onPress={() => setPhotos((current) => current.filter((p) => p !== photo))}
                   style={styles.remove}>
-                  <Icon name="close" size={iconSize.small} color={colors.surface} bold />
+                  <Icon name="close" size={iconSize.small} color={colors.white} bold />
                 </PressableScale>
               </View>
             ))}
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
     marginHorizontal: space.sm,
     borderRadius: 1,
-    backgroundColor: '#d0d4d9',
+    backgroundColor: botanical.lineSoft,
   },
   question: {
     minHeight: size.touch * 1.5,

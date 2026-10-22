@@ -2,7 +2,7 @@ import { useId, type ReactNode } from 'react';
 import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 
-import { darker, lighter } from '@/theme';
+import { botanical, darker, lighter, mixColor, TILE_FLOWER_COLORS } from '@/theme';
 
 // Painted-looking botanical shapes for backgrounds (the plant page's tiles, header and title): a five-petal
 // flower, a petal, a round geranium leaf, a long leaf and an organic blob. Each surface is shaded with
@@ -22,7 +22,6 @@ const useIds = () => {
 function Shape({ size, style, rotate = 0, opacity = 1, children }: Omit<ShapeProps, 'color'> & { children: ReactNode }) {
   return (
     <View
-      pointerEvents="none"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       aria-hidden
@@ -172,6 +171,38 @@ export function LongLeafShape({ color, ...props }: ShapeProps) {
   );
 }
 
+/**
+ * The long leaf drawn as lines only: its outline, midrib and side veins. With `glow`, instead of an empty inside
+ * it has a soft inner shadow in that colour, strongest at the outline and fading in towards the middle over
+ * `glowSpread` of the way (0–1).
+ */
+export function LongLeafOutlineShape({ color, glow, glowSpread = 0.45, ...props }: ShapeProps & { glow?: string; glowSpread?: number }) {
+  const id = useIds();
+  return (
+    <Shape {...props}>
+      {glow && (
+        <Defs>
+          <RadialGradient id={id('glow')} cx="50%" cy="50%" r="50%">
+            <Stop offset={1 - glowSpread} stopColor={glow} stopOpacity={0} />
+            <Stop offset="1" stopColor={glow} stopOpacity={0.55} />
+          </RadialGradient>
+        </Defs>
+      )}
+      <Path
+        d="M50 98 C20 76 12 34 50 2 C88 34 80 76 50 98 Z"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+        fill={glow ? `url(#${id('glow')})` : 'none'}
+      />
+      <Path d="M50 94 Q48 50 50 10" stroke={color} strokeWidth={1.3} fill="none" strokeLinecap="round" />
+      {[26, 40, 54, 68, 80].map((y) => (
+        <Path key={y} d={`M50 ${y + 10} Q42 ${y + 4} ${34 - (y - 50) * 0.08} ${y} M50 ${y + 10} Q58 ${y + 4} ${66 + (y - 50) * 0.08} ${y}`} stroke={color} strokeWidth={1} fill="none" strokeLinecap="round" />
+      ))}
+    </Shape>
+  );
+}
+
 /* ─────────────── Blob ─────────────── */
 
 /** A round, uneven blob (the organic shapes at the mockup's edges): softly lit, with a darker rim */
@@ -229,17 +260,132 @@ export function CurvedEdge({ width, height, color }: { width: number; height: nu
 
 /* ─────────────── On the tiles ─────────────── */
 
-/** The shapes a tile can carry at its right side, in turn */
-export const TILE_SHAPES = ['blob', 'petal', 'leaf', 'blob', 'petal', 'blob'] as const;
-export type TileShapeKind = (typeof TILE_SHAPES)[number];
+/** The tile flowers' other colours (centre, stamens) moved halfway to the flower's own, so each reads as almost one colour */
+const nearColor = (other: string, main: string) => mixColor(other, main, 0.5);
 
-/** A tile's decoration: one shape at its right edge, partly outside it (the tile clips it) */
-export function TileShape({ kind, color, height }: { kind: TileShapeKind; color: string; height: number }) {
-  const size = height * 1.25;
-  const style = { right: -size * 0.38, top: (height - size) / 2 };
-  if (kind === 'petal') return <PetalShape size={size} color={color} rotate={-28} style={style} />;
-  if (kind === 'leaf') return <LeafShape size={size} color={color} rotate={-12} style={style} />;
-  return <BlobShape size={size} color={color} style={style} />;
+/** A round flower like the mockup's: five broad petals lit at their tips, five smaller lighter ones between them, a dotted centre */
+function RoundFlowerShape({ color, ...props }: ShapeProps) {
+  const id = useIds();
+  const near = (other: string) => nearColor(other, color);
+  return (
+    <Shape {...props}>
+      <Defs>
+        <RadialGradient id={id('outer')} cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+          <Stop offset="0.2" stopColor={darker(color, 0.06)} />
+          <Stop offset="0.6" stopColor={color} />
+          <Stop offset="1" stopColor={lighter(color, 0.08)} />
+        </RadialGradient>
+        <RadialGradient id={id('inner')} cx="50" cy="50" r="34" gradientUnits="userSpaceOnUse">
+          <Stop offset="0.3" stopColor={color} />
+          <Stop offset="1" stopColor={lighter(color, 0.16)} />
+        </RadialGradient>
+      </Defs>
+      {[0, 72, 144, 216, 288].map((angle) => (
+        <G key={angle} transform={`rotate(${angle} 50 50)`}>
+          <Path d="M50 50 C30 40 28 6 50 4 C72 6 70 40 50 50 Z" fill={`url(#${id('outer')})`} />
+          <Path d="M50 44 L50 14" stroke={darker(color, 0.12)} strokeWidth={0.8} opacity={0.4} />
+        </G>
+      ))}
+      {[36, 108, 180, 252, 324].map((angle) => (
+        <Path key={angle} d="M50 50 C38 44 37 22 50 20 C63 22 62 44 50 50 Z" fill={`url(#${id('inner')})`} transform={`rotate(${angle} 50 50)`} />
+      ))}
+      <Circle cx={50} cy={50} r={9} fill={near(botanical.terracotta)} />
+      {Array.from({ length: 10 }, (_, i) => {
+        const angle = (i * Math.PI) / 5;
+        return <Circle key={i} cx={50 + Math.cos(angle) * 5.5} cy={50 + Math.sin(angle) * 5.5} r={1.4} fill={near(botanical.butter)} />;
+      })}
+    </Shape>
+  );
+}
+
+/** A daisy: fourteen narrow petals lit at their tips over a darker second row, and a big seeded centre */
+function DaisyShape({ color, ...props }: ShapeProps) {
+  const id = useIds();
+  const near = (other: string) => nearColor(other, color);
+  const step = 360 / 14;
+  return (
+    <Shape {...props}>
+      <Defs>
+        <RadialGradient id={id('petal')} cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+          <Stop offset="0.25" stopColor={darker(color, 0.08)} />
+          <Stop offset="0.7" stopColor={color} />
+          <Stop offset="1" stopColor={lighter(color, 0.1)} />
+        </RadialGradient>
+        <RadialGradient id={id('centre')} cx="45%" cy="40%" r="60%">
+          <Stop offset="0" stopColor={lighter(near(botanical.butter), 0.1)} />
+          <Stop offset="1" stopColor={darker(near(botanical.butter), 0.12)} />
+        </RadialGradient>
+      </Defs>
+      {Array.from({ length: 14 }, (_, i) => (
+        <Ellipse key={i} cx={50} cy={24} rx={5} ry={20} fill={darker(color, 0.1)} transform={`rotate(${i * step + step / 2} 50 50)`} />
+      ))}
+      {Array.from({ length: 14 }, (_, i) => (
+        <G key={i} transform={`rotate(${i * step} 50 50)`}>
+          <Ellipse cx={50} cy={22} rx={5.5} ry={22} fill={`url(#${id('petal')})`} />
+          <Path d="M50 36 L50 8" stroke={darker(color, 0.12)} strokeWidth={0.6} opacity={0.4} />
+        </G>
+      ))}
+      <Circle cx={50} cy={50} r={13} fill={`url(#${id('centre')})`} />
+      {/* The seeds, in a sunflower spiral */}
+      {Array.from({ length: 34 }, (_, i) => {
+        const angle = i * 2.39996;
+        const r = 1.9 * Math.sqrt(i + 0.5);
+        return <Circle key={i} cx={50 + Math.cos(angle) * r} cy={50 + Math.sin(angle) * r} r={0.9} fill={darker(near(botanical.butter), 0.3)} opacity={0.5} />;
+      })}
+    </Shape>
+  );
+}
+
+/** A cosmos: eight broad petals with notched tips, shaded from the centre out, fine veins, a terracotta centre ringed with stamens */
+const COSMOS_PETAL = 'M50 50 C38 42 32 14 40 5 L45 9 L50 3 L55 9 L60 5 C68 14 62 42 50 50 Z';
+
+function CosmosShape({ color, ...props }: ShapeProps) {
+  const id = useIds();
+  const near = (other: string) => nearColor(other, color);
+  return (
+    <Shape {...props}>
+      <Defs>
+        <LinearGradient id={id('petal')} x1="0" y1="1" x2="0" y2="0">
+          <Stop offset="0" stopColor={darker(color, 0.1)} />
+          <Stop offset="0.5" stopColor={color} />
+          <Stop offset="1" stopColor={lighter(color, 0.11)} />
+        </LinearGradient>
+      </Defs>
+      {Array.from({ length: 8 }, (_, i) => (
+        <G key={i} transform={`rotate(${i * 45} 50 50)`}>
+          <Path d={COSMOS_PETAL} fill={`url(#${id('petal')})`} />
+          <Path d="M50 46 L50 12 M50 44 L44 16 M50 44 L56 16" stroke={darker(color, 0.14)} strokeWidth={0.6} opacity={0.35} />
+        </G>
+      ))}
+      <Circle cx={50} cy={50} r={8} fill={near(botanical.terracotta)} />
+      {Array.from({ length: 12 }, (_, i) => {
+        const angle = (i * Math.PI) / 6;
+        return <Circle key={i} cx={50 + Math.cos(angle) * 9.5} cy={50 + Math.sin(angle) * 9.5} r={1.3} fill={near(botanical.butter)} />;
+      })}
+    </Shape>
+  );
+}
+
+/**
+ * Each tile shape: its drawing, its own colour (else the tile tone's), size and place as shares of the tile's
+ * height, and its turn. Three flowers, each with its centre in the tile's bottom right corner so about a quarter
+ * of it shows.
+ */
+const TILE_SHAPE_LOOKS = {
+  daisy: { Drawing: DaisyShape, color: TILE_FLOWER_COLORS.daisy, size: 0.986, right: -0.429, top: 0.429, rotate: 0 },
+  flower: { Drawing: RoundFlowerShape, color: TILE_FLOWER_COLORS.flower, size: 1.1, right: -0.479, top: 0.379, rotate: 0 },
+  cosmos: { Drawing: CosmosShape, color: TILE_FLOWER_COLORS.cosmos, size: 1.036, right: -0.45, top: 0.414, rotate: 10 },
+} as const;
+
+export type TileShapeKind = keyof typeof TILE_SHAPE_LOOKS;
+
+/** The flower each of the three tile colours carries (beige: a daisy; pink: the round flower; yellow: a cosmos) */
+export const TILE_SHAPES: readonly (readonly TileShapeKind[])[] = [['daisy'], ['flower'], ['cosmos']];
+
+/** A tile's decoration: one of the shapes above at its right edge, partly outside it (the tile clips it) */
+export function TileShape({ kind, color, height, opacity = 1 }: { kind: TileShapeKind; color: string; height: number; opacity?: number }) {
+  const { Drawing, color: own, size, right, top, rotate } = TILE_SHAPE_LOOKS[kind];
+  return <Drawing size={height * size} color={own ?? color} opacity={opacity} rotate={rotate} style={{ right: height * right, top: height * top }} />;
 }
 
 const styles = StyleSheet.create({

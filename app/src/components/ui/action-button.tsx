@@ -3,7 +3,7 @@ import { StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from
 
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { alpha, colors, radius, shade, shadow, space } from '@/theme';
+import { alpha, botanical, colors, radius, shade, shadow, space } from '@/theme';
 
 const FILLS = { orange: colors.accent, green: colors.primary };
 
@@ -18,7 +18,7 @@ const GLOW = {
 
 // A wide ellipse of white light, fading out towards its rim (only part of it shows inside the button)
 const light = ([inner, middle]: number[]) =>
-  `radial-gradient(closest-side, ${alpha(colors.surface, inner)}, ${alpha(colors.surface, middle)} 60%, transparent)`;
+  `radial-gradient(closest-side, ${alpha(colors.white, inner)}, ${alpha(colors.white, middle)} 60%, transparent)`;
 
 type ActionButtonProps = {
   children: ReactNode;
@@ -61,7 +61,7 @@ export function ActionButton({
           {
             backgroundColor: FILLS[color],
             paddingHorizontal: SIDE_PADDING[size],
-            boxShadow: `inset 0 1px 0 ${alpha(colors.surface, line)}`,
+            boxShadow: `inset 0 1px 0 ${alpha(colors.white, line)}`,
           },
           edge && styles.edge,
         ]}>
@@ -78,7 +78,7 @@ export function ActionButton({
 /** White bold label for an ActionButton; `shadow` adds the playful solid drop under the letters */
 export function ActionButtonText({ children, shadow: withShadow, style }: { children: ReactNode; shadow?: boolean; style?: StyleProp<TextStyle> }) {
   return (
-    <AppText size="big" bold color={colors.surface} style={[withShadow && styles.textShadow, style]}>
+    <AppText size="big" bold color={colors.onAccent} style={[withShadow && styles.textShadow, style]}>
       {children}
     </AppText>
   );
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   innerGlow: {
     ...StyleSheet.absoluteFill,
     borderRadius: radius.sm,
-    boxShadow: 'inset 0 3px 3px -1px rgba(255, 210, 166, 0.6)',
+    boxShadow: `inset 0 3px 3px -1px ${alpha(botanical.butter, 0.6)}`,
   },
   shine: {
     position: 'absolute',

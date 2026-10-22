@@ -2,9 +2,10 @@ import { StyleSheet } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
+import { PaperGrain } from '@/components/ui/flower-shapes';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { botanical, iconSize, radius, serif, space } from '@/theme';
+import { botanical, iconSize, radius, serif, space, tileGrain, tileTone } from '@/theme';
 
 /** Its height, so the page can leave room for it */
 export const DESCRIPTION_BUTTON_HEIGHT = 40;
@@ -18,6 +19,7 @@ export function DescriptionButton({ visible, onPress }: { visible: boolean; onPr
   return (
     <Animated.View entering={FadeInDown.duration(220)} exiting={FadeOutDown.duration(180)} style={styles.wrap}>
       <PressableScale accessibilityRole="button" onPress={onPress} pressedScale={0.98} style={styles.button}>
+        <PaperGrain opacity={tileGrain} />
         <AppText color={botanical.ink} style={styles.label}>
           Δες την περιγραφή
         </AppText>
@@ -43,7 +45,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: botanical.line,
-    backgroundColor: botanical.cream,
+    backgroundColor: tileTone(0).background,
+    overflow: 'hidden',
   },
   label: {
     fontFamily: serif,

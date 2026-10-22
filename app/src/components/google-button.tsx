@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { authClient } from '@/lib/auth-client';
+import { colors } from '@/theme';
 
 /** One button for both sign-up and sign-in with Google */
 export function GoogleButton() {
@@ -37,5 +38,5 @@ export function GoogleButton() {
 
 const styles = StyleSheet.create({
     container: { gap: Spacing.two },
-    error: { color: '#e5484d' },
+    error: { color: colors.danger },
 });

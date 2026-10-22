@@ -2,6 +2,7 @@ import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { colors } from '@/theme';
 
 type ButtonProps = {
   label: string;
@@ -16,7 +17,7 @@ export function Button({ label, onPress, destructive, disabled }: ButtonProps) {
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [styles.button, (pressed || disabled) && styles.dimmed]}>
-      <ThemedText type="smallBold" style={{ color: destructive ? '#e5484d' : '#3c87f7' }}>
+      <ThemedText type="smallBold" style={{ color: destructive ? colors.danger : colors.link }}>
         {label}
       </ThemedText>
     </Pressable>

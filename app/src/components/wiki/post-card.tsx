@@ -8,7 +8,7 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
 import { ReadTimeBadge } from '@/components/wiki/read-time-badge';
 import { publishedDate, readMinutes } from '@/lib/blogs';
-import { alpha, colors, iconSize, size, space } from '@/theme';
+import { alpha, colors, iconSize, shadow, size, space, titleFont } from '@/theme';
 
 // Tall enough for the photo to read, short enough to see the next card coming
 const CARD_HEIGHT = size.touch * 6;
@@ -84,7 +84,7 @@ export function PostCard({ post, onPress, style }: PostCardProps) {
 
       {/* At the bottom: the title, then the date on the left and «Δες περισσότερα» on the right, level */}
       <View style={styles.bottom}>
-        <AppText bold color={colors.surface} style={styles.title}>
+        <AppText bold color={colors.white} style={[styles.title, titleFont]}>
           {post.name}
         </AppText>
         <View style={styles.footerRow}>
@@ -92,10 +92,10 @@ export function PostCard({ post, onPress, style }: PostCardProps) {
             {publishedDate(post)}
           </AppText>
           <View style={styles.more}>
-            <AppText bold color={colors.surface}>
+            <AppText bold color={colors.white}>
               Δες περισσότερα
             </AppText>
-            <Icon name="chevronRight" size={iconSize.small} color={colors.surface} bold />
+            <Icon name="chevronRight" size={iconSize.small} color={colors.white} bold />
           </View>
         </View>
       </View>
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   // Balcony ideas: a deeper shadow than the other cards', so they lift off the page
   balconyCard: {
-    boxShadow: `0 10px 28px ${alpha(colors.ink, 0.28)}, 0 3px 8px ${alpha(colors.ink, 0.16)}`,
+    boxShadow: shadow.lifted,
   },
   // Balcony ideas: the photo fills the card above the title
   balconyPhoto: {
@@ -128,9 +128,9 @@ const styles = StyleSheet.create({
   shade: {
     ...StyleSheet.absoluteFill,
     // A big inner shadow along the bottom edge, plus the gradient above it
-    boxShadow: 'inset 0 -90px 60px -30px rgba(0, 0, 0, 0.8)',
+    boxShadow: `inset 0 -90px 60px -30px ${alpha(colors.overlay, 0.8)}`,
     experimental_backgroundImage:
-      'linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.6) 25%, rgba(0, 0, 0, 0.3) 50%, rgba(0, 0, 0, 0.1) 70%, transparent 85%)',
+      `linear-gradient(to top, ${alpha(colors.overlay, 0.85)} 0%, ${alpha(colors.overlay, 0.6)} 25%, ${alpha(colors.overlay, 0.3)} 50%, ${alpha(colors.overlay, 0.1)} 70%, transparent 85%)`,
   },
   // Faint, so it doesn't compete with the photo
   badge: {

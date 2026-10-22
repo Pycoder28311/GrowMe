@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { quietGray, size, space } from '@/theme';
+import { quietGray, radius, size, space } from '@/theme';
 
 /** A small light-gray badge with a reading time in minutes (e.g. 3′): small corners, no border */
 export function ReadTimeBadge({ minutes }: { minutes: number }) {
@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     height: size.touch / 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: radius.tag,
     backgroundColor: quietGray,
     paddingHorizontal: space.sm,
   },

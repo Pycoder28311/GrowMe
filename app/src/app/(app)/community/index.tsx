@@ -1,7 +1,8 @@
 import type { PostSort } from '@growme/shared';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { BottomBar } from '@/components/discussion/bottom-composer';
 import { DiscussionItem } from '@/components/discussion/discussion-item';
@@ -12,17 +13,19 @@ import { useTopClearance } from '@/components/layout/app-shell';
 import { TopGradient } from '@/components/layout/top-gradient';
 import { AppText } from '@/components/ui/app-text';
 import { PillButton } from '@/components/ui/pill-button';
+import { useBackgroundScrollHandler } from '@/lib/background-motion';
 import { timeAgo } from '@/lib/format';
 import { LIST_TUNING } from '@/lib/list-tuning';
 import { usePosts } from '@/lib/posts';
 import { useReactions } from '@/lib/reactions';
-import { colors, quietGray, space } from '@/theme';
+import { colors, quietGray, space, titleFont } from '@/theme';
 
 const openPost = (id: number) => router.push({ pathname: '/community/[id]', params: { id: String(id) } });
 
 /** Users' questions, newest first (more load while scrolling), with a field to write a new one */
 export default function CommunityScreen() {
   const topClearance = useTopClearance();
+  const backgroundScroll = useBackgroundScrollHandler();
   const [sort, setSort] = useState<PostSort>('newest');
   // The form floats over the list: the list leaves room for it at the end
   const [formHeight, setFormHeight] = useState(0);
@@ -33,7 +36,9 @@ export default function CommunityScreen() {
     <View style={styles.page}>
       {/* Behind the posts: it shows through the gray list's gaps and header */}
       <TopGradient />
-      <FlatList
+      <Animated.FlatList
+        onScroll={backgroundScroll}
+        scrollEventThrottle={16}
         {...LIST_TUNING}
         style={styles.grayList}
         data={posts}
@@ -44,7 +49,7 @@ export default function CommunityScreen() {
         refreshControl={<RefreshControl refreshing={false} onRefresh={refresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           <View style={styles.header}>
-            <AppText size="big" bold accessibilityRole="header">
+            <AppText size="big" bold accessibilityRole="header" style={titleFont}>
               Αναρτήσεις
             </AppText>
             {/* The order: a list opens right below the button */}

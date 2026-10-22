@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     borderRadius: radius.xs,
     borderWidth: 1.5,
-    borderColor: '#000000',
+    borderColor: colors.ink,
     backgroundColor: colors.surface,
   },
   menu: {

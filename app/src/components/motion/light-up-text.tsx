@@ -4,9 +4,10 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
 import { RichText } from '@/components/wiki/rich-text';
+import { botanical } from '@/theme';
 
 /** The warm light the letters glow with for a moment */
-const GLOW = '#f6c453';
+const GLOW = botanical.butter;
 const GLOW_MS = 900;
 
 /**

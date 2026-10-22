@@ -8,7 +8,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import type { Reaction } from '@/lib/reactions';
-import { colors, iconSize, radius, size, space } from '@/theme';
+import { colors, iconSize, radius, size, space, titleFont } from '@/theme';
 
 const AVATAR = size.touch / 1.5;
 
@@ -117,7 +117,7 @@ export function DiscussionItem({
           onPress={() => router.push({ pathname: '/plants/[id]', params: { id: String(plant.id) } })}
         />
       )}
-      {title !== undefined && <AppText bold>{title}</AppText>}
+      {title !== undefined && <AppText bold style={titleFont}>{title}</AppText>}
       <AppText numberOfLines={textLines}>{text}</AppText>
       {children}
 

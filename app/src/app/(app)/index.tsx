@@ -22,7 +22,7 @@ import { AppTitle } from '@/components/ui/app-title';
 import { GlassText } from '@/components/ui/glass-text';
 import { Icon } from '@/components/ui/icon';
 import { APP_TAGLINE } from '@/config/app';
-import { useBackgroundBlur } from '@/lib/background-blur';
+import { useBackgroundBlur } from '@/lib/background-motion';
 import { useExploreFilters } from '@/lib/explore-filters';
 import { colors, iconSize, shade, size, space } from '@/theme';
 
@@ -60,7 +60,7 @@ function NudgingChevron() {
 
   return (
     <Animated.View style={[styles.chevron, style]}>
-      <Icon name="chevronRight" size={iconSize.normal} color={colors.surface} bold />
+      <Icon name="chevronRight" size={iconSize.normal} color={colors.white} bold />
     </Animated.View>
   );
 }

@@ -9,7 +9,7 @@ import { PillButton } from '@/components/ui/pill-button';
 import { card } from '@/components/ui/styles';
 import { TextField } from '@/components/ui/text-field';
 import { authClient } from '@/lib/auth-client';
-import { colors, space } from '@/theme';
+import { colors, space, titleFont } from '@/theme';
 
 const MIN_PASSWORD = 8; // Better Auth's minimum
 
@@ -54,7 +54,7 @@ export default function ChangePasswordScreen() {
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.page, { paddingTop: topClearance }]}>
-      <AppText size="big" bold color={colors.primary} accessibilityRole="header">
+      <AppText size="big" bold color={colors.primary} accessibilityRole="header" style={titleFont}>
         Αλλαγή κωδικού
       </AppText>
       {done ? (

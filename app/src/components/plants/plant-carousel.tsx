@@ -8,7 +8,7 @@ import { ArrowButton } from '@/components/ui/arrow-button';
 import { Icon } from '@/components/ui/icon';
 import type { PlantCardItem } from '@/lib/plants';
 import { PaperGrain } from '@/components/ui/flower-shapes';
-import { botanical, iconSize, serif, size, space, tileTone } from '@/theme';
+import { botanical, iconSize, radius, serif, size, space, tileGrain, tileTone } from '@/theme';
 
 const GAP = space.sm;
 /** How much of a card the photo takes */
@@ -27,7 +27,7 @@ function PlantSlide({ plant, width, index }: { plant: PlantCardItem; width: numb
       accessibilityLabel={`${plant.name}: δες περισσότερα`}
       onPress={() => openPlant(plant.id)}
       style={({ pressed }) => [styles.card, { width, backgroundColor: tileTone(index).background }, pressed && styles.pressed]}>
-      <PaperGrain />
+      <PaperGrain opacity={tileGrain} />
       <View style={[styles.photo, { height: width * PHOTO_RATIO }]}>
         {plant.image && <Image source={{ uri: plant.image }} contentFit="cover" style={StyleSheet.absoluteFill} />}
       </View>
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   card: {
     gap: space.sm,
     padding: space.sm,
-    borderRadius: 20,
+    borderRadius: radius.md,
     overflow: 'hidden',
   },
   pressed: {
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   },
   photo: {
     overflow: 'hidden',
-    borderRadius: 14,
+    borderRadius: radius.sm,
     backgroundColor: botanical.sand,
   },
   words: {
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.xs,
     paddingVertical: space.sm,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: botanical.olive,
   },
   arrow: {

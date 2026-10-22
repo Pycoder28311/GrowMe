@@ -4,12 +4,17 @@ import { StyleSheet, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
 import { SunSquare } from '@/components/plants/sun-square';
-import { TileArtView } from '@/components/plants/tile-art';
 import { TileCard } from '@/components/plants/tile-card';
 import { TILE_SHAPES } from '@/components/ui/flower-shapes';
 import { sunSquareOf } from '@/config/plant-page';
 import { infoTiles } from '@/config/plant-tiles';
-import { space, tileTone } from '@/theme';
+import { GRID_TILE_TONES, gridTileIndex, space } from '@/theme';
+
+/** The shape of the square at `index`: one of those its colour carries in the mockup (beige has two, so they alternate) */
+const shapeOf = (plantId: number, index: number) => {
+  const shapes = TILE_SHAPES[gridTileIndex(plantId, index)];
+  return shapes[index % shapes.length];
+};
 
 /** The same gap across and down between tiles */
 const GAP = space.sm + space.xs;
@@ -30,18 +35,19 @@ export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: b
   if (tiles.length === 0 && !sun) return null;
   return (
     <View accessibilityRole="list" style={styles.grid} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-      {sun && <SunSquare plant={plant} style={StyleSheet.flatten(halfStyle)} tone={tileTone(2)} shape="blob" />}
+      {sun && <SunSquare plant={plant} style={StyleSheet.flatten(halfStyle)} tone={GRID_TILE_TONES[gridTileIndex(plant.id, 0)]} shape={shapeOf(plant.id, 0)} playing={playing && !reduced} />}
       {tiles.map((tile, i) => (
         <TileCard
           key={tile.key}
-          // Each tile its own colour and shape, in turn (the sun square takes the butter one)
-          tone={tileTone(sun ? (i >= 2 ? i + 1 : i) : i)}
-          shape={TILE_SHAPES[i % TILE_SHAPES.length]}
+          // Each square one of the three colours, picked at random but the same every time (gridTileIndex), with its shape
+          tone={GRID_TILE_TONES[gridTileIndex(plant.id, i + 1)]}
+          shape={shapeOf(plant.id, i + 1)}
           icon={tile.icon}
           label={tile.label}
           value={tile.value}
           style={StyleSheet.flatten(halfStyle)}
-          art={tile.art ? <TileArtView art={tile.art} playing={playing && !reduced} /> : undefined}
+          playing={playing && !reduced}
+          wiggleDelay={(sun ? i + 1 : i) * 450}
         />
       ))}
     </View>

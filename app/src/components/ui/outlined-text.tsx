@@ -1,7 +1,7 @@
 import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import type { FontSize } from '@/theme';
+import { colors, type FontSize } from '@/theme';
 
 /** How many white copies go round the letter (enough that a thick outline has no notches) */
 const COPIES = 16;
@@ -26,7 +26,7 @@ type OutlinedTextProps = {
  * Text with a thick outline round every letter. Text has no outline in React Native, so the outline is
  * copies of the text in the outline colour, moved round the real one (the same on every platform).
  */
-export function OutlinedText({ children, color, outline, outlineColor = '#ffffff', size, bold, style, mainStyle, glow }: OutlinedTextProps) {
+export function OutlinedText({ children, color, outline, outlineColor = colors.surface, size, bold, style, mainStyle, glow }: OutlinedTextProps) {
   return (
     <View>
       {/* The glow: the text five times, behind everything, each throwing a big soft shadow all round */}

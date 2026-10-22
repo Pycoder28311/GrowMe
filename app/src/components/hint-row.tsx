@@ -5,6 +5,7 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 import { Spacing } from '@/constants/theme';
+import { radius } from '@/theme';
 
 type HintRowProps = {
   title?: string;
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   codeSnippet: {
-    borderRadius: Spacing.two,
+    borderRadius: radius.tag,
     paddingVertical: Spacing.half,
     paddingHorizontal: Spacing.two,
   },

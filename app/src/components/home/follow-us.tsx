@@ -6,7 +6,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { SOCIAL_LINKS } from '@/config/app';
-import { colors, iconSize, radius, space } from '@/theme';
+import { colors, iconSize, radius, space, titleFont } from '@/theme';
 
 /** The mark of each network, by the link's label */
 const MARKS: Record<string, () => ReactElement> = {
@@ -18,7 +18,7 @@ const MARKS: Record<string, () => ReactElement> = {
 export function FollowUs() {
   return (
     <View style={styles.root}>
-      <AppText size="big" bold accessibilityRole="header" style={styles.title}>
+      <AppText size="big" bold accessibilityRole="header" style={[styles.title, titleFont]}>
         Ακολούθησέ μας!
       </AppText>
       <View style={styles.row}>

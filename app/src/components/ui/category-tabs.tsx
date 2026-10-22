@@ -110,9 +110,9 @@ const styles = StyleSheet.create({
   },
   // The chosen one and the one being pressed show a border
   lightActive: {
-    borderColor: '#000000',
+    borderColor: colors.ink,
   },
   lightPressed: {
-    borderColor: '#000000',
+    borderColor: colors.ink,
   },
 });

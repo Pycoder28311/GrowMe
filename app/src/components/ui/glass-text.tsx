@@ -55,10 +55,10 @@ export function GlassText({ text, delayMs = 0, maxWidth }: GlassTextProps) {
       <OutlinedText
         size="big"
         bold
-        color={colors.surface}
-        outlineColor="#000000"
+        color={colors.white}
+        outlineColor={colors.overlay}
         outline={BORDER}
-        glow={{ color: colors.surface, radius: GLOW }}
+        glow={{ color: colors.white, radius: GLOW }}
         style={styles.text}>
         {text}
       </OutlinedText>

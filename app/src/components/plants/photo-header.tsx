@@ -3,10 +3,11 @@ import { useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
+import { EdgeDrift } from '@/components/layout/botanical-background';
 import { ArrowButton } from '@/components/ui/arrow-button';
-import { BlobShape, CurvedEdge } from '@/components/ui/flower-shapes';
+import { CurvedEdge, FlowerShape } from '@/components/ui/flower-shapes';
 import { photoSource } from '@/lib/photo-source';
-import { botanical, size, space } from '@/theme';
+import { botanical, HEADER_FLOWERS, size, space } from '@/theme';
 
 /** Photo height: a little over a third of a phone screen */
 export const PHOTO_HEIGHT = 280;
@@ -84,9 +85,15 @@ export function PhotoHeader({ photos, label, scrollY, index, onIndexChange }: Ph
 
         {/* A curved line where the photos meet the page (no fade) */}
         <CurvedEdge width={width} height={CURVE_HEIGHT} color={botanical.page} />
-        {/* The mockup's organic shapes on the photos' lower corners: terracotta at the left, coral at the right */}
-        <BlobShape size={170} color={botanical.terracotta} style={styles.blobLeft} />
-        <BlobShape size={130} color={botanical.coral} opacity={0.9} style={styles.blobRight} />
+        {/* The page's painted flowers on the photos' lower corners: terracotta at the left, coral at the right */}
+        {/* Each pushed further out past its edge near the top or bottom of the screen and turning as the page
+            scrolls (the left one the other way), like the flower by the name */}
+        <EdgeDrift scrollY={scrollY} side="left" size={HEADER_FLOWERS.left.size} turn={HEADER_FLOWERS.left.turn} style={styles.flowerLeft}>
+          <FlowerShape size={HEADER_FLOWERS.left.size} color={botanical.terracotta} center={botanical.butter} rotate={-14} opacity={0.9} style={styles.fill} />
+        </EdgeDrift>
+        <EdgeDrift scrollY={scrollY} side="right" size={HEADER_FLOWERS.right.size} turn={HEADER_FLOWERS.right.turn} style={styles.flowerRight}>
+          <FlowerShape size={HEADER_FLOWERS.right.size} color={botanical.coral} center={botanical.terracotta} rotate={20} opacity={0.9} style={styles.fill} />
+        </EdgeDrift>
 
         {photos.length > 1 && (
           <>
@@ -115,13 +122,17 @@ const styles = StyleSheet.create({
   photos: {
     height: PHOTO_HEIGHT,
   },
-  blobLeft: {
-    left: -110,
-    bottom: -60,
+  fill: {
+    left: 0,
+    top: 0,
   },
-  blobRight: {
-    right: -80,
-    bottom: 10,
+  flowerLeft: {
+    left: -45,
+    bottom: -55,
+  },
+  flowerRight: {
+    right: -35,
+    bottom: 0,
   },
   arrow: {
     position: 'absolute',

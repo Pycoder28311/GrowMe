@@ -1,16 +1,16 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AccentBlock } from '@/components/plants/accent-block';
 import { AppText } from '@/components/ui/app-text';
 import { Section } from '@/components/ui/section';
 import { TextPanel } from '@/components/ui/text-panel';
 import { WATCH_OUT_ITEMS, type PlantPageData } from '@/config/plant-page';
-import { botanical, radius, sectionTitle, smallCaps, space, tileTone } from '@/theme';
+import { botanical, radius, sectionTitle, space, tileTone } from '@/theme';
 
 /**
  * «Τι να προσέχεις»: the plant's issues (diseases and pests). One issue shows at a time (pills above, when
- * there are several: the one picked filled in terracotta), each as the same three static blocks, «Τι βλέπω»,
+ * there are several, in one row that scrolls sideways: the one picked filled in terracotta), each as the same three static blocks, «Τι βλέπω»,
  * «Τι είναι», «Τι κάνω», in the tiles' style; a block with no text is left out and a long text opens in the
  * panel from below.
  */
@@ -24,7 +24,13 @@ export function WatchOutSection({ plant }: { plant: PlantPageData }) {
   return (
     <Section title="Τι να προσέχεις" titleStyle={sectionTitle}>
       {issues.length > 1 && (
-        <View accessibilityRole="tablist" style={styles.pills}>
+        // One row that scrolls sideways, out to the screen's edges
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          accessibilityRole="tablist"
+          style={styles.pillsScroll}
+          contentContainerStyle={styles.pills}>
           {issues.map((item) => {
             const on = item.id === issue.id;
             return (
@@ -40,12 +46,7 @@ export function WatchOutSection({ plant }: { plant: PlantPageData }) {
               </Pressable>
             );
           })}
-        </View>
-      )}
-      {issue.label && (
-        <AppText color={botanical.terracotta} style={[smallCaps, styles.label]}>
-          {issue.label}
-        </AppText>
+        </ScrollView>
       )}
       <View accessibilityRole="list" style={styles.blocks}>
         {WATCH_OUT_ITEMS.map(({ key, title, icon, tone }) => {
@@ -68,11 +69,14 @@ export function WatchOutSection({ plant }: { plant: PlantPageData }) {
 }
 
 const styles = StyleSheet.create({
-  pills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.sm,
+  // The page's side padding is undone so the row scrolls under the screen's edges, then given back inside it
+  pillsScroll: {
+    marginHorizontal: -space.md,
     marginBottom: space.sm + 2,
+  },
+  pills: {
+    gap: space.sm,
+    paddingHorizontal: space.md,
   },
   pill: {
     paddingHorizontal: space.md,
@@ -88,9 +92,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.8,
-  },
-  label: {
-    marginBottom: space.sm,
   },
   blocks: {
     gap: space.sm + space.xs,

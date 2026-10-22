@@ -19,7 +19,7 @@ import { Icon } from '@/components/ui/icon';
 import { raisedTile } from '@/components/ui/styles';
 import type { Rect } from '@/config/search-motion';
 import { photoSource } from '@/lib/photo-source';
-import { alpha, colors, iconSize, radius, space } from '@/theme';
+import { alpha, colors, iconSize, radius, shadow, space } from '@/theme';
 
 const SLIDE_MS = 380;
 const timing = { duration: SLIDE_MS, easing: Easing.out(Easing.cubic) };
@@ -256,6 +256,6 @@ const styles = StyleSheet.create({
   photo: {
     position: 'absolute',
     overflow: 'hidden',
-    boxShadow: `0 12px 40px ${alpha(colors.ink, 0.3)}`,
+    boxShadow: shadow.lifted,
   },
 });

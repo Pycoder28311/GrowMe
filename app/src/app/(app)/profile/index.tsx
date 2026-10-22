@@ -1,7 +1,8 @@
 import type { Post, UserLocation } from '@growme/shared';
 import { router, useFocusEffect } from 'expo-router';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { meApi } from '@/api/me';
 import { useTopClearance } from '@/components/layout/app-shell';
@@ -13,12 +14,13 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { Section } from '@/components/ui/section';
 import { card } from '@/components/ui/styles';
 import { TextField } from '@/components/ui/text-field';
+import { useBackgroundScrollHandler } from '@/lib/background-motion';
 import { authClient } from '@/lib/auth-client';
 import { openCookieSettings } from '@/lib/consent';
 import { timeAgo } from '@/lib/format';
 import { approximateLocation, coordinatesLabel, type LocationError } from '@/lib/location';
 import { usePagedList } from '@/lib/use-api';
-import { colors, iconSize, size, space } from '@/theme';
+import { colors, iconSize, size, space, titleFont } from '@/theme';
 
 const MAX_NAME = 60;
 const AVATAR = size.touch * 1.5;
@@ -211,6 +213,7 @@ function LikedPost({ post }: { post: Post }) {
 /** The profile: name, password, (area, hidden for now), the posts I liked, and the account rows */
 export default function ProfileScreen() {
   const topClearance = useTopClearance();
+  const backgroundScroll = useBackgroundScrollHandler();
   const { data: session } = authClient.useSession();
   // Google-only accounts have no password to change
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
@@ -236,17 +239,19 @@ export default function ProfileScreen() {
   const user = session?.user;
 
   return (
-    <ScrollView
+    <Animated.ScrollView
+      onScroll={backgroundScroll}
+      scrollEventThrottle={16}
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[styles.page, { paddingTop: topClearance }]}>
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <AppText size="big" bold color={colors.primary}>
+          <AppText size="big" bold color={colors.primary} style={titleFont}>
             {(user?.name ?? '?').charAt(0).toUpperCase()}
           </AppText>
         </View>
         <View style={styles.label}>
-          <AppText size="big" bold color={colors.primary} accessibilityRole="header">
+          <AppText size="big" bold color={colors.primary} accessibilityRole="header" style={titleFont}>
             {user?.name ?? 'Προφίλ'}
           </AppText>
           {user && (
@@ -326,7 +331,7 @@ export default function ProfileScreen() {
           </Fragment>
         ))}
       </View>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

@@ -14,7 +14,7 @@ import { Linking, StyleSheet, Text, View, type TextStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { useBlogPreview } from '@/lib/blog-preview';
-import { colors, fontFamily, radius, space } from '@/theme';
+import { colors, fontFamily, radius, space, titleFont } from '@/theme';
 
 // Shows an article written with the dashboard's editor: headings, paragraphs, lists, quotes, lines,
 // images, and bold / italic / underline / strike / links inside the text. Native views only (no HTML).
@@ -128,7 +128,7 @@ function Block({ block }: { block: RichBlock }) {
           size={block.attrs.level === 2 ? 'big' : 'normal'}
           bold
           accessibilityRole="header"
-          style={[styles.heading, { textAlign: block.attrs.textAlign ?? 'left' }, tint]}>
+          style={[styles.heading, titleFont, { textAlign: block.attrs.textAlign ?? 'left' }, tint]}>
           <Inlines content={block.content} />
         </AppText>
       );

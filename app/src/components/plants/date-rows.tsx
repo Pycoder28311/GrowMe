@@ -4,7 +4,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { dateRows, type PlantPageData } from '@/config/plant-page';
 import { plantingPeriod } from '@/config/plant-traits';
-import { botanical, iconSize, smallCaps, space } from '@/theme';
+import { botanical, iconSize, radius, smallCaps, space } from '@/theme';
 
 /** One line per date range the plant has (seeding, planting, flowering, fruiting): «Σπορά: ΜΑΡ – ΑΠΡ, ΣΕΠ – ΟΚΤ» */
 export function DateRows({ plant }: { plant: PlantPageData }) {
@@ -18,7 +18,7 @@ export function DateRows({ plant }: { plant: PlantPageData }) {
             <Icon name={row.icon.icon} size={iconSize.normal} color={botanical.cream} />
           </View>
           <AppText style={styles.text}>
-            <AppText color={botanical.inkMuted} style={[styles.text, smallCaps]}>
+            <AppText color={botanical.inkMuted} style={[styles.text, smallCaps, styles.label]}>
               {row.label}:{' '}
             </AppText>
             <AppText bold color={botanical.ink} style={styles.text}>
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
   circle: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: botanical.olive,
@@ -48,6 +48,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+  },
+  // «ΦΥΤΕΜΑ:» in the small caps, but closer to the dates' size
+  label: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   text: {
     flexShrink: 1,

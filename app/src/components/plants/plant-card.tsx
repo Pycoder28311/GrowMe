@@ -16,7 +16,7 @@ import {
   useTrait,
   type Trait,
 } from '@/config/plant-traits';
-import { alpha, colors, iconSize, radius, space } from '@/theme';
+import { alpha, colors, iconSize, radius, space, titleFont } from '@/theme';
 
 // Fixed square photo; the details column is laid out to fit within the same height
 const PHOTO_SIZE = 98;
@@ -94,7 +94,7 @@ export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: 
 
       <View style={styles.details}>
         <View style={styles.titleRow}>
-          <AppText bold style={styles.name}>
+          <AppText bold style={[styles.name, titleFont]}>
             {plant.name}
           </AppText>
         </View>

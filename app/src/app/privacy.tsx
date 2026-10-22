@@ -1,12 +1,15 @@
 import { ScrollView, StyleSheet } from 'react-native';
 
+import { BotanicalBackground } from '@/components/layout/botanical-background';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { PAGE_DECORATIONS } from '@/theme';
 
 export default function PrivacyScreen() {
     return (
         <ThemedView style={styles.container}>
+            <BotanicalBackground decorations={PAGE_DECORATIONS} />
             <ScrollView contentContainerStyle={styles.content}>
                 <ThemedText type="subtitle">Privacy &amp; cookies</ThemedText>
                 <ThemedText type="smallBold">Necessary cookies</ThemedText>

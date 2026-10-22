@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { AppText } from '@/components/ui/app-text';
-import { backdrop, colors, radius, shadow, space } from '@/theme';
+import { backdrop, colors, radius, shadow, space, titleFont } from '@/theme';
 
 // Sheet height as a share of the screen, and the half-open position (share of the sheet hidden)
 const SHEET_HEIGHT = 0.9;
@@ -125,7 +125,7 @@ export function BottomSheet({
               {/* Equal side columns keep the title centred while giving the action its own space */}
               <View style={styles.titleRow}>
                 <View style={styles.side} />
-                <AppText size="big" color={colors.primary} accessibilityRole="header">
+                <AppText size="big" color={colors.primary} accessibilityRole="header" style={titleFont}>
                   {title}
                 </AppText>
                 <View style={[styles.side, styles.action]}>{headerAction}</View>

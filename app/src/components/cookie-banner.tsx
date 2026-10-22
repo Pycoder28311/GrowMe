@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { saveConsent, useConsentState } from '@/lib/consent';
+import { colors, radius } from '@/theme';
 
 export function CookieBanner() {
     const state = useConsentState();
@@ -84,10 +85,10 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: MaxContentWidth,
         padding: Spacing.three,
-        borderRadius: Spacing.three,
+        borderRadius: radius.md,
         gap: Spacing.two,
     },
-    link: { color: '#3c87f7' },
+    link: { color: colors.link },
     choices: { gap: Spacing.two },
     choice: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
     choiceText: { flex: 1 },
