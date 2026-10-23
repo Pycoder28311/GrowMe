@@ -37,6 +37,7 @@ import {
   DurationField,
   MonthPair,
   MultiChoices,
+  NumberField,
   RangeField,
   Select,
   SuggestField,
@@ -229,6 +230,14 @@ export function PlantForm({ item: p, options }: { item: Plant | null; options: P
             />
           </div>
         ))}
+        <NumberField
+          field="sunHours"
+          label="Ώρες ήλιου"
+          hint="Πόσες ώρες ήλιου θέλει· η εφαρμογή δείχνει από ώρες − 1 έως ώρες + 1 (π.χ. 4 → 3–5 ώρες)"
+          value={p?.sunHours}
+          min={1}
+          max={SUN_MAX_HOUR - SUN_MIN_HOUR}
+        />
       </div>
 
       {/* The facts card */}
@@ -319,6 +328,12 @@ export function PlantForm({ item: p, options }: { item: Plant | null; options: P
       <FormSection title="Ηξερες οτι / Μυστικό επιτυχίας">
         <TextArea field="trivia" label="Ηξερες οτι" value={p?.trivia} rows={2} maxLength={2000} nullable />
         <TextArea field="secret" label="Μυστικό επιτυχίας" value={p?.secret} rows={2} maxLength={2000} nullable />
+      </FormSection>
+
+      {/* Aromatic and ornamental plants (dimmed while neither is on) */}
+      <FormSection title="Θρεπτική αξία / Συμβουλή μαγειρικής" when="aromatic ornamental" whenNote="Για αρωματικά και καλλωπιστικά φυτά">
+        <TextArea field="nutrition" label="Θρεπτική αξία" value={p?.nutrition} rows={3} maxLength={2000} nullable />
+        <TextArea field="cookTip" label="Συμβουλή μαγειρικής" value={p?.cookTip} rows={3} maxLength={2000} nullable />
       </FormSection>
 
       <FormSection title="Περιγραφή">

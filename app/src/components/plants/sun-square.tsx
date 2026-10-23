@@ -1,5 +1,5 @@
 
-import type { PlantSummary } from '@growme/shared';
+import { sunHoursLabel, type PlantSummary } from '@growme/shared';
 
 import { TileCard } from '@/components/plants/tile-card';
 import type { TileShapeKind } from '@/components/ui/flower-shapes';
@@ -11,7 +11,7 @@ const clock = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
 
 /**
  * The sunlight square, the first one and only for exterior plants: the sun icon, the
- * hours, and under them (worked out here from the hours) when the plant wants its light.
+ * hours of sun (the clock hours when the plant has none), and under them (worked out here from the hours) when the plant wants its light.
  */
 export function SunSquare({
   plant,
@@ -36,7 +36,8 @@ export function SunSquare({
       shape={shape}
       icon={FACT_ICONS.sun}
       label={soft ? 'Απαλό φως' : 'Ήλιος'}
-      value={`${clock(bar.start)} – ${clock(bar.end)}`}
+      // The hours of sun wanted, as a range; a plant without them shows its clock hours
+      value={sunHoursLabel(plant.sunHours) ?? `${clock(bar.start)} – ${clock(bar.end)}`}
       caption={sunPhrase(bar)}
       playing={playing}
     />

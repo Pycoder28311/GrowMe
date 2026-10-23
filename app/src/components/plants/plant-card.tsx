@@ -25,7 +25,7 @@ const PHOTO_SIZE = 98;
 function TraitLabel({ trait, icon }: { trait: Trait; icon: PlantIcon }) {
   return (
     <View style={styles.trait}>
-      <Icon name={icon.icon} size={14} color={colors.inkMuted} bold />
+      <Icon name={icon.icon} size={14} color={colors.ink} bold />
       <AppText size="small" style={styles.traitText}>
         {stripBlogLinks(trait.label)}
       </AppText>
@@ -108,10 +108,10 @@ export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: 
         <View style={styles.footer}>
           {/* Looks like a link; the whole card is the tap target */}
           <View style={styles.more}>
-            <AppText size="small" bold color={colors.primary}>
+            <AppText size="small" bold color={colors.ink}>
               Δες περισσότερα
             </AppText>
-            <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
+            <Icon name="chevronRight" size={iconSize.small} color={colors.ink} bold />
           </View>
         </View>
       </View>

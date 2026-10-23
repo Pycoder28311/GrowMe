@@ -65,6 +65,7 @@ function commonFields(raw: Raw) {
     sunIntenseEnd: firstOf(num(raw.sunIntenseEnd), num(raw.sunEnd)),
     sunSoftStart: num(raw.sunSoftStart),
     sunSoftEnd: num(raw.sunSoftEnd),
+    sunHours: num(raw.sunHours),
     seedingSeason: list<MonthRange>(raw.seedingSeason),
     plantingSeason: Array.isArray(raw.plantingSeason) ? list<MonthRange>(raw.plantingSeason) : list<MonthRange>(raw.monthRanges),
   };
@@ -110,6 +111,8 @@ export const toPlant = (raw: Raw): Plant => ({
   ...toPlantSummary(raw),
   trivia: str(raw.trivia),
   secret: str(raw.secret),
+  nutrition: str(raw.nutrition),
+  cookTip: str(raw.cookTip),
   combination: (raw.combination as Plant['combination']) ?? null,
   lifecycles: list<Raw>(raw.lifecycles).map(toLifecycle),
   diseases: list<Raw>(raw.diseases).map(toDisease),

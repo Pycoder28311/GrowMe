@@ -116,12 +116,20 @@ export const NOTES = [
   { key: 'secret', title: 'Μυστικό επιτυχίας', icon: 'key', tone: 4 },
 ] as const satisfies readonly { key: 'trivia' | 'secret'; title: string; icon: IconName; tone: number }[];
 
-/** The three static blocks of «Τι να προσέχεις»: their icon and colours (pink, beige, yellow) */
+/** Nutritional value and the cook's tip: shown for aromatic or ornamental plants that have the text, as notes like the two above */
+export const NUTRITION_NOTES = [
+  { key: 'nutrition', title: 'Θρεπτική αξία', icon: 'food', tone: 0 },
+  { key: 'cookTip', title: 'Συμβουλή μαγειρικής', icon: 'aroma', tone: 1 },
+] as const satisfies readonly { key: 'nutrition' | 'cookTip'; title: string; icon: IconName; tone: number }[];
+
+/** Whether the plant shows the nutrition notes at all (its flags) */
+export const showsNutrition = (plant: PlantPageData) => plant.aromatic || plant.ornamental;
+
+/** The two blocks an open row of «Τι να προσέχεις» shows (its symptoms are in the row itself): their icon and colours (beige, yellow) */
 export const WATCH_OUT_ITEMS = [
-  { key: 'symptoms', title: 'Τι βλέπω', icon: 'search', tone: 4 },
   { key: 'what', title: 'Τι είναι', icon: 'book', tone: 0 },
   { key: 'action', title: 'Τι κάνω', icon: 'leaf', tone: 5 },
-] as const satisfies readonly { key: 'symptoms' | 'what' | 'action'; title: string; icon: IconName; tone: number }[];
+] as const satisfies readonly { key: 'what' | 'action'; title: string; icon: IconName; tone: number }[];
 
 /* ─────────────── Lifecycle tabs ─────────────── */
 

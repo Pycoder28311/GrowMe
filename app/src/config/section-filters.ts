@@ -145,7 +145,7 @@ export const FILTERS: readonly PlantFilter[] = [
   {
     kind: 'chips',
     key: 'time',
-    label: 'Χρόνος που θέλει',
+    label: 'Χρόνος φροντίδας',
     sections: BOTH,
     select: 'many',
     options: optionsFrom(EFFORT_LEVELS, TIME_NEEDED_LABELS, (p, v) => p.timeNeeded.includes(v)),
@@ -180,7 +180,7 @@ export const FILTERS: readonly PlantFilter[] = [
     kind: 'chips',
     key: 'planting',
     label: 'Εποχή φύτευσης',
-    sections: BOTH,
+    sections: ['outdoor'],
     select: 'many',
     clears: ['seeding'],
     options: seasonOptions('plantingSeason'),

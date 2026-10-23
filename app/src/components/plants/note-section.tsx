@@ -4,7 +4,7 @@ import { AppText } from '@/components/ui/app-text';
 import { FlatFlower, PaperGrain, TILE_SHAPES } from '@/components/ui/flower-shapes';
 import { Icon } from '@/components/ui/icon';
 import { LinkedText } from '@/components/ui/linked-text';
-import { NOTES, type PlantPageData } from '@/config/plant-page';
+import { NOTES, NUTRITION_NOTES, type PlantPageData } from '@/config/plant-page';
 import { botanical, iconSize, SQUARE_FLOWER_COLORS, SQUARE_TONE_ORDER, radius, sectionTitle, serif, space, tileGrain, tileTone } from '@/theme';
 
 /**
@@ -12,7 +12,7 @@ import { botanical, iconSize, SQUARE_FLOWER_COLORS, SQUARE_TONE_ORDER, radius, s
  * paper grain and a painted flower in the corner, the icon in its accent circle beside a small uppercase
  * title, then the text in an italic serif, like a quote. Nothing when the plant has none.
  */
-export function NoteSection({ plant, note }: { plant: PlantPageData; note: (typeof NOTES)[number] }) {
+export function NoteSection({ plant, note }: { plant: PlantPageData; note: (typeof NOTES)[number] | (typeof NUTRITION_NOTES)[number] }) {
   const text = plant[note.key];
   if (!text) return null;
   const tone = tileTone(note.tone);

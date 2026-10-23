@@ -27,7 +27,7 @@ import { alpha, BACKGROUND_DECORATIONS, botanical, colors, iconSize, size, type 
 /** The plant page's edge shapes with a flower where its leaf was (at the left): flowers only, with more of them */
 const FLOWERS_ONLY: readonly BackgroundDecoration[] = [
   ...BACKGROUND_DECORATIONS.map((shape): BackgroundDecoration =>
-    shape.kind === 'leaf' ? { ...shape, kind: 'flower', color: botanical.coral, center: botanical.butter, opacity: 0.6, rotate: 18 } : shape,
+    shape.kind === 'leaf' ? { ...shape, kind: 'flower', color: botanical.coral, center: botanical.butter, opacity: 0.95, rotate: 18 } : shape,
   ),
   // And one more, further down on the left
   { kind: 'flower', size: 130, color: botanical.butter, center: botanical.terracotta, opacity: 0.6, rotate: -20, side: 'left', y: 1250 },

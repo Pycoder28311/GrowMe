@@ -127,6 +127,13 @@
       "when": 1792535309683,
       "tag": "0017_plant_fields_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1792779775370,
+      "tag": "0018_plant_sun_hours_nutrition",
+      "breakpoints": true
     }
   ]
 }

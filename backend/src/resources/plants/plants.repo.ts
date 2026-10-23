@@ -41,6 +41,7 @@ const toSummary = (env: CloudflareBindings, p: SummaryRow): PlantSummary => ({
   description: p.description,
   native: p.native,
   ...toFilterFields(p),
+  sunHours: p.sunHours,
   images: toImageRefs(env, p.images),
   createdAt: p.createdAt.toISOString(),
 })
@@ -49,6 +50,8 @@ const toJson = (env: CloudflareBindings, p: DetailRow): Plant => ({
   ...toSummary(env, p),
   trivia: p.trivia,
   secret: p.secret,
+  nutrition: p.nutrition,
+  cookTip: p.cookTip,
   combination: p.combination ? toCombination(p.combination) : null,
   lifecycles: p.lifecycles.map(toLifecycle),
   diseases: p.diseases.map(toDisease),

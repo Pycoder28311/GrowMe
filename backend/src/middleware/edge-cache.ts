@@ -12,7 +12,7 @@ import type { AppEnv } from './auth'
  * the Cache API does nothing on workers.dev. The admin's saves clear it (lib/purge.ts).
  */
 /** Bump to drop everything cached, e.g. after editing the database directly (not through the admin) */
-const CACHE_VERSION = 3
+const CACHE_VERSION = 4
 
 export const edgeCache = createMiddleware<AppEnv>(async (c, next) => {
   if (c.req.method !== 'GET') return next()

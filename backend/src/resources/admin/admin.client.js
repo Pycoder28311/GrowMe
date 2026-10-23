@@ -707,11 +707,14 @@
 
   /* ─────────────── Conditional sections and exclusive choices ─────────────── */
 
-  /** [data-when="field"] parts are dimmed (and inert) while that checkbox is off; their values are still sent */
+  /** [data-when="field"] parts are dimmed (and inert) while that checkbox is off; with several fields ("a b") while all are off; their values are still sent */
   function applyWhen() {
     for (const part of form.querySelectorAll('[data-when]')) {
-      const box = form.querySelector(`input[data-field="${part.dataset.when}"]`)
-      const off = !!box && !box.checked
+      const boxes = part.dataset.when
+        .split(/\s+/)
+        .map((field) => form.querySelector(`input[data-field="${field}"]`))
+        .filter(Boolean)
+      const off = boxes.length > 0 && boxes.every((box) => !box.checked)
       part.classList.toggle('dimmed', off)
       part.toggleAttribute('inert', off)
     }

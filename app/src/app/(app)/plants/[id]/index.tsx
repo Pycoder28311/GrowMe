@@ -32,7 +32,7 @@ import { AppText } from '@/components/ui/app-text';
 import { FlatFlower, PaperGrain } from '@/components/ui/flower-shapes';
 import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
-import { NOTES, restrictionRows, type PlantPageData } from '@/config/plant-page';
+import { NOTES, NUTRITION_NOTES, restrictionRows, showsNutrition, type PlantPageData } from '@/config/plant-page';
 import { usePageSections } from '@/lib/page-sections';
 import { useCombinationPlants, usePlant } from '@/lib/plants';
 import { previewOf } from '@/lib/result-preview';
@@ -181,6 +181,8 @@ export default function PlantScreen() {
           {NOTES.map((note) => (
             <NoteSection key={note.key} plant={plant} note={note} />
           ))}
+          {showsNutrition(plant) &&
+            NUTRITION_NOTES.map((note) => <NoteSection key={note.key} plant={plant} note={note} />)}
         </Block>
 
         {plant.lifecycles.length > 0 && (

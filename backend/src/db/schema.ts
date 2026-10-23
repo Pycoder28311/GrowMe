@@ -154,6 +154,9 @@ export const plants = sqliteTable(
         native: text('native'),
         trivia: text('trivia'),
         secret: text('secret'),
+        // Aromatic and ornamental plants: nutritional value and a cook's tip
+        nutrition: text('nutrition'),
+        cookTip: text('cook_tip'),
         // Yes/no fields (PLANT_FLAGS in @growme/shared)
         food: flag('food'),
         aromatic: flag('aromatic'),
@@ -183,6 +186,8 @@ export const plants = sqliteTable(
         sunIntenseEnd: integer('sun_intense_end'),
         sunSoftStart: integer('sun_soft_start'),
         sunSoftEnd: integer('sun_soft_end'),
+        // Hours of sun wanted (the app shows hours − 1 to hours + 1)
+        sunHours: integer('sun_hours'),
         // Seasons: up to 3 month ranges each, 1–12 (an end may be smaller than its start, e.g. Nov–Feb); the API sends seedingSeason / plantingSeason
         seedingStart: integer('seeding_start'),
         seedingEnd: integer('seeding_end'),

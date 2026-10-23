@@ -31,6 +31,7 @@ const month = z.number().int().min(1).max(12)
 const nonNegative = z.number().int().min(0)
 const years = z.number().int().min(1).max(999)
 
+const sunHours = z.number().int().min(1).max(SUN_MAX_HOUR - SUN_MIN_HOUR)
 const sunHour = z.number().int().min(SUN_MIN_HOUR).max(SUN_MAX_HOUR)
 
 /** One sun bar: both hours or neither, and it ends after it starts (when both are sent) */
@@ -116,6 +117,9 @@ const plantFields = z.object({
   native: trait,
   trivia: longText.nullable(),
   secret: longText.nullable(),
+  /** Aromatic and ornamental plants: the “Θρεπτική αξία” and “Συμβουλή μαγειρικής” texts */
+  nutrition: longText.nullable(),
+  cookTip: longText.nullable(),
   ...flagFields,
   lifespanMin: years.nullable(),
   lifespanMax: years.nullable(),
@@ -131,6 +135,8 @@ const plantFields = z.object({
   sunIntenseEnd: sunHour.nullable(),
   sunSoftStart: sunHour.nullable(),
   sunSoftEnd: sunHour.nullable(),
+  /** How many hours of sun the plant wants (the app shows hours − 1 to hours + 1) */
+  sunHours: sunHours.nullable(),
   seedingSeason: seasonRanges,
   plantingSeason: seasonRanges,
   imageIds,
@@ -144,6 +150,8 @@ const plantDefaults = {
   native: null,
   trivia: null,
   secret: null,
+  nutrition: null,
+  cookTip: null,
   lifespanMin: null,
   lifespanMax: null,
   potSizes: [],
@@ -157,6 +165,7 @@ const plantDefaults = {
   sunIntenseEnd: null,
   sunSoftStart: null,
   sunSoftEnd: null,
+  sunHours: null,
   seedingSeason: [],
   plantingSeason: [],
   imageIds: [],
@@ -210,6 +219,8 @@ export type PlantSummary = PlantFlags &
     /** Whole years; both null when not set */
     lifespanMin: number | null
     lifespanMax: number | null
+    /** Hours of sun wanted; the app shows hours − 1 to hours + 1 */
+    sunHours: number | null
     potSizes: PotSize[]
     difficultyLevels: EffortLevel[]
     timeNeeded: EffortLevel[]
@@ -226,6 +237,8 @@ export type Plant = PlantSummary & {
   /** «Ηξερες οτι» and «Μυστικο επιτυχιας» (only here, lists stay small) */
   trivia: string | null
   secret: string | null
+  nutrition: string | null
+  cookTip: string | null
   combination: Combination | null
   lifecycles: Lifecycle[]
   diseases: Disease[]

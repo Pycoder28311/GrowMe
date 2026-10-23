@@ -156,6 +156,13 @@ export function sunBar(plant: SunFields, key: SunBarKey): SunBar | null {
 export const sunLength = (start: number | null, end: number | null) =>
   start === null || end === null ? null : end - start
 
+/** «3–5 ώρες» for 4 hours of sun: the hours − 1 to hours + 1, never under 1 or over the day's length; null when not set */
+export function sunHoursLabel(hours: number | null): string | null {
+  if (hours === null) return null
+  const day = SUN_MAX_HOUR - SUN_MIN_HOUR
+  return `${Math.max(1, hours - 1)}–${Math.min(day, hours + 1)} ώρες`
+}
+
 /** Which part of the day a window mostly lights, from its middle: before 11 morning, to 15 noon */
 export function sunPart(start: number, end: number): SunPart {
   const middle = (start + end) / 2
