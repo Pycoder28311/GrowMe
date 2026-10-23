@@ -21,16 +21,6 @@ export const BACKGROUND_PHOTOS: BackgroundPhoto[] = [
     },
   },
   {
-    source: require('@/assets/images/backgrounds/balcony-geraniums-sea-view.webp'),
-    // The pot sits right of centre, so keep that side in view when the screen crops the photo
-    position: { left: '78%', top: '50%' },
-    credit: {
-      author: 'Rodolfo Cardarelli',
-      license: 'CC BY 3.0',
-      source: 'https://commons.wikimedia.org/wiki/File:Taormina_View_From_A_Balcony_(36266916).jpeg',
-    },
-  },
-  {
     source: require('@/assets/images/backgrounds/balcony-hanging-pots.webp'),
     credit: {
       author: 'Unknown (via Pinterest)',

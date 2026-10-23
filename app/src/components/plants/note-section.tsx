@@ -1,11 +1,11 @@
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { FlowerShape, PaperGrain } from '@/components/ui/flower-shapes';
+import { FlatFlower, PaperGrain, TILE_SHAPES } from '@/components/ui/flower-shapes';
 import { Icon } from '@/components/ui/icon';
 import { LinkedText } from '@/components/ui/linked-text';
 import { NOTES, type PlantPageData } from '@/config/plant-page';
-import { botanical, iconSize, radius, sectionTitle, serif, space, tileGrain, tileTone } from '@/theme';
+import { botanical, iconSize, SQUARE_FLOWER_COLORS, SQUARE_TONE_ORDER, radius, sectionTitle, serif, space, tileGrain, tileTone } from '@/theme';
 
 /**
  * A plant's short text («Ηξερες οτι», «Μυστικό επιτυχίας») as a card in the tiles' style: its warm tint with
@@ -18,7 +18,7 @@ export function NoteSection({ plant, note }: { plant: PlantPageData; note: (type
   const tone = tileTone(note.tone);
   return (
     <View style={[styles.card, { backgroundColor: tone.background }]}>
-      <FlowerShape size={120} color={tone.shape} opacity={0.85} rotate={18} style={styles.flower} />
+      <FlatFlower kind={TILE_SHAPES[note.tone % TILE_SHAPES.length]} size={120} color={SQUARE_FLOWER_COLORS[SQUARE_TONE_ORDER[note.tone % SQUARE_TONE_ORDER.length]]} opacity={0.85} rotate={18} style={styles.flower} />
       <PaperGrain opacity={tileGrain} />
       <View style={styles.head}>
         <View style={[styles.circle, { backgroundColor: tone.circle }]}>

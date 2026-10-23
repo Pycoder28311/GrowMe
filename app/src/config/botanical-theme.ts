@@ -6,7 +6,7 @@
  * warmer (more red, less blue: 1 is a clear step, 2 is strong), below 0 cooler. Everything coloured here, the top wash
  * and the corner flowers go through `warm()`; the shade, white, the link, errors and brand colours stay as they are.
  */
-export const WARMTH = 0.6;
+export const WARMTH = 0;
 
 /** `hex` made warmer or cooler by `WARMTH` */
 export function warm(hex: string, amount = WARMTH): string {
@@ -66,18 +66,53 @@ export const sunColors = {
 } as const;
 
 /**
- * The three colours of the squares in the info grid (the sunlight square and the tiles after it), from the
- * mockup: beige, pink and yellow. Each has its background, the colour of the decorations in the same family (rows and notes), the circle
+ * The colours of the squares in the info grid (the sunlight square and the tiles after it), from the
+ * mockup: beige, pink, yellow and olive. Each has its background, the colour of the decorations in the same family (rows and notes), the circle
  * behind its icon and the icon.
  */
 export const GRID_TILE_TONES: readonly TileTone[] = [
-  { background: warm('#ede0d2'), shape: botanical.olive, circle: warm('#e0d0bd'), icon: botanical.olive, light: false },
-  { background: warm('#f0c9b8'), shape: botanical.coral, circle: warm('#e9b09d'), icon: botanical.terracotta, light: false },
-  { background: warm('#f3d89b'), shape: botanical.leaf, circle: warm('#e8c97e'), icon: botanical.olive, light: false },
+  // Beige, pink and yellow, then the mockup's olive square (light text on it); the values are sampled from the mockup
+  { background: warm('#ece0d2'), shape: botanical.olive, circle: warm('#e0d0bd'), icon: botanical.olive, light: false },
+  { background: warm('#f1cbb9'), shape: botanical.coral, circle: warm('#f2a58a'), icon: botanical.terracotta, light: false },
+  { background: warm('#f3d89a'), shape: botanical.leaf, circle: warm('#e6cf92'), icon: botanical.olive, light: false },
+  { background: warm('#7f733e'), shape: warm('#433d19'), circle: warm('#a39a62'), icon: warm('#433d19'), light: true },
 ];
 
-/** The colours of everything coloured on the plant page (tiles, rows, notes, chips, buttons…): the same three, used in turn */
-export const TILE_TONES = GRID_TILE_TONES;
+/** How much warmer than the rest of the page each info square colour is (beige, pink, yellow; the olive one stays as it is) */
+const SQUARE_EXTRA_WARMTH = [0.5, 0.3, 0.3] as const;
+
+/**
+ * What the info squares change from the grid's tones, one entry per colour: the flower's colour (an intense warm one on each),
+ * and the circle and icon at the top left (warmer than the page's)
+ */
+const SQUARE_LOOKS: readonly Pick<TileTone, 'shape' | 'circle' | 'icon'>[] = [
+  { shape: '#c4a074', circle: '#e8c9a5', icon: '#b5572f' },
+  { shape: '#dc3a1c', circle: '#f2a58a', icon: '#c0391f' },
+  { shape: '#dba43e', circle: '#efc36a', icon: '#a85a14' },
+  { shape: '#9fb53a', circle: '#c49a54', icon: '#5a2f10' },
+];
+
+/** The mockup's order of the squares' colours, down its two columns: beige, pink, yellow, beige, pink, olive (then again) */
+export const SQUARE_TONE_ORDER = [0, 1, 2, 0, 1, 3] as const;
+
+/** The flower colour of each info square colour (beige, pink, yellow, olive) */
+export const SQUARE_FLOWER_COLORS: readonly string[] = SQUARE_LOOKS.map((look) => warm(look.shape));
+
+/** The info grid's squares: the grid's tones, the pink and yellow ones warmer (the beige one, the first and fourth squares, only a little) */
+export const SQUARE_TONES: readonly TileTone[] = GRID_TILE_TONES.map((tone, i) => {
+  const look = SQUARE_LOOKS[i];
+  const extra = SQUARE_EXTRA_WARMTH[i];
+  return {
+    ...tone,
+    shape: warm(look.shape),
+    circle: warm(look.circle),
+    icon: warm(look.icon),
+    background: extra === undefined ? tone.background : warm(tone.background, WARMTH + extra),
+  };
+});
+
+/** The colours of everything coloured on the plant page (tiles, rows, notes, chips, buttons…): the first three of the grid's, used in turn */
+export const TILE_TONES = GRID_TILE_TONES.slice(0, 3);
 
 /**
  * The colour of one square: looks random but is worked out from the plant and the square, so a plant's page

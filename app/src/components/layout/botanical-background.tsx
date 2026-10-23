@@ -3,8 +3,16 @@ import { StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle }
 import Animated, { measure, useAnimatedRef, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
 import { artAspect, BotanicalArt } from '@/components/layout/botanical-art';
-import { FlowerShape, LeafShape, LongLeafOutlineShape, PaperGrain } from '@/components/ui/flower-shapes';
-import { BACKGROUND_DECORATIONS, BACKGROUND_MOTION, botanical, tileGrain, type BackgroundDecoration } from '@/theme';
+import { FlatFlower, LeafShape, LongLeafOutlineShape, PaperGrain, TILE_SHAPES } from '@/components/ui/flower-shapes';
+import {
+  BACKGROUND_DECORATIONS,
+  BACKGROUND_MOTION,
+  botanical,
+  SQUARE_FLOWER_COLORS,
+  SQUARE_TONE_ORDER,
+  tileGrain,
+  type BackgroundDecoration,
+} from '@/theme';
 
 const { drift: DRIFT, pattern: PATTERN, push: PUSH, shown: SHOWN } = BACKGROUND_MOTION;
 
@@ -51,13 +59,20 @@ export function EdgeDrift({
   );
 }
 
+/** Which of the squares' flowers a background flower is (worked out from its place, so each keeps its own), in that flower's own colour from the squares */
+const flowerOf = (y: number) => {
+  const index = Math.round(y / 60) % TILE_SHAPES.length;
+  return { kind: TILE_SHAPES[index], color: SQUARE_FLOWER_COLORS[SQUARE_TONE_ORDER[index]] };
+};
+
 /**
  * One shape at the screen's edge: it drifts up slower than the page, and the farther it is from the middle of
  * the screen the more it is pushed out past its edge (up to PUSH of its width), so the shapes above slide away
  * to the sides and the ones coming up from below slide in.
  */
 function DriftingShape({ item, scrollY, screenHeight }: { item: BackgroundDecoration; scrollY: SharedValue<number>; screenHeight: number }) {
-  const { kind, size, color, center, opacity, rotate, side, art, shown = SHOWN } = item;
+  const { kind, size, color, opacity, rotate, side, art, shown = SHOWN } = item;
+  const flower = flowerOf(item.y);
   // A painted cluster is taller than wide: its own height places it
   const height = kind === 'art' && art ? size * artAspect(art) : size;
   const style = useAnimatedStyle(() => {
@@ -71,7 +86,7 @@ function DriftingShape({ item, scrollY, screenHeight }: { item: BackgroundDecora
       {kind === 'art' && art ? (
         <BotanicalArt name={art} size={size} />
       ) : kind === 'flower' ? (
-        <FlowerShape size={size} color={color} center={center} opacity={opacity} rotate={rotate} style={styles.fill} />
+        <FlatFlower kind={flower.kind} size={size} color={flower.color} opacity={opacity} rotate={rotate} style={styles.fill} />
       ) : kind === 'leafOutline' ? (
         <LongLeafOutlineShape size={size} color={color} glow={botanical.leaf} glowSpread={0.3} opacity={opacity} rotate={rotate} style={styles.fill} />
       ) : (

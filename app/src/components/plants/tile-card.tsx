@@ -17,7 +17,7 @@ import { PaperGrain, TileShape, type TileShapeKind } from '@/components/ui/flowe
 import { Icon } from '@/components/ui/icon';
 import { ShakeOnTap } from '@/components/ui/shake-on-tap';
 import type { PlantIcon } from '@/config/plant-icons';
-import { botanical, iconSize, radius, serif, smallCaps, space, tileGrain, tileShadowStyle, type TileTone } from '@/theme';
+import { botanical, iconSize, mixColor, radius, serif, smallCaps, space, tileGrain, tileShadowStyle, type TileTone } from '@/theme';
 
 /** The same height for every tile */
 const TILE_HEIGHT = 140;
@@ -82,7 +82,7 @@ export function TileCard({
       {/* The shadow sits on an outer view: the tile itself clips (its leaf), which would cut a shadow */}
       <View style={[styles.shadow, { backgroundColor: tone.background }]}>
         <View style={[styles.tile, { backgroundColor: tone.background }]}>
-          <TileShape kind={shape} color={tone.shape} height={TILE_HEIGHT} />
+          <TileShape kind={shape} color={mixColor(tone.background, tone.shape, tone.light ? 0.8 : 0.9)} height={TILE_HEIGHT} />
           <PaperGrain opacity={tileGrain} />
           <View style={[styles.circle, { backgroundColor: tone.circle }]}>
             <WigglingIcon playing={playing} delay={wiggleDelay}>
@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   // The value in the serif, like the mockup's «Moderate»
   value: {
     fontFamily: serif,
+    fontWeight: '700',
     fontSize: 22,
     lineHeight: 26,
   },
