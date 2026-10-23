@@ -1,5 +1,5 @@
-import type { PostReply, PostSort } from '@growme/shared';
-import { useCallback, useMemo } from 'react';
+import type { Post, PostReply, PostSort } from '@growme/shared';
+import { useCallback, useMemo, useState } from 'react';
 
 import { postRepliesApi, postsApi } from '@/api/posts';
 import type { ThreadSource } from '@/components/discussion/reply-thread';
@@ -12,10 +12,18 @@ export function usePosts(sort: PostSort = 'newest') {
   return { posts: items, ...rest };
 }
 
-/** One post */
+let seeded: Post | null = null;
+
+/** The list hands the post it already has to the page about to open, so that page doesn't start empty */
+export const seedPost = (post: Post) => {
+  seeded = post;
+};
+
+/** One post: the one the list handed over shows at once (`post`), and the fresh copy replaces it when it arrives */
 export function usePost(id: number) {
   const { item, ...rest } = useApiItem(postsApi.get, id);
-  return { post: item, ...rest };
+  const [start] = useState(() => (seeded?.id === id ? seeded : null));
+  return { post: item ?? start, ...rest };
 }
 
 /** A post's reply tree, for <ReplyLevel> */

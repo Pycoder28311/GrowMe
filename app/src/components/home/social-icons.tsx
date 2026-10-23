@@ -1,20 +1,31 @@
 import { View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-/** The Facebook mark: a blue disc with a white «f» */
-export function FacebookIcon({ size = 28 }: { size?: number }) {
+/** The Facebook mark: a disc with a white «f» (Facebook's blue, or `color`) */
+export function FacebookIcon({ size = 28, color = '#1877f2' }: { size?: number; color?: string }) {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <Circle cx={12} cy={12} r={12} fill="#1877f2" />
+      <Circle cx={12} cy={12} r={12} fill={color} />
       <Path d="M13.4 21v-7.6h2.6l.4-3h-3V8.7c0-.9.3-1.4 1.5-1.4h1.6V4.6c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2H8v3h2.4V21h3z" fill="#ffffff" />
     </Svg>
     </View>
   );
 }
 
-/** The Instagram mark: a rounded square in the brand's gradient with a white camera outline */
-export function InstagramIcon({ size = 28 }: { size?: number }) {
+/** The Instagram mark: a rounded square in the brand's gradient with a white camera outline; with `color`, just the camera outline in that colour */
+export function InstagramIcon({ size = 28, color }: { size?: number; color?: string }) {
+  if (color) {
+    return (
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Rect x={2.5} y={2.5} width={19} height={19} rx={5.5} fill="none" stroke={color} strokeWidth={2} />
+          <Circle cx={12} cy={12} r={4.3} fill="none" stroke={color} strokeWidth={2} />
+          <Circle cx={17.2} cy={6.8} r={1.2} fill={color} />
+        </Svg>
+      </View>
+    );
+  }
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
     <Svg width={size} height={size} viewBox="0 0 24 24">

@@ -13,7 +13,10 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { ActionButton, ActionButtonText } from '@/components/ui/action-button';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
-import { colors, iconSize, radius, space } from '@/theme';
+import { colors, iconSize, mixColor, radius, size, space } from '@/theme';
+
+/** The page's green a little lighter than the other buttons' */
+const LIGHT_GREEN = mixColor(colors.primary, '#ffffff', 0.18);
 
 type FiltersButtonProps = {
   /** While the filters sheet is open the same button submits it */
@@ -62,7 +65,7 @@ export function FiltersButton({ submit = false, onPress, style, count = 0, flipI
 
   return (
     <Animated.View style={[style, flip]}>
-      <ActionButton size="md" color="green" edge={false} glow="soft" onPress={onPress}>
+      <ActionButton size="md" color="green" fill={LIGHT_GREEN} height={size.touch} edge={false} glow="soft" onPress={onPress}>
         {shown ? <SubmitLabel /> : <FiltersLabel count={count} />}
       </ActionButton>
     </Animated.View>

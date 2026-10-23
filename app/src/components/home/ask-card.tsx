@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, TextInput, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -23,6 +23,7 @@ import { PlantBadge } from '@/components/plants/plant-badge';
 import { PlantPicker } from '@/components/plants/plant-picker';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
+import { MessageInput } from '@/components/ui/message-input';
 import { PressableScale } from '@/components/ui/pressable-scale';
 import { card } from '@/components/ui/styles';
 import { firstSentence } from '@/lib/posts';
@@ -30,6 +31,8 @@ import { goToSignIn, useSignedInId } from '@/lib/sign-in-gate';
 import { alpha, botanical, colors, fontFamily, fontSize, formGray, iconSize, quietGray, radius, shadow, size, space, titleFont } from '@/theme';
 
 const MAX_PHOTOS = 4;
+/** The posts page's field, once opened, is this many lines tall at least */
+const EXPANDED_LINES = 5;
 /** The plant link row's height (the photo button's is size.touch) */
 const LINK_ROW = 34;
 const THUMB = size.touch * 1.25;
@@ -106,12 +109,18 @@ export function AskCard({
   composer,
   onPosted,
   cardStyle,
+  titleStyle,
+  fieldColor,
 }: {
   plant?: PostPlant;
   composer?: boolean;
   onPosted?: (post: Post) => void;
   /** A page's own look for the card (e.g. the plant page's cream) */
   cardStyle?: StyleProp<ViewStyle>;
+  /** A page's own look for the heading (e.g. the plant page's left-aligned section title) */
+  titleStyle?: StyleProp<TextStyle>;
+  /** The posts page's bar: the colour of its fields, instead of white */
+  fieldColor?: string;
 }) {
   const [showTitle, setShowTitle] = useState(false);
   const [title, setTitle] = useState('');
@@ -136,10 +145,6 @@ export function AskCard({
   const thumbRefs = useRef<(View | null)[]>([]);
   const planeSpotRef = useRef<View>(null);
   const plane = useRef<PaperPlaneHandle>(null);
-  // The composer before a tap: just the question and the plane in one row
-  const compact = !!composer && !showTitle;
-  // The posts page's bar: no white card, the fields (black border) and buttons float on the page
-  const floating = !!composer;
 
   // Focus gone from both inputs, to somewhere outside the card, with no title written: the title field
   // goes away again, like before the first tap. (A short wait: moving between the inputs is a blur, then a focus.)
@@ -237,13 +242,196 @@ export function AskCard({
   );
   const showLink = !plant && (!composer || showTitle || !!linked);
 
+  // The pieces the form (and the posts page's bar) are made of
+  const photosRow =
+    photos.length > 0 ? (
+      <View style={styles.photos}>
+        {photos.map((photo, index) => (
+          <View
+            key={photo.uri}
+            ref={(view) => {
+              thumbRefs.current[index] = view;
+            }}
+            collapsable={false}>
+            <Image source={{ uri: photo.uri }} contentFit="cover" style={styles.thumb} />
+            <PressableScale
+              accessibilityRole="button"
+              accessibilityLabel={`Αφαίρεση φωτογραφίας ${index + 1}`}
+              onPress={() => setPhotos((current) => current.filter((p) => p !== photo))}
+              style={styles.remove}>
+              <Icon name="close" size={iconSize.small} color={colors.white} bold />
+            </PressableScale>
+          </View>
+        ))}
+      </View>
+    ) : null;
+  // Elsewhere than a plant's page: the plant the question is about (optional), picked in the panel from below.
+  // It is a button like the photo one, above it, with the same link icon the plant page's note has
+  const linkRow = showLink ? (
+    linked ? (
+      <View style={styles.linkedPlant}>
+        <PlantBadge plant={linked} onRemove={() => setLinked(null)} />
+      </View>
+    ) : (
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => setPicking(true)}
+        style={({ pressed }) => [styles.addPhoto, styles.linkButton, pressed && styles.addPhotoPressed]}>
+        <Icon name="link" size={iconSize.big} color={formGray} />
+        <AppText bold color={formGray}>
+          Σύνδεση με φυτό
+        </AppText>
+      </Pressable>
+    )
+  ) : null;
+  const photoButton =
+    photos.length < MAX_PHOTOS ? (
+      <Pressable accessibilityRole="button" onPress={pickPhotos} style={({ pressed }) => [styles.addPhoto, pressed && styles.addPhotoPressed]}>
+        <Icon name="photo" size={iconSize.big} color={formGray} />
+        <AppText bold color={formGray}>
+          Φωτογραφία
+        </AppText>
+      </Pressable>
+    ) : (
+      <AppText size="small" color={colors.inkMuted}>
+        Έως {MAX_PHOTOS} φωτογραφίες
+      </AppText>
+    );
+  const errorNote = error ? (
+    <AppText size="small" color={colors.accent} accessibilityLiveRegion="polite">
+      {error}
+    </AppText>
+  ) : null;
+  // What was sent, flying into the plane (over the emptied form)
+  const flyingPieces =
+    flying &&
+    flying.pieces.map((piece, i) => (
+      <FlyingPiece
+        key={piece.key}
+        piece={piece}
+        target={flying.target}
+        delay={i * PIECE_STAGGER_MS}
+        onDone={
+          i === flying.pieces.length - 1
+            ? () => {
+                plane.current?.fly();
+                setFlying(null);
+              }
+            : undefined
+        }
+      />
+    ));
+  const picker = picking && (
+    <PlantPicker
+      onPick={setLinked}
+      onClose={() => {
+        setPicking(false);
+        // Back in the question: tapping elsewhere then leaves it, which closes the form again
+        // (after the panel has gone: its window still holds the focus until then)
+        setTimeout(() => questionInput.current?.focus(), 100);
+      }}
+    />
+  );
+
+  // The posts page's bar: the app's one message field, with the title above the text and the photo and plant
+  // buttons under it once it is open
+  if (composer) {
+    return (
+      <View style={styles.root}>
+        {/* A press anywhere in the form keeps the title field open */}
+        <View
+          collapsable={false}
+          onStartShouldSetResponderCapture={() => {
+            pressedInCard.current = true;
+            return false;
+          }}>
+          <View ref={cardRef} collapsable={false}>
+            <MessageInput
+              placeholder={placeholder}
+              value={question}
+              onChangeText={(text) => {
+                setQuestion(text);
+                setError(null);
+              }}
+              onSend={() => send()}
+              fieldColor={fieldColor}
+              // Tapped into: the field widens to the whole screen (taking back the bar's side padding), loses its rounded
+              // corners and gets taller
+              minLines={showTitle ? EXPANDED_LINES : 1}
+              style={[styles.floating, showTitle && styles.expanded]}
+              maxLength={10000}
+              sendButton={planeButton}
+              textAreaRef={questionRef}
+              inputRef={questionInput}
+              onFocus={() => {
+                pressedInCard.current = false;
+                setShowTitle(true);
+                setFocus('question');
+              }}
+              onBlur={() => setFocus(null)}
+              above={
+                showTitle ? (
+                  <Animated.View entering={FadeIn.duration(200)}>
+                    <View style={styles.titleRow}>
+                      <TextInput
+                        value={title}
+                        onChangeText={setTitle}
+                        onFocus={() => {
+                          pressedInCard.current = false;
+                          setFocus('title');
+                        }}
+                        onBlur={() => setFocus(null)}
+                        placeholder="Τίτλος (προαιρετικός)"
+                        placeholderTextColor={colors.inkMuted}
+                        accessibilityLabel="Τίτλος (προαιρετικός)"
+                        maxLength={200}
+                        style={[styles.input, styles.titleInput, styles.composerTitle]}
+                      />
+                      {/* A quiet × that closes the open field again (the text stays) */}
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Κλείσιμο"
+                        hitSlop={space.sm}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setTitle('');
+                          setShowTitle(false);
+                        }}
+                        style={styles.closeForm}>
+                        <Icon name="close" size={iconSize.normal} color={colors.inkMuted} />
+                      </Pressable>
+                    </View>
+                    <View style={styles.divider} />
+                  </Animated.View>
+                ) : null
+              }
+              below={
+                showTitle ? (
+                  <>
+                    {photosRow}
+                    {linkRow}
+                    <View style={styles.footer}>{photoButton}</View>
+                    {errorNote}
+                  </>
+                ) : (
+                  errorNote
+                )
+              }
+            />
+            {flyingPieces}
+          </View>
+        </View>
+        {picker}
+      </View>
+    );
+  }
+
+  // The home page's card: the heading, the form, and «see all»
   return (
     <View style={styles.root}>
-      {!composer && (
-        <AppText size="big" bold accessibilityRole="header" style={[styles.title, titleFont]}>
-          Ρώτησέ μας ό,τι θες!
-        </AppText>
-      )}
+      <AppText size="big" bold accessibilityRole="header" style={[styles.title, titleFont, titleStyle]}>
+        Ρώτησέ μας ό,τι θες!
+      </AppText>
 
       {/* The form and its plant button: a press on either keeps the title field open */}
       <View
@@ -253,209 +441,142 @@ export function AskCard({
           return false;
         }}
         style={styles.form}>
-
-      <View ref={cardRef} collapsable={false} style={[floating ? styles.floatingCard : styles.card, compact && floating && styles.compactCard, compact && !floating && styles.compactCard, !floating && cardStyle]}>
-        {showTitle && (
-          <Animated.View entering={FadeIn.duration(200)}>
+        <View ref={cardRef} collapsable={false} style={[styles.card, cardStyle]}>
+          {showTitle && (
+            <Animated.View entering={FadeIn.duration(200)}>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                onFocus={() => {
+                  pressedInCard.current = false;
+                  setFocus('title');
+                }}
+                onBlur={() => setFocus(null)}
+                placeholder="Τίτλος (προαιρετικός)"
+                placeholderTextColor={colors.inkMuted}
+                accessibilityLabel="Τίτλος (προαιρετικός)"
+                maxLength={200}
+                style={[styles.input, styles.titleInput, focus === 'title' && styles.focused]}
+              />
+              {/* A clear line between the title and the question */}
+              <View style={styles.divider} />
+            </Animated.View>
+          )}
+          <View ref={questionRef} collapsable={false}>
             <TextInput
-              value={title}
-              onChangeText={setTitle}
+              ref={questionInput}
+              value={question}
+              onChangeText={(text) => {
+                setQuestion(text);
+                setSent(null);
+                setError(null);
+              }}
               onFocus={() => {
                 pressedInCard.current = false;
-                setFocus('title');
+                setShowTitle(true);
+                setFocus('question');
               }}
               onBlur={() => setFocus(null)}
-              placeholder="Τίτλος (προαιρετικός)"
+              placeholder={placeholder}
               placeholderTextColor={colors.inkMuted}
-              accessibilityLabel="Τίτλος (προαιρετικός)"
-              maxLength={200}
-              style={[styles.input, styles.titleInput, focus === 'title' && styles.focused, floating && styles.blackBorder]}
+              accessibilityLabel="Η ερώτησή σου"
+              multiline
+              maxLength={10000}
+              textAlignVertical="top"
+              style={[
+                styles.input,
+                styles.question,
+                // Before the first tap (no title above): the placeholder sits a little lower
+                !showTitle && styles.questionAlone,
+                focus === 'question' && styles.focused,
+              ]}
             />
-            {/* A clear line between the title and the question */}
-            {!floating && <View style={styles.divider} />}
-          </Animated.View>
-        )}
-        <View ref={questionRef} collapsable={false} style={compact && styles.compactQuestion}>
-          <TextInput
-            ref={questionInput}
-            value={question}
-            onChangeText={(text) => {
-              setQuestion(text);
-              setSent(null);
-              setError(null);
-            }}
-            onFocus={() => {
-              pressedInCard.current = false;
-              setShowTitle(true);
-              setFocus('question');
-            }}
-            onBlur={() => setFocus(null)}
-            placeholder={placeholder}
-            placeholderTextColor={colors.inkMuted}
-            accessibilityLabel={composer ? POST : "Η ερώτησή σου"}
-            multiline
-            maxLength={10000}
-            textAlignVertical="top"
-            style={[
-              styles.input,
-              compact ? styles.compactInput : styles.question,
-              // Before the first tap (no title above): the placeholder sits a little lower
-              !compact && !showTitle && styles.questionAlone,
-              focus === 'question' && styles.focused,
-              floating && styles.blackBorder,
-              compact && floating && styles.compactBare,
-            ]}
-          />
-        </View>
-
-        {compact && planeButton}
-        {photos.length > 0 && (
-          <View style={styles.photos}>
-            {photos.map((photo, index) => (
-              <View
-                key={photo.uri}
-                ref={(view) => {
-                  thumbRefs.current[index] = view;
-                }}
-                collapsable={false}>
-                <Image source={{ uri: photo.uri }} contentFit="cover" style={styles.thumb} />
-                <PressableScale
-                  accessibilityRole="button"
-                  accessibilityLabel={`Αφαίρεση φωτογραφίας ${index + 1}`}
-                  onPress={() => setPhotos((current) => current.filter((p) => p !== photo))}
-                  style={styles.remove}>
-                  <Icon name="close" size={iconSize.small} color={colors.white} bold />
-                </PressableScale>
-              </View>
-            ))}
           </View>
-        )}
 
-        {/* A plant page: the post is about this plant */}
-        {plant && (
-          <View style={styles.plantNote}>
-            <Icon name="link" size={iconSize.normal} color={colors.primary} />
-            <AppText size="small" color={colors.inkMuted} style={styles.plantNoteText}>
-              Η ερώτησή σου θα συνδεθεί με το φυτό{' '}
-              <AppText size="small" bold color={colors.primary}>
-                {plant.name}
+          {photosRow}
+
+          {/* A plant page: the post is about this plant */}
+          {plant && (
+            <View style={styles.plantNote}>
+              <Icon name="link" size={iconSize.normal} color={colors.primary} />
+              <AppText size="small" color={colors.inkMuted} style={styles.plantNoteText}>
+                Η ερώτησή σου θα συνδεθεί με το φυτό{' '}
+                <AppText size="small" bold color={colors.primary}>
+                  {plant.name}
+                </AppText>
               </AppText>
-            </AppText>
-          </View>
-        )}
-
-        {/* Elsewhere than a plant's page: the plant the question is about (optional), picked in the panel from below.
-            It is a button like the photo one, above it, with the same link icon the plant page's note has */}
-        {showLink &&
-          !compact &&
-          (linked ? (
-            <View style={styles.linkedPlant}>
-              <PlantBadge plant={linked} onRemove={() => setLinked(null)} />
             </View>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setPicking(true)}
-              style={({ pressed }) => [styles.addPhoto, styles.linkButton, pressed && styles.addPhotoPressed]}>
-              <Icon name="link" size={iconSize.big} color={formGray} />
-              <AppText bold color={formGray}>
-                Σύνδεση με φυτό
-              </AppText>
-            </Pressable>
-          ))}
-
-        {!compact && (
-        <View style={styles.footer}>
-          {photos.length < MAX_PHOTOS ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={pickPhotos}
-              style={({ pressed }) => [styles.addPhoto, pressed && styles.addPhotoPressed]}>
-              <Icon name="photo" size={iconSize.big} color={formGray} />
-              <AppText bold color={formGray}>
-                Φωτογραφία
-              </AppText>
-            </Pressable>
-          ) : (
-            <AppText size="small" color={colors.inkMuted}>
-              Έως {MAX_PHOTOS} φωτογραφίες
-            </AppText>
           )}
-          {planeButton}
-        </View>
-        )}
 
-        {error && (
-          <AppText size="small" color={colors.accent} accessibilityLiveRegion="polite">
-            {error}
-          </AppText>
-        )}
-        {sent && !composer && (
-          <PressableScale
-            accessibilityRole="link"
-            onPress={() => router.push({ pathname: '/community/[id]', params: { id: String(sent.id) } })}
-            style={styles.sent}>
-            <AppText size="small" color={colors.primary} accessibilityLiveRegion="polite">
-              Η ερώτησή σου δημοσιεύτηκε.{' '}
-              <AppText size="small" bold color={colors.primary}>
-                Δες την
+          {linkRow}
+
+          <View style={styles.footer}>
+            {photoButton}
+            {planeButton}
+          </View>
+
+          {errorNote}
+          {sent && (
+            <PressableScale
+              accessibilityRole="link"
+              onPress={() => router.push({ pathname: '/community/[id]', params: { id: String(sent.id) } })}
+              style={styles.sent}>
+              <AppText size="small" color={colors.primary} accessibilityLiveRegion="polite">
+                Η ερώτησή σου δημοσιεύτηκε.{' '}
+                <AppText size="small" bold color={colors.primary}>
+                  Δες την
+                </AppText>
               </AppText>
-            </AppText>
-            <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
-          </PressableScale>
-        )}
+              <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
+            </PressableScale>
+          )}
 
-        {/* What was sent, flying into the plane (over the emptied form) */}
-        {flying &&
-          flying.pieces.map((piece, i) => (
-            <FlyingPiece
-              key={piece.key}
-              piece={piece}
-              target={flying.target}
-              delay={i * PIECE_STAGGER_MS}
-              onDone={
-                i === flying.pieces.length - 1
-                  ? () => {
-                      plane.current?.fly();
-                      setFlying(null);
-                    }
-                  : undefined
-              }
-            />
-          ))}
-      </View>
+          {flyingPieces}
+        </View>
       </View>
 
       {/* As wide as the form, with the same corners */}
-      {!composer && (
-        <PressableScale
-          accessibilityRole="link"
-          onPress={() => router.navigate('/community')}
-          pressedScale={0.98}
-          style={styles.seeAll}>
-          <AppText bold color={colors.primary}>
-            Δες όλες τις αναρτήσεις
-          </AppText>
-          <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
-        </PressableScale>
-      )}
+      <PressableScale accessibilityRole="link" onPress={() => router.navigate('/community')} pressedScale={0.98} style={styles.seeAll}>
+        <AppText bold color={colors.primary}>
+          Δες όλες τις αναρτήσεις
+        </AppText>
+        <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
+      </PressableScale>
 
-      {picking && (
-        <PlantPicker
-          onPick={setLinked}
-          onClose={() => {
-            setPicking(false);
-            // Back in the question: tapping elsewhere then leaves it, which closes the form again
-            // (after the panel has gone: its window still holds the focus until then)
-            setTimeout(() => questionInput.current?.focus(), 100);
-          }}
-        />
-      )}
+      {picker}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // The posts bar's title: as tall as the send button, its text starting where the question's does
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  composerTitle: {
+    flex: 1,
+    minHeight: size.touch,
+    paddingHorizontal: 0,
+    paddingVertical: space.sm,
+    borderColor: 'transparent',
+  },
+  closeForm: {
+    opacity: 0.7,
+    padding: space.xs,
+  },
+  // The posts page's floating bar: a soft shadow all around it
+  floating: {
+    boxShadow: `0 0 16px 2px ${alpha(botanical.ink, 0.2)}`,
+  },
+  // The open field of the posts page's bar: edge to edge, square corners
+  expanded: {
+    marginHorizontal: -space.md,
+    borderRadius: 0,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
+  },
   root: {
     gap: space.sm,
   },
@@ -470,52 +591,12 @@ const styles = StyleSheet.create({
   form: {
     gap: space.sm,
   },
-  // The composer before a tap: one field like the article's comment field, the plane inside at its right
-  compactCard: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: space.sm,
-    padding: space.xs,
-    paddingLeft: space.md,
-    borderRadius: radius.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    boxShadow: shadow.tile,
-  },
-  // The text sits in the field itself: no border of its own
-  compactBare: {
-    paddingHorizontal: 0,
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
-  },
-  // One line as tall as the plane, so the plane is as far from the top and bottom as from the right
-  compactInput: {
-    height: size.touch,
-    lineHeight: 22,
-    paddingVertical: (size.touch - 2 - 22) / 2,
-  },
-  compactQuestion: {
-    flex: 1,
-    minWidth: 0,
-  },
   card: {
     ...card,
     gap: space.sm,
     // Close to the edges: the buttons and the fields sit near the card's border
     padding: space.xs,
     borderRadius: radius.xs,
-  },
-  // The posts page's form: nothing behind the fields and buttons
-  floatingCard: {
-    gap: space.sm,
-  },
-  blackBorder: {
-    // The text and placeholder start further in from the border
-    paddingHorizontal: space.md,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
   },
   // A gray border appears on focus (no browser outline); roomy inside
   input: {

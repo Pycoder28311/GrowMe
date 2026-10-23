@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.sm,
+    // As far apart as the page's side padding
+    gap: space.md,
   },
   // raisedTile is a square: this one stretches across what the filter button leaves
   bar: {

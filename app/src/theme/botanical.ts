@@ -7,6 +7,8 @@ import { botanical, TILE_TONES } from '@/config/botanical-theme';
 // config/botanical-theme.ts; this file re-exports them and adds the fonts and helpers.
 
 export {
+  ARTICLE_DECORATIONS,
+  ARTICLE_FRONT_DECORATIONS,
   artColors,
   BACKGROUND_DECORATIONS,
   BACKGROUND_MOTION,
@@ -17,6 +19,9 @@ export {
   gridTileIndex,
   HEADER_FLOWERS,
   PAGE_DECORATIONS,
+  PROFILE_DECORATIONS,
+  POSTS_COLORS,
+  POSTS_DECORATIONS,
   sunColors,
   TILE_FLOWER_COLORS,
   TILE_TONES,
@@ -25,6 +30,7 @@ export {
   tileShadowStyle,
   TITLE_FLOWER,
   warmShadow,
+  type ArtName,
   type TileTone,
 } from '@/config/botanical-theme';
 

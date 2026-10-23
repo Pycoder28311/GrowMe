@@ -1,18 +1,34 @@
 // The app's look in one place: the plant page's colours, corner radii, shadows and background flowers. Edit a
 // value here and the whole app follows. No imports, so anything can use it; components read it through `@/theme`.
 
+/**
+ * THE warmth of the app's colours, in one number. 0 keeps the colours as written below; above 0 they all turn
+ * warmer (more red, less blue: 1 is a clear step, 2 is strong), below 0 cooler. Everything coloured here, the top wash
+ * and the corner flowers go through `warm()`; the shade, white, the link, errors and brand colours stay as they are.
+ */
+export const WARMTH = 0.6;
+
+/** `hex` made warmer or cooler by `WARMTH` */
+export function warm(hex: string, amount = WARMTH): string {
+  if (!amount) return hex;
+  const channel = (at: number) => parseInt(hex.slice(at, at + 2), 16);
+  const shift = (value: number, by: number) => Math.max(0, Math.min(255, Math.round(value * (1 + by * amount))));
+  const out = [shift(channel(1), 0.04), shift(channel(3), 0.005), shift(channel(5), -0.08)];
+  return `#${out.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
 /** The palette: the page's background and its elements (text, outlines, pills, accents) */
 export const botanical = {
   /** The page behind everything: the mockup's warm beige */
-  page: '#f1e9de',
+  page: warm('#f1e9de'),
   /** Lighter cream for pills, rows and buttons on the page */
-  cream: '#f7ebd8',
+  cream: warm('#f7ebd8'),
   /** Titles and values: a warm near-black */
-  ink: '#2b2a20',
+  ink: warm('#2b2a20'),
   /** Labels and secondary text */
-  inkMuted: '#7a7466',
+  inkMuted: warm('#7a7466'),
   /** Secondary body text elsewhere in the app: inkMuted a step darker, so long text reads on cream (4.9:1) */
-  inkSoft: '#6b6558',
+  inkSoft: warm('#6b6558'),
   /** Thin outlines on cream */
   line: 'rgba(43, 42, 32, 0.12)',
   /** Fainter dividers inside a box */
@@ -24,16 +40,16 @@ export const botanical = {
   creamMuted: 'rgba(251, 247, 241, 0.8)',
   /** Darkens a group of stages as it goes behind another */
   shade: '#000000',
-  terracotta: '#d6745f',
-  coral: '#ea8a6e',
-  blush: '#f5d8d0',
-  sand: '#e8dccd',
-  butter: '#f2dc9a',
-  olive: '#6c6a3a',
+  terracotta: warm('#d6745f'),
+  coral: warm('#ea8a6e'),
+  blush: warm('#f5d8d0'),
+  sand: warm('#e8dccd'),
+  butter: warm('#f2dc9a'),
+  olive: warm('#6c6a3a'),
   /** A pale olive behind olive text: selected chips, badges */
-  oliveSoft: '#ecead2',
-  oliveDark: '#57552d',
-  leaf: '#7f8a45',
+  oliveSoft: warm('#ecead2'),
+  oliveDark: warm('#57552d'),
+  leaf: warm('#7f8a45'),
   white: '#ffffff',
   /** Errors in forms: a deep terracotta red */
   danger: '#b5462f',
@@ -43,9 +59,9 @@ export const botanical = {
 
 /** The sun icon: its rays by part of the day, and its horizon line */
 export const sunColors = {
-  morning: '#f2c46a',
-  noon: '#e8a63a',
-  afternoon: '#e07b3a',
+  morning: warm('#f2c46a'),
+  noon: warm('#e8a63a'),
+  afternoon: warm('#e07b3a'),
   horizon: botanical.inkMuted,
 } as const;
 
@@ -55,9 +71,9 @@ export const sunColors = {
  * behind its icon and the icon.
  */
 export const GRID_TILE_TONES: readonly TileTone[] = [
-  { background: '#ede0d2', shape: botanical.olive, circle: '#e0d0bd', icon: botanical.olive, light: false },
-  { background: '#f0c9b8', shape: botanical.coral, circle: '#e9b09d', icon: botanical.terracotta, light: false },
-  { background: '#f3d89b', shape: botanical.leaf, circle: '#e8c97e', icon: botanical.olive, light: false },
+  { background: warm('#ede0d2'), shape: botanical.olive, circle: warm('#e0d0bd'), icon: botanical.olive, light: false },
+  { background: warm('#f0c9b8'), shape: botanical.coral, circle: warm('#e9b09d'), icon: botanical.terracotta, light: false },
+  { background: warm('#f3d89b'), shape: botanical.leaf, circle: warm('#e8c97e'), icon: botanical.olive, light: false },
 ];
 
 /** The colours of everything coloured on the plant page (tiles, rows, notes, chips, buttons…): the same three, used in turn */
@@ -135,8 +151,15 @@ export const tileShadow = { color: SHADOW_COLOR, ...SHADOWS.tile } as const;
 export const tileShadowStyle = warmShadow.tile.style;
 
 /** One painted shape at the screen's edge: `y` is where it sits from the top of its repeating pattern, `center` a flower's heart */
+/** The painted clusters of the article page (components/layout/botanical-art.tsx) */
+export type ArtName = 'blossomRight' | 'bulbLeft' | 'blossomBottom' | 'petalsLeft';
+
 export type BackgroundDecoration = {
-  kind: 'flower' | 'leaf';
+  kind: 'flower' | 'leaf' | 'leafOutline' | 'art';
+  /** For kind «art»: which cluster; `size` is then its width */
+  art?: ArtName;
+  /** How much of it shows past the screen's edge (a share of its width; BACKGROUND_MOTION.shown by default) */
+  shown?: number;
   size: number;
   color: string;
   center?: string;
@@ -171,7 +194,7 @@ export const TITLE_FLOWER = { size: 170, turn: 0.06 } as const;
 export const HEADER_FLOWERS = { left: { size: 170, turn: -0.06 }, right: { size: 140, turn: 0.06 } } as const;
 
 /** The flowers in the info squares, a little more intense than the page's accents: a coral daisy (beige squares), the round flower (pink squares) and an apricot cosmos (yellow squares) */
-export const TILE_FLOWER_COLORS = { daisy: '#f07147', flower: '#f57049', cosmos: '#f88a36' } as const;
+export const TILE_FLOWER_COLORS = { daisy: warm('#f07147'), flower: warm('#f57049'), cosmos: warm('#f88a36') } as const;
 
 /** How rough a tile's paper is: the opacity of the grain texture over it (0 = smooth, 1 = full) */
 export const tileGrain = 0.45;
@@ -180,25 +203,25 @@ export const tileGrain = 0.45;
 export const artColors = {
   leaf: botanical.leaf,
   leafDark: botanical.oliveDark,
-  leafSoft: '#a9b36b',
-  leafPale: '#c9d3a8',
+  leafSoft: warm('#a9b36b'),
+  leafPale: warm('#c9d3a8'),
   stem: botanical.olive,
-  wood: '#8b6b4a',
+  wood: warm('#8b6b4a'),
   pot: botanical.coral,
   potDark: botanical.terracotta,
   tomato: botanical.terracotta,
-  gray: '#b9ab97',
-  grayLight: '#ddd0bd',
+  gray: warm('#b9ab97'),
+  grayLight: warm('#ddd0bd'),
   steel: botanical.inkMuted,
-  sun: '#e8a63a',
-  sky: '#a9b36b',
-  snow: '#c9d3a8',
+  sun: warm('#e8a63a'),
+  sky: warm('#a9b36b'),
+  snow: warm('#c9d3a8'),
   petal: botanical.coral,
-  petalStrong: '#e86f50',
+  petalStrong: warm('#e86f50'),
   flowerCentre: botanical.butter,
   petalLight: botanical.blush,
   orange: botanical.coral,
-  glow: '#f5d8a8',
+  glow: warm('#f5d8a8'),
   white: botanical.cream,
 } as const;
 
@@ -223,4 +246,41 @@ export const PAGE_DECORATIONS: readonly BackgroundDecoration[] = [
   { kind: 'flower', size: 175, color: botanical.blush, center: botanical.coral, opacity: 0.95, rotate: 8, side: 'right', y: 1220 },
   { kind: 'flower', size: 115, color: TILE_FLOWER_COLORS.daisy, center: botanical.butter, opacity: 0.8, rotate: 40, side: 'left', y: 1390 },
   { kind: 'leaf', size: 135, color: botanical.leaf, opacity: 0.55, rotate: -60, side: 'right', y: 1560 },
+];
+
+/**
+ * The article page's painted clusters at its edges, where the mockup has them (screen px → dp at 0.46, `y` is the
+ * cluster's bottom: its top plus its height): behind the text, drifting and pushed out to the sides as the page scrolls like the other pages' shapes
+ */
+export const ARTICLE_DECORATIONS: readonly BackgroundDecoration[] = [
+  { kind: 'art', color: botanical.coral, art: 'blossomRight', size: 100, shown: 1, opacity: 1, rotate: 0, side: 'right', y: 522 },
+  { kind: 'art', color: botanical.coral, art: 'bulbLeft', size: 55, shown: 1, opacity: 1, rotate: 0, side: 'left', y: 591 },
+  { kind: 'art', color: botanical.coral, art: 'blossomBottom', size: 105, shown: 1, opacity: 1, rotate: 0, side: 'right', y: 735 },
+  { kind: 'art', color: botanical.coral, art: 'blossomRight', size: 80, shown: 1, opacity: 1, rotate: 0, side: 'right', y: 1258 },
+];
+
+/** Over the photo, in front of the page: the left edge's petals and leaf */
+export const ARTICLE_FRONT_DECORATIONS: readonly BackgroundDecoration[] = [
+  { kind: 'art', color: botanical.coral, art: 'petalsLeft', size: 85, shown: 1, opacity: 1, rotate: 0, side: 'left', y: 225 },
+];
+
+/** The profile page's shapes at its edges: only the outlined leaves (the line-only leaf the plant page's cards have) */
+export const PROFILE_DECORATIONS: readonly BackgroundDecoration[] = [
+  { kind: 'leafOutline', size: 180, color: botanical.leaf, opacity: 0.6, rotate: -28, side: 'right', y: 240 },
+  { kind: 'leafOutline', size: 150, color: botanical.leaf, opacity: 0.65, rotate: -62, side: 'left', y: 520 },
+  { kind: 'leafOutline', size: 140, color: botanical.leaf, opacity: 0.55, rotate: 18, side: 'left', y: 760 },
+  { kind: 'leafOutline', size: 170, color: botanical.leaf, opacity: 0.6, rotate: 118, side: 'right', y: 1000 },
+  { kind: 'leafOutline', size: 160, color: botanical.leaf, opacity: 0.55, rotate: 30, side: 'right', y: 1280 },
+  { kind: 'leafOutline', size: 140, color: botanical.leaf, opacity: 0.6, rotate: -40, side: 'left', y: 1500 },
+];
+
+/** The posts pages: the page behind (a soft, less warm cream) and the posts on it (the same cream as the plant cards) */
+export const POSTS_COLORS = { page: warm('#f0e8de'), post: botanical.cream } as const;
+
+/** The outlined leaves at the page's edges, like the plant page's cards have */
+export const POSTS_DECORATIONS: readonly BackgroundDecoration[] = [
+  { kind: 'leafOutline', size: 200, color: botanical.leaf, opacity: 0.55, rotate: -62, side: 'left', y: 260 },
+  { kind: 'leafOutline', size: 180, color: botanical.leaf, opacity: 0.55, rotate: 118, side: 'right', y: 560 },
+  { kind: 'leafOutline', size: 210, color: botanical.leaf, opacity: 0.5, rotate: -40, side: 'right', y: 900 },
+  { kind: 'leafOutline', size: 190, color: botanical.leaf, opacity: 0.5, rotate: 140, side: 'left', y: 1200 },
 ];

@@ -8,11 +8,24 @@ import { TileCard } from '@/components/plants/tile-card';
 import { TILE_SHAPES } from '@/components/ui/flower-shapes';
 import { sunSquareOf } from '@/config/plant-page';
 import { infoTiles } from '@/config/plant-tiles';
-import { GRID_TILE_TONES, gridTileIndex, space } from '@/theme';
+import { GRID_TILE_TONES, space } from '@/theme';
 
-/** The shape of the square at `index`: one of those its colour carries in the mockup (beige has two, so they alternate) */
-const shapeOf = (plantId: number, index: number) => {
-  const shapes = TILE_SHAPES[gridTileIndex(plantId, index)];
+/**
+ * The colour of each of `count` squares: every colour (and so every flower) the same number of times, give or
+ * take one, in an order worked out from the plant so its page looks the same each time
+ */
+const toneOrder = (plantId: number, count: number) => {
+  const order = Array.from({ length: count }, (_, i) => i % GRID_TILE_TONES.length);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.abs(Math.imul(plantId + 1, 2654435761) ^ Math.imul(i + 7, 40503)) % (i + 1);
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order;
+};
+
+/** The shape of a square of that colour: the flower its colour carries in the mockup */
+const shapeOf = (tone: number, index: number) => {
+  const shapes = TILE_SHAPES[tone];
   return shapes[index % shapes.length];
 };
 
@@ -33,15 +46,16 @@ export function PlantTiles({ plant, playing }: { plant: PlantSummary; playing: b
   const tiles = infoTiles(plant);
   const sun = sunSquareOf(plant);
   if (tiles.length === 0 && !sun) return null;
+  const tones = toneOrder(plant.id, tiles.length + (sun ? 1 : 0));
   return (
     <View accessibilityRole="list" style={styles.grid} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-      {sun && <SunSquare plant={plant} style={StyleSheet.flatten(halfStyle)} tone={GRID_TILE_TONES[gridTileIndex(plant.id, 0)]} shape={shapeOf(plant.id, 0)} playing={playing && !reduced} />}
+      {sun && <SunSquare plant={plant} style={StyleSheet.flatten(halfStyle)} tone={GRID_TILE_TONES[tones[0]]} shape={shapeOf(tones[0], 0)} playing={playing && !reduced} />}
       {tiles.map((tile, i) => (
         <TileCard
           key={tile.key}
-          // Each square one of the three colours, picked at random but the same every time (gridTileIndex), with its shape
-          tone={GRID_TILE_TONES[gridTileIndex(plant.id, i + 1)]}
-          shape={shapeOf(plant.id, i + 1)}
+          // Each square one of the three colours, each colour used equally often, in an order that is the same every time, with its shape
+          tone={GRID_TILE_TONES[tones[sun ? i + 1 : i]]}
+          shape={shapeOf(tones[sun ? i + 1 : i], i + 1)}
           icon={tile.icon}
           label={tile.label}
           value={tile.value}

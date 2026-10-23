@@ -203,16 +203,16 @@ export default function PlantScreen() {
         )}
         {plant.description && (
           <Block onLayout={register('description')}>
-            {/* A card in the tiles' style: the beige tint and paper grain */}
-            <View style={[styles.descriptionShadow, { backgroundColor: tileTone(0).background }]}>
-              <View style={[styles.descriptionCard, { backgroundColor: tileTone(0).background }]}>
-                <PaperGrain opacity={tileGrain} />
-                <Section title="Περιγραφή" titleStyle={sectionTitle}>
+            <Section title="Περιγραφή" titleStyle={sectionTitle}>
+              {/* A card in the tiles' style: the beige tint and paper grain */}
+              <View style={[styles.descriptionShadow, { backgroundColor: tileTone(0).background }]}>
+                <View style={[styles.descriptionCard, { backgroundColor: tileTone(0).background }]}>
+                  <PaperGrain opacity={tileGrain} />
                   {/* The editor's formatted text (or an older plain one with blog links) */}
                   <LightUpText doc={parseRichContent(plant.description)} play={seen.has('description')} />
-                </Section>
+                </View>
               </View>
-            </View>
+            </Section>
           </Block>
         )}
 
@@ -227,7 +227,7 @@ export default function PlantScreen() {
 
         {/* Last: a question about this plant, posted linked to it */}
         <Block onLayout={register('ask')}>
-          <AskCard plant={askAbout} cardStyle={styles.askCard} />
+          <AskCard plant={askAbout} cardStyle={styles.askCard} titleStyle={styles.askTitle} />
         </Block>
       </Animated.ScrollView>
 
@@ -284,6 +284,12 @@ const styles = StyleSheet.create({
     paddingBottom: space.lg,
     borderRadius: radius.md,
     overflow: 'hidden',
+  },
+  // The heading like the other sections' titles: left-aligned, without the glow
+  askTitle: {
+    ...sectionTitle,
+    textAlign: 'left',
+    textShadowRadius: 0,
   },
   // The question card in the page's cream, without its shadow
   askCard: {

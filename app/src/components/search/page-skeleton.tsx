@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { botanical, colors, radius, size, space, titleFont } from '@/theme';
 
 /** Photo height at the top of an article (its page and the loading page share it) */
-export const BLOG_PHOTO_HEIGHT = size.touch * 4;
+export const BLOG_PHOTO_HEIGHT = size.touch * 5.5;
 
 /**
  * A plant's page before its data is here: what the tapped result already knows (photo, name, scientific

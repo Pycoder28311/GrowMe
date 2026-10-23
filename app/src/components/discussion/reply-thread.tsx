@@ -2,6 +2,7 @@ import type { Author, LikedType, Page } from '@growme/shared';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { PostPaper } from '@/components/discussion/post-paper';
 import { DiscussionItem } from '@/components/discussion/discussion-item';
 import { AppText } from '@/components/ui/app-text';
 import { MessageInput } from '@/components/ui/message-input';
@@ -46,6 +47,8 @@ type LevelProps<T extends ThreadItem> = {
   added?: T[];
   /** A reply was written anywhere below (the parent's count goes up) */
   onReplied: () => void;
+  /** The top level's replies as the posts' rounded cards, apart from each other (a post's page); else plain rows with dividers */
+  cards?: boolean;
 };
 
 /** One reply: its actions, an answer box after «Απάντηση», and its answers after «Απαντήσεις (n)» */
@@ -57,8 +60,9 @@ function ReplyNode<T extends ThreadItem>(props: {
   likeCount: number;
   onReact: (pressed: Exclude<Reaction, null>) => void;
   onReplied: () => void;
+  cards: boolean;
 }) {
-  const { source, reply, depth } = props;
+  const { source, reply, depth, cards } = props;
   const [open, setOpen] = useState(false);
   const [answering, setAnswering] = useState(false);
   const signedIn = useSignedInId() !== null;
@@ -78,8 +82,8 @@ function ReplyNode<T extends ThreadItem>(props: {
     }
   };
 
-  return (
-    <View style={[depth > 0 && styles.nested, depth > MAX_INDENT_DEPTH && styles.flat]}>
+  const item = (
+    <>
       <DiscussionItem
         author={reply.author.name}
         text={reply.content}
@@ -103,9 +107,38 @@ function ReplyNode<T extends ThreadItem>(props: {
           )}
         </View>
       )}
-      {open && (
-        <ReplyLevel source={source} parentId={reply.id} depth={depth + 1} added={answers} onReplied={props.onReplied} />
-      )}
+    </>
+  );
+  const answersLevel = open && (
+    <ReplyLevel source={source} parentId={reply.id} depth={depth + 1} added={answers} onReplied={props.onReplied} cards={cards} />
+  );
+
+  // Cards: the reply is a card of its own and its answers are more cards under it. Each answer has a thick line
+  // down its left, outside the card and exactly as tall as it
+  if (cards) {
+    const card = (
+      <PostPaper style={[styles.card, depth > 0 && styles.childCard]}>
+        <View style={styles.cardBody}>{item}</View>
+      </PostPaper>
+    );
+    return (
+      <View>
+        {depth > 0 ? (
+          <View style={styles.answerRow}>
+            <View style={styles.line} />
+            {card}
+          </View>
+        ) : (
+          card
+        )}
+        {answersLevel && <View style={[styles.thread, depth > 0 && depth < MAX_INDENT_DEPTH && styles.threadIndent]}>{answersLevel}</View>}
+      </View>
+    );
+  }
+  return (
+    <View style={[depth > 0 && styles.nested, depth > MAX_INDENT_DEPTH && styles.flat]}>
+      {item}
+      {answersLevel}
     </View>
   );
 }
@@ -115,7 +148,7 @@ function ReplyNode<T extends ThreadItem>(props: {
  * at a time, nested like Reddit: each reply can open its own answers below it. Used for post replies
  * and blog comments.
  */
-export function ReplyLevel<T extends ThreadItem>({ source, parentId, depth = 0, added = [], onReplied }: LevelProps<T>) {
+export function ReplyLevel<T extends ThreadItem>({ source, parentId, depth = 0, added = [], onReplied, cards = false }: LevelProps<T>) {
   const fetchPage = useCallback((cursor: string | null) => source.list(parentId, cursor), [source, parentId]);
   const { items: replies, loading, error, hasMore, loadMore, refresh } = usePagedList(fetchPage);
   const shown = [...added.filter((a) => !replies.some((r) => r.id === a.id)), ...replies];
@@ -125,17 +158,22 @@ export function ReplyLevel<T extends ThreadItem>({ source, parentId, depth = 0, 
     <View>
       {shown.map((reply, index) => {
         const { reaction, likeCount } = reactions.stateOf(reply);
+        const node = (
+          <ReplyNode
+            source={source}
+            reply={reply}
+            depth={depth}
+            reaction={reaction}
+            likeCount={likeCount}
+            onReact={(pressed) => reactions.toggle(reply, pressed)}
+            onReplied={onReplied}
+            cards={cards}
+          />
+        );
+        if (cards) return <View key={reply.id}>{node}</View>;
         return (
           <View key={reply.id} style={depth === 0 && index > 0 && styles.divider}>
-            <ReplyNode
-              source={source}
-              reply={reply}
-              depth={depth}
-              reaction={reaction}
-              likeCount={likeCount}
-              onReact={(pressed) => reactions.toggle(reply, pressed)}
-              onReplied={onReplied}
-            />
+            {node}
           </View>
         );
       })}
@@ -165,6 +203,37 @@ export function ReplyLevel<T extends ThreadItem>({ source, parentId, depth = 0, 
 const styles = StyleSheet.create({
   item: {
     paddingVertical: space.sm,
+  },
+  // A reply card: apart from the next one, its words inside the paper
+  card: {
+    marginBottom: space.sm,
+  },
+  // An answer: its line, then its card (the gap below belongs to the row, so the line is the card's height)
+  answerRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginLeft: space.lg,
+    marginBottom: space.sm,
+  },
+  line: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(214, 116, 95, 0.4)',
+  },
+  childCard: {
+    flex: 1,
+    marginLeft: space.sm,
+    marginRight: space.md,
+    marginBottom: 0,
+  },
+  cardBody: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+  },
+  // The answers of an answer, one step further in
+  thread: {},
+  threadIndent: {
+    marginLeft: space.lg,
   },
   divider: {
     borderTopWidth: 1,

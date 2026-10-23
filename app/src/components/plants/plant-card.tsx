@@ -122,6 +122,8 @@ export function PlantCard({ plant, onPress }: { plant: PlantCardData; onPress?: 
 const styles = StyleSheet.create({
   card: {
     ...card,
+    // The same corners as the search bar and the filters button above the cards
+    borderRadius: radius.sm,
     flexDirection: 'row',
     overflow: 'hidden',
   },

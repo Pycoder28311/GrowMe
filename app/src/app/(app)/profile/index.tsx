@@ -5,6 +5,7 @@ import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { meApi } from '@/api/me';
+import { BotanicalBackground } from '@/components/layout/botanical-background';
 import { useTopClearance } from '@/components/layout/app-shell';
 import { ActionButton, ActionButtonText } from '@/components/ui/action-button';
 import { AppText } from '@/components/ui/app-text';
@@ -14,13 +15,13 @@ import { PressableScale } from '@/components/ui/pressable-scale';
 import { Section } from '@/components/ui/section';
 import { card } from '@/components/ui/styles';
 import { TextField } from '@/components/ui/text-field';
-import { useBackgroundScrollHandler } from '@/lib/background-motion';
+import { useBackgroundScroll, useBackgroundScrollHandler } from '@/lib/background-motion';
 import { authClient } from '@/lib/auth-client';
 import { openCookieSettings } from '@/lib/consent';
 import { timeAgo } from '@/lib/format';
 import { approximateLocation, coordinatesLabel, type LocationError } from '@/lib/location';
 import { usePagedList } from '@/lib/use-api';
-import { colors, iconSize, size, space, titleFont } from '@/theme';
+import { colors, iconSize, PROFILE_DECORATIONS, size, space, titleFont } from '@/theme';
 
 const MAX_NAME = 60;
 const AVATAR = size.touch * 1.5;
@@ -214,6 +215,7 @@ function LikedPost({ post }: { post: Post }) {
 export default function ProfileScreen() {
   const topClearance = useTopClearance();
   const backgroundScroll = useBackgroundScrollHandler();
+  const scrollY = useBackgroundScroll();
   const { data: session } = authClient.useSession();
   // Google-only accounts have no password to change
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
@@ -239,6 +241,9 @@ export default function ProfileScreen() {
   const user = session?.user;
 
   return (
+    <View style={styles.root}>
+    {/* Outlined flowers and leaves only at the edges, drifting as the page scrolls */}
+    <BotanicalBackground scrollY={scrollY} decorations={PROFILE_DECORATIONS} />
     <Animated.ScrollView
       onScroll={backgroundScroll}
       scrollEventThrottle={16}
@@ -332,10 +337,14 @@ export default function ProfileScreen() {
         ))}
       </View>
     </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   page: {
     gap: space.md,
     paddingHorizontal: space.md,

@@ -49,13 +49,15 @@ export function BottomBar({
 type BottomComposerProps = {
   placeholder: string;
   onSend: (text: string) => void;
+  /** The cursor is in the field as the page opens */
+  autoFocus?: boolean;
 };
 
 /** A message field pinned to the bottom of a page (replies) */
-export function BottomComposer({ placeholder, onSend }: BottomComposerProps) {
+export function BottomComposer({ placeholder, onSend, autoFocus }: BottomComposerProps) {
   return (
     <BottomBar>
-      <MessageInput placeholder={placeholder} onSend={onSend} />
+      <MessageInput placeholder={placeholder} onSend={onSend} autoFocus={autoFocus} />
     </BottomBar>
   );
 }

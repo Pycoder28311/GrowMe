@@ -22,6 +22,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useSetSearching } from '@/components/layout/page-header';
+import { runCloseHandler, usePostModalOpen } from '@/lib/post-transition';
 import { prefetchPlant } from '@/lib/plants';
 import { rememberPreview } from '@/lib/result-preview';
 import { LensPreview } from '@/components/search/lens-preview';
@@ -116,7 +117,8 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
   const clock = useSharedValue(0); // ms into the sweep, for the placeholder letters
   const scrim = useSharedValue(0);
   const pathname = usePathname();
-  const detail = isDetailPage(pathname);
+  const postOpen = usePostModalOpen();
+  const detail = isDetailPage(pathname) || postOpen;
   const toX = useSharedValue(detail ? 1 : 0);
 
   const clearTimers = useCallback(() => {
@@ -199,7 +201,12 @@ export function TopCorners({ top, onHome }: { top: number; onHome: () => void })
     toX.set(withTiming(detail ? 1 : 0, { duration: reduced ? 0 : TO_X_MS }));
   }, [detail, reduced, toX]);
 
-  const goBack = () => (router.canGoBack() ? router.back() : router.navigate('/'));
+  // A page with its own closing animation (a post turning back into its card) handles the × itself
+  const goBack = () => {
+    if (runCloseHandler()) return;
+    if (router.canGoBack()) router.back();
+    else router.navigate('/');
+  };
 
   const searching = phase !== 'closed' && phase !== 'collapsing';
   const inputReady = phase === 'travelling' || phase === 'open';

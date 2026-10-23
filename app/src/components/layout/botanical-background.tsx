@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { measure, useAnimatedRef, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 
-import { FlowerShape, LeafShape, PaperGrain } from '@/components/ui/flower-shapes';
+import { artAspect, BotanicalArt } from '@/components/layout/botanical-art';
+import { FlowerShape, LeafShape, LongLeafOutlineShape, PaperGrain } from '@/components/ui/flower-shapes';
 import { BACKGROUND_DECORATIONS, BACKGROUND_MOTION, botanical, tileGrain, type BackgroundDecoration } from '@/theme';
 
 const { drift: DRIFT, pattern: PATTERN, push: PUSH, shown: SHOWN } = BACKGROUND_MOTION;
@@ -56,17 +57,23 @@ export function EdgeDrift({
  * to the sides and the ones coming up from below slide in.
  */
 function DriftingShape({ item, scrollY, screenHeight }: { item: BackgroundDecoration; scrollY: SharedValue<number>; screenHeight: number }) {
-  const { kind, size, color, center, opacity, rotate, side } = item;
+  const { kind, size, color, center, opacity, rotate, side, art, shown = SHOWN } = item;
+  // A painted cluster is taller than wide: its own height places it
+  const height = kind === 'art' && art ? size * artAspect(art) : size;
   const style = useAnimatedStyle(() => {
     // Its top on screen, wrapped round the pattern so it comes back from below
-    const top = ((((item.y - scrollY.get() * DRIFT) % PATTERN) + PATTERN) % PATTERN) - size;
-    const away = edgeAway(top + size / 2, screenHeight);
+    const top = ((((item.y - scrollY.get() * DRIFT) % PATTERN) + PATTERN) % PATTERN) - height;
+    const away = edgeAway(top + height / 2, screenHeight);
     return { top, transform: [{ translateX: (side === 'right' ? 1 : -1) * PUSH * size * away }] };
   });
   return (
-    <Animated.View style={[styles.drifting, { width: size, height: size, [side]: -size * (1 - SHOWN) }, style]}>
-      {kind === 'flower' ? (
+    <Animated.View style={[styles.drifting, { width: size, height, [side]: -size * (1 - shown) }, style]}>
+      {kind === 'art' && art ? (
+        <BotanicalArt name={art} size={size} />
+      ) : kind === 'flower' ? (
         <FlowerShape size={size} color={color} center={center} opacity={opacity} rotate={rotate} style={styles.fill} />
+      ) : kind === 'leafOutline' ? (
+        <LongLeafOutlineShape size={size} color={color} glow={botanical.leaf} glowSpread={0.3} opacity={opacity} rotate={rotate} style={styles.fill} />
       ) : (
         <LeafShape size={size} color={color} opacity={opacity} rotate={rotate} style={styles.fill} />
       )}
@@ -82,20 +89,26 @@ function DriftingShape({ item, scrollY, screenHeight }: { item: BackgroundDecora
 export function BotanicalBackground({
   scrollY,
   decorations = BACKGROUND_DECORATIONS,
+  color,
+  bare,
 }: {
   scrollY?: SharedValue<number>;
   /** The shapes at the edges: the plant page's by default, PAGE_DECORATIONS (more and more coloured) elsewhere */
   decorations?: readonly BackgroundDecoration[];
+  /** The paper's colour, when a page wants its own instead of the botanical cream */
+  color?: string;
+  /** Only the shapes: no paper colour or grain, to lay them over a page's content (e.g. a photo) */
+  bare?: boolean;
 }) {
   const { height } = useWindowDimensions();
   // Without a scroll (the loading skeleton, the sign-in pages) the shapes stay where the page starts
   const still = useSharedValue(0);
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.page]}>
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, !bare && styles.page, !bare && color !== undefined && { backgroundColor: color }, bare && styles.bare]}>
       {decorations.map((item) => (
         <DriftingShape key={item.y} item={item} scrollY={scrollY ?? still} screenHeight={height} />
       ))}
-      <PaperGrain opacity={tileGrain} />
+      {!bare && <PaperGrain opacity={tileGrain} />}
     </View>
   );
 }
@@ -103,6 +116,9 @@ export function BotanicalBackground({
 const styles = StyleSheet.create({
   page: {
     backgroundColor: botanical.page,
+    overflow: 'hidden',
+  },
+  bare: {
     overflow: 'hidden',
   },
   drifting: {

@@ -1,4 +1,4 @@
-import type { Page, Post, PostCreate, PostReply, PostSort } from '@growme/shared';
+import type { Page, Post, PostCreate, PostReply, PostSort, PostUpdate } from '@growme/shared';
 import { request } from './client';
 
 const page = (cursor?: string | null) => (cursor ? `&cursor=${encodeURIComponent(cursor)}` : '');
@@ -12,6 +12,10 @@ export const postsApi = {
     ),
   get: (id: number) => request<Post>(`/posts/${id}`),
   create: (input: PostCreate) => request<Post>('/posts', { method: 'POST', body: JSON.stringify(input) }),
+  /** Only the author's own post: send what changes */
+  update: (id: number, input: PostUpdate) => request<Post>(`/posts/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  /** Only the author's own post (its replies go with it) */
+  remove: (id: number) => request<void>(`/posts/${id}`, { method: 'DELETE' }),
 };
 
 /** Replies to a post, nested like Reddit: parentReplyId null = answers the post itself */

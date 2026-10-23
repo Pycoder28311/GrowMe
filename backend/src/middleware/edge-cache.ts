@@ -11,11 +11,14 @@ import type { AppEnv } from './auth'
  * and before the rate limit (cache hits don't count against it). It only works on a custom domain:
  * the Cache API does nothing on workers.dev. The admin's saves clear it (lib/purge.ts).
  */
+/** Bump to drop everything cached, e.g. after editing the database directly (not through the admin) */
+const CACHE_VERSION = 3
+
 export const edgeCache = createMiddleware<AppEnv>(async (c, next) => {
   if (c.req.method !== 'GET') return next()
   const cache = caches.default
   // Only the URL is the key: cookies and Authorization don't matter for these public answers
-  const key = new Request(c.req.url, { method: 'GET' })
+  const key = new Request(`${c.req.url}${c.req.url.includes('?') ? '&' : '?'}_cv=${CACHE_VERSION}`, { method: 'GET' })
 
   const hit = await cache.match(key)
   if (hit) {

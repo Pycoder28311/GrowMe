@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Icon } from '@/components/ui/icon';
 import { PressableScale } from '@/components/ui/pressable-scale';
-import { colors, iconSize, radius, space } from '@/theme';
+import { alpha, botanical, colors, iconSize, radius, space } from '@/theme';
 
 const THUMB = 24;
 
@@ -13,7 +13,7 @@ const THUMB = 24;
  * The plant a post is about, as a small green pill: its photo (or 🪴) and name. `onPress` opens it;
  * `onRemove` adds an × that unlinks it (the question form).
  */
-export function PlantBadge({ plant, onPress, onRemove }: { plant: PostPlant; onPress?: () => void; onRemove?: () => void }) {
+export function PlantBadge({ plant, onPress, onRemove, lifted }: { plant: PostPlant; onPress?: () => void; onRemove?: () => void; lifted?: boolean }) {
   const content = (
     <>
       {plant.image ? (
@@ -36,12 +36,12 @@ export function PlantBadge({ plant, onPress, onRemove }: { plant: PostPlant; onP
           accessibilityRole="link"
           accessibilityLabel={`Φυτό: ${plant.name}`}
           onPress={onPress}
-          style={styles.pill}>
+          style={[styles.pill, lifted && styles.lifted]}>
           {content}
           <Icon name="chevronRight" size={iconSize.small} color={colors.primary} bold />
         </PressableScale>
       ) : (
-        <View style={styles.pill}>
+        <View style={[styles.pill, lifted && styles.lifted]}>
           {content}
           {onRemove && (
             <PressableScale
@@ -74,6 +74,10 @@ const styles = StyleSheet.create({
     paddingRight: space.sm,
     borderRadius: radius.full,
     backgroundColor: colors.primarySoft,
+  },
+  // A soft shadow all around the pill
+  lifted: {
+    boxShadow: `0 0 10px 1px ${alpha(botanical.ink, 0.22)}`,
   },
   thumb: {
     width: THUMB,

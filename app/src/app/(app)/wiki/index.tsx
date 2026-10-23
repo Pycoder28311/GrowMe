@@ -5,6 +5,7 @@ import Animated from 'react-native-reanimated';
 
 import { useTopClearance } from '@/components/layout/app-shell';
 import { TopGradient } from '@/components/layout/top-gradient';
+import { TopWash } from '@/components/layout/top-wash';
 import { AppText } from '@/components/ui/app-text';
 import { CategoryTabs } from '@/components/ui/category-tabs';
 import { PillButton } from '@/components/ui/pill-button';
@@ -28,6 +29,8 @@ export default function WikiScreen() {
   return (
     <View style={styles.page}>
     <TopGradient />
+    {/* Over the top glow, behind the list: the peach cloud at the top right */}
+    <TopWash />
     <Animated.FlatList
       onScroll={backgroundScroll}
       scrollEventThrottle={16}

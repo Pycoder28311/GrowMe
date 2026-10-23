@@ -5,7 +5,7 @@ import { FlowerShape, PaperGrain } from '@/components/ui/flower-shapes';
 import { Icon } from '@/components/ui/icon';
 import { LinkedText } from '@/components/ui/linked-text';
 import { NOTES, type PlantPageData } from '@/config/plant-page';
-import { botanical, iconSize, radius, serif, smallCaps, space, tileGrain, tileTone } from '@/theme';
+import { botanical, iconSize, radius, sectionTitle, serif, space, tileGrain, tileTone } from '@/theme';
 
 /**
  * A plant's short text («Ηξερες οτι», «Μυστικό επιτυχίας») as a card in the tiles' style: its warm tint with
@@ -24,7 +24,7 @@ export function NoteSection({ plant, note }: { plant: PlantPageData; note: (type
         <View style={[styles.circle, { backgroundColor: tone.circle }]}>
           <Icon name={note.icon} size={iconSize.normal} color={tone.icon} />
         </View>
-        <AppText accessibilityRole="header" color={botanical.inkMuted} style={smallCaps}>
+        <AppText accessibilityRole="header" color={botanical.ink} style={sectionTitle}>
           {note.title}
         </AppText>
       </View>

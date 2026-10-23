@@ -30,6 +30,12 @@ type ActionButtonProps = {
   glow?: keyof typeof GLOW;
   /** A very soft light-orange inner shadow along the top edge (the home page's main button) */
   innerGlow?: boolean;
+  /** A fill of its own instead of the colour's */
+  fill?: string;
+  /** At least this tall (e.g. as tall as the field next to it) */
+  minHeight?: number;
+  /** An exact height (instead of the content's plus a minimum) */
+  height?: number;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -42,6 +48,9 @@ export function ActionButton({
   edge = true,
   glow = 'full',
   innerGlow = false,
+  fill,
+  minHeight,
+  height,
   style,
 }: ActionButtonProps) {
   const [pressed, setPressed] = useState(false);
@@ -59,8 +68,10 @@ export function ActionButton({
         style={[
           styles.body,
           {
-            backgroundColor: FILLS[color],
+            backgroundColor: fill ?? FILLS[color],
             paddingHorizontal: SIDE_PADDING[size],
+            minHeight,
+            height,
             boxShadow: `inset 0 1px 0 ${alpha(colors.white, line)}`,
           },
           edge && styles.edge,

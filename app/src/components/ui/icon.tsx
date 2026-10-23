@@ -13,6 +13,8 @@ const ICONS = {
   profile: { ios: 'person.crop.circle', android: 'account_circle', web: 'account_circle' },
   location: { ios: 'location', android: 'location_on', web: 'location_on' },
   key: { ios: 'key', android: 'key', web: 'key' },
+  more: { ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' },
+  trash: { ios: 'trash', android: 'delete', web: 'delete' },
   edit: { ios: 'pencil', android: 'edit', web: 'edit' },
   heart: { ios: 'heart', android: 'favorite', web: 'favorite' },
   leaf: { ios: 'leaf', android: 'eco', web: 'eco' },

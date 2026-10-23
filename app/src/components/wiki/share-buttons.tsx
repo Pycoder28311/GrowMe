@@ -1,6 +1,6 @@
 import { Share, StyleSheet, View } from 'react-native';
 
-import { PillButton } from '@/components/ui/pill-button';
+import { SocialButton } from '@/components/ui/social-button';
 import { space } from '@/theme';
 
 const APPS = ['Facebook', 'Instagram'];
@@ -12,7 +12,7 @@ export function ShareButtons({ title }: { title: string }) {
   return (
     <View style={styles.row}>
       {APPS.map((app) => (
-        <PillButton key={app} label={app} onPress={share} />
+        <SocialButton key={app} label={app} onPress={share} />
       ))}
     </View>
   );
