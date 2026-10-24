@@ -22,6 +22,9 @@ type Raw = Record<string, unknown>;
 const num = (value: unknown) => (typeof value === 'number' ? value : null);
 const str = (value: unknown) => (typeof value === 'string' && value !== '' ? value : null);
 const list = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
+/** Month ranges: only the [from, to] pairs of two numbers (anything else the API sends is dropped) */
+const monthRanges = (value: unknown): MonthRange[] =>
+  list<unknown>(value).filter((r): r is MonthRange => Array.isArray(r) && r.length === 2 && typeof r[0] === 'number' && typeof r[1] === 'number');
 const firstOf = <T>(...values: (T | null)[]) => values.find((value) => value !== null) ?? null;
 
 /** The old 1–3 (or 1–5) difficulty as levels */
@@ -67,8 +70,8 @@ function commonFields(raw: Raw) {
     sunSoftEnd: num(raw.sunSoftEnd),
     sunHours: num(raw.sunHours),
     seedingSeason: list<MonthRange>(raw.seedingSeason),
-    floweringSeason: list<MonthRange>(raw.floweringSeason),
-    fruitingSeason: list<MonthRange>(raw.fruitingSeason),
+    floweringSeason: monthRanges(raw.floweringSeason),
+    fruitingSeason: monthRanges(raw.fruitingSeason),
     plantingSeason: Array.isArray(raw.plantingSeason) ? list<MonthRange>(raw.plantingSeason) : list<MonthRange>(raw.monthRanges),
   };
 }
