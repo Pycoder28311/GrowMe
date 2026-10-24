@@ -139,6 +139,8 @@ const plantFields = z.object({
   sunHours: sunHours.nullable(),
   seedingSeason: seasonRanges,
   plantingSeason: seasonRanges,
+  floweringSeason: seasonRanges,
+  fruitingSeason: seasonRanges,
   imageIds,
 })
 
@@ -168,6 +170,8 @@ const plantDefaults = {
   sunHours: null,
   seedingSeason: [],
   plantingSeason: [],
+  floweringSeason: [],
+  fruitingSeason: [],
   imageIds: [],
 } as const
 

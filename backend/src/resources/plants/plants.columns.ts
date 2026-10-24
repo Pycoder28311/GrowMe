@@ -23,6 +23,16 @@ const SEASON_COLUMNS = {
     ['plantingStart2', 'plantingEnd2'],
     ['plantingStart3', 'plantingEnd3'],
   ],
+  floweringSeason: [
+    ['floweringStart', 'floweringEnd'],
+    ['floweringStart2', 'floweringEnd2'],
+    ['floweringStart3', 'floweringEnd3'],
+  ],
+  fruitingSeason: [
+    ['fruitingStart', 'fruitingEnd'],
+    ['fruitingStart2', 'fruitingEnd2'],
+    ['fruitingStart3', 'fruitingEnd3'],
+  ],
 } as const satisfies Record<SeasonField, readonly (readonly [keyof PlantRow, keyof PlantRow])[]>
 
 type SeasonColumn = (typeof SEASON_COLUMNS)[SeasonField][number][number]
@@ -58,7 +68,7 @@ type Seasons = { [K in SeasonField]?: readonly MonthRange[] }
  * everything else keeps its name.
  */
 export function toColumns<T extends Seasons & { difficultyLevels?: readonly EffortLevel[] }>(input: T) {
-  const { seedingSeason: _seeding, plantingSeason: _planting, ...rest } = input
+  const { seedingSeason: _seeding, plantingSeason: _planting, floweringSeason: _flowering, fruitingSeason: _fruiting, ...rest } = input
   const seasons = SEASON_FIELDS.map((field) => (input[field] ? seasonColumns(field, input[field]) : {}))
   return {
     ...rest,

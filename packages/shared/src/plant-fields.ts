@@ -196,9 +196,14 @@ export const SEASONS = [
 export type SeasonId = (typeof SEASONS)[number]['id']
 
 /** A plant's seasons, each up to MAX_MONTH_RANGES ranges */
-export const SEASON_FIELDS = ['seedingSeason', 'plantingSeason'] as const
+export const SEASON_FIELDS = ['seedingSeason', 'plantingSeason', 'floweringSeason', 'fruitingSeason'] as const
 export type SeasonField = (typeof SEASON_FIELDS)[number]
-export const SEASON_LABELS: Record<SeasonField, string> = { seedingSeason: 'Σπορά', plantingSeason: 'Φύτεμα' }
+export const SEASON_LABELS: Record<SeasonField, string> = {
+  seedingSeason: 'Σπορά',
+  plantingSeason: 'Φύτεμα',
+  floweringSeason: 'Ανθοφορία',
+  fruitingSeason: 'Καρποφορία',
+}
 export type PlantSeasons = Record<SeasonField, MonthRange[]>
 
 /** Every month in a range, in order: [11, 2] → [11, 12, 1, 2] */

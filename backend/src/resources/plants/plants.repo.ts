@@ -8,7 +8,7 @@ import { assertCanLinkImages, deleteImages, toImageRefs } from '../images/images
 import { toCombination } from '../combinations/combinations.repo'
 import { toDisease } from '../diseases/diseases.repo'
 import { toLifecycle } from '../lifecycles/lifecycles.repo'
-import { toColumns, toFilterFields } from './plants.columns'
+import { seasonOf, toColumns, toFilterFields } from './plants.columns'
 
 export const plantImageLinks: LinkTable<typeof plantImages> = {
   table: plantImages,
@@ -42,6 +42,8 @@ const toSummary = (env: CloudflareBindings, p: SummaryRow): PlantSummary => ({
   native: p.native,
   ...toFilterFields(p),
   sunHours: p.sunHours,
+  floweringSeason: seasonOf(p, 'floweringSeason'),
+  fruitingSeason: seasonOf(p, 'fruitingSeason'),
   images: toImageRefs(env, p.images),
   createdAt: p.createdAt.toISOString(),
 })

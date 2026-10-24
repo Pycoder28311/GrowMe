@@ -67,6 +67,8 @@ function commonFields(raw: Raw) {
     sunSoftEnd: num(raw.sunSoftEnd),
     sunHours: num(raw.sunHours),
     seedingSeason: list<MonthRange>(raw.seedingSeason),
+    floweringSeason: list<MonthRange>(raw.floweringSeason),
+    fruitingSeason: list<MonthRange>(raw.fruitingSeason),
     plantingSeason: Array.isArray(raw.plantingSeason) ? list<MonthRange>(raw.plantingSeason) : list<MonthRange>(raw.monthRanges),
   };
 }

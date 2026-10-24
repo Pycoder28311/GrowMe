@@ -23,8 +23,8 @@ import { colors } from '@/theme/colors';
 // What the plant page shows besides its tiles, as data: each list feeds one small component, so a new
 // chip, date row, restriction or note is one entry here. No React Native code (only colours, from the theme).
 
-/** The page's plant: the API's, plus the dates the API doesn't have yet (mock data only) */
-export type PlantPageData = Plant & { floweringSeason?: MonthRange[]; fruitingSeason?: MonthRange[] };
+/** The page's plant: the API's */
+export type PlantPageData = Plant;
 
 /* ─────────────── Chips above the name ─────────────── */
 
@@ -48,8 +48,8 @@ export const headerChips = (plant: PlantPageData) =>
 export const DATE_ROWS: readonly { key: string; label: string; icon: PlantIcon; ranges: (plant: PlantPageData) => MonthRange[] }[] = [
   { key: 'seeding', label: 'Σπορά', icon: FACT_ICONS.season, ranges: (p) => p.seedingSeason },
   { key: 'planting', label: 'Φύτεμα', icon: FACT_ICONS.season, ranges: (p) => p.plantingSeason },
-  { key: 'flowering', label: 'Ανθοφορία', icon: FACT_ICONS.season, ranges: (p) => p.floweringSeason ?? [] },
-  { key: 'fruiting', label: 'Καρποφορία', icon: FACT_ICONS.season, ranges: (p) => p.fruitingSeason ?? [] },
+  { key: 'flowering', label: 'Ανθοφορία', icon: FACT_ICONS.season, ranges: (p) => p.floweringSeason },
+  { key: 'fruiting', label: 'Καρποφορία', icon: FACT_ICONS.season, ranges: (p) => p.fruitingSeason },
 ];
 
 /** The rows that have ranges */

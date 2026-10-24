@@ -14,7 +14,6 @@ import {
   TOXICITY,
   TOXICITY_LABELS,
   type SearchPlant,
-  type SeasonField,
   type SunBarKey,
 } from '@growme/shared';
 
@@ -79,7 +78,7 @@ const optionsFrom = <T extends string>(
 ): FilterOption[] => values.map((value) => ({ id: value, label: labels[value], test: (plant) => test(plant, value) }));
 
 /** The four seasons; a plant passes when any of its ranges in `field` reaches a month of the season */
-const seasonOptions = (field: SeasonField): FilterOption[] =>
+const seasonOptions = (field: 'seedingSeason' | 'plantingSeason'): FilterOption[] =>
   SEASONS.map((season) => ({
     id: season.id,
     label: season.label,
