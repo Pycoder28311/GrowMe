@@ -41,9 +41,14 @@ const diseaseRows: ChildTable<typeof diseases, Rows<'diseases'>> = {
 }
 
 /** The batch that writes everything except the plant's own row */
-const childStatements = (db: Db, plantId: number, input: PlantSave) => [
-  ...syncChildren(db, lifecycleRows, plantId, input.lifecycles),
-  ...syncChildren(db, diseaseRows, plantId, input.diseases),
+const childStatements = (
+  db: Db,
+  plantId: number,
+  input: PlantSave,
+  stored: { lifecycles: { id: number }[]; diseases: { id: number }[] } = { lifecycles: [], diseases: [] },
+) => [
+  ...syncChildren(db, lifecycleRows, plantId, input.lifecycles, stored.lifecycles),
+  ...syncChildren(db, diseaseRows, plantId, input.diseases, stored.diseases),
   ...replaceLinks(db, plantImageLinks, plantId, input.imageIds),
 ]
 
@@ -94,8 +99,8 @@ export async function savePlant(
     columns: { id: true },
     with: {
       images: { columns: { imageId: true }, orderBy: asc(plantImages.position) },
-      lifecycles: { columns: { id: true } },
-      diseases: { columns: { id: true } },
+      lifecycles: true, // whole rows: unchanged ones are not written again
+      diseases: true,
     },
   })
   if (!existing) return null
@@ -105,7 +110,7 @@ export async function savePlant(
   assertOwnChildren('lifecycles', input.lifecycles, existing.lifecycles.map((r) => r.id))
   assertOwnChildren('diseases', input.diseases, existing.diseases.map((r) => r.id))
 
-  await runBatch(db, [db.update(plants).set(fields).where(eq(plants.id, id)), ...childStatements(db, id, input)])
+  await runBatch(db, [db.update(plants).set(fields).where(eq(plants.id, id)), ...childStatements(db, id, input, existing)])
   await deleteImages({ db, env }, removedIds(before, imageIds))
   return { id }
 }

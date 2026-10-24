@@ -80,13 +80,20 @@ export function assertOwnChildren(field: string, rows: { id?: number }[], existi
  * Statements that make a parent's children equal to `rows` (in that order): rows with an id are
  * updated, rows without one are inserted, children left out are deleted. Returned (not run) so they
  * go in one db.batch() with the parent's own writes. Check ids first with assertOwnChildren().
+ * `existing`: the children as stored; a row whose columns are all unchanged gets no UPDATE.
  */
 export function syncChildren<T extends SQLiteTable, TRow extends { id?: number }>(
   db: Db,
   child: ChildTable<T, TRow>,
   parentId: number,
   rows: TRow[],
+  existing: { id: number }[] = [],
 ): BatchItem<'sqlite'>[] {
+  const stored = new Map(existing.map((row) => [row.id, row as Record<string, unknown>]))
+  const unchanged = (id: number, values: Record<string, unknown>) => {
+    const row = stored.get(id)
+    return !!row && Object.entries(values).every(([key, value]) => (row[key] ?? null) === (value ?? null))
+  }
   const kept = rows.flatMap((row) => (row.id === undefined ? [] : [row.id]))
   const ofParent = eq(child.parent, parentId)
   const statements: BatchItem<'sqlite'>[] = [
@@ -96,7 +103,9 @@ export function syncChildren<T extends SQLiteTable, TRow extends { id?: number }
   rows.forEach((row, position) => {
     const values = child.toRow(parentId, row, position)
     if (row.id === undefined) inserts.push(values)
-    else statements.push(db.update(child.table).set(values as never).where(and(ofParent, eq(child.id, row.id))))
+    else if (!unchanged(row.id, values as Record<string, unknown>)) {
+      statements.push(db.update(child.table).set(values as never).where(and(ofParent, eq(child.id, row.id))))
+    }
   })
   if (inserts.length > 0) statements.push(db.insert(child.table).values(inserts as never))
   return statements

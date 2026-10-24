@@ -95,7 +95,9 @@ export const blogCommentsRepo: Repo<CommentCreate, CommentUpdate, BlogComment, C
         .set({ commentCount: sql`${blogs.commentCount} + 1` })
         .where(eq(blogs.id, blogId)),
     ])
-    return toJson((await findWhere(ctx.db, eq(blogComments.id, comment.id)))!)
+    // The row came back from the insert; the author is the signed-in user and nobody has answered yet
+    const { id, name, image } = ctx.user!
+    return toJson({ comment: comment, author: { id, name, image: image ?? null }, replyCount: 0 })
   },
 
   async update(ctx, id, { content }) {

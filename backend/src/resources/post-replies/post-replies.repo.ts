@@ -91,7 +91,9 @@ export const postRepliesRepo: Repo<ReplyCreate, ReplyUpdate, PostReply, ReplyFil
         .set({ replyCount: sql`${posts.replyCount} + 1` })
         .where(eq(posts.id, postId)),
     ])
-    return toJson((await findWhere(ctx.db, eq(postReplies.id, reply.id)))!)
+    // The row came back from the insert; the author is the signed-in user and nobody has answered yet
+    const { id, name, image } = ctx.user!
+    return toJson({ reply: reply, author: { id, name, image: image ?? null }, replyCount: 0 })
   },
 
   async update(ctx, id, { content }) {

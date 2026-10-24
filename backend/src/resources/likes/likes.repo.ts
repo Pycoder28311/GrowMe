@@ -30,11 +30,10 @@ const changeCount = (db: Db, type: LikedType, id: number, delta: 1 | -1, conditi
     .where(and(eq(target.id, id), condition))
 }
 
-async function likeCountOf(db: Db, type: LikedType, id: number) {
+/** The target's like_count as a statement (run last in a batch, so it sees the batch's changes) */
+const countOf = (db: Db, type: LikedType, id: number) => {
   const target = TARGETS[type]
-  const row = await db.select({ likeCount: target.likeCount }).from(target).where(eq(target.id, id)).get()
-  if (!row) throw notFound()
-  return row.likeCount
+  return db.select({ likeCount: target.likeCount }).from(target).where(eq(target.id, id))
 }
 
 /**
@@ -47,11 +46,13 @@ export const deleteLikesOf = (db: Db, type: LikedType, ids: number | SQLWrapper)
     .where(and(eq(likes.likedType, type), typeof ids === 'number' ? eq(likes.likedId, ids) : inArray(likes.likedId, ids)))
 
 export const likesRepo = {
-  /** Like (isLike true) or dislike (false). like_count counts likes only; repeating changes nothing. */
+  /**
+   * Like (isLike true) or dislike (false). like_count counts likes only; repeating changes nothing.
+   * One round trip: the count change, the reaction and the new count (404 when the item doesn't exist).
+   */
   async set(ctx: Ctx, type: LikedType, id: number, isLike: boolean): Promise<LikeState> {
     const user = userId(ctx)
-    await likeCountOf(ctx.db, type, id) // 404 when the item doesn't exist
-    await ctx.db.batch([
+    const [, , counts] = await ctx.db.batch([
       isLike
         ? changeCount(ctx.db, type, id, 1, sql`NOT ${iLikeIt(type, id, user)}`)
         : changeCount(ctx.db, type, id, -1, iLikeIt(type, id, user)),
@@ -59,20 +60,28 @@ export const likesRepo = {
         .insert(likes)
         .values({ userId: user, likedType: type, likedId: id, isLike })
         .onConflictDoUpdate({ target: [likes.likedType, likes.likedId, likes.userId], set: { isLike } }),
+      countOf(ctx.db, type, id),
     ])
-    return { likeCount: await likeCountOf(ctx.db, type, id), isLike }
+    if (!counts[0]) {
+      // likes has no foreign key: take back the reaction just stored for the missing item
+      await ctx.db.delete(likes).where(and(eq(likes.likedType, type), eq(likes.likedId, id), eq(likes.userId, user)))
+      throw notFound()
+    }
+    return { likeCount: counts[0].likeCount, isLike }
   },
 
   /** Removes my like or dislike; nothing happens when there is none */
   async remove(ctx: Ctx, type: LikedType, id: number): Promise<LikeState> {
     const user = userId(ctx)
-    await ctx.db.batch([
+    const [, , counts] = await ctx.db.batch([
       changeCount(ctx.db, type, id, -1, iLikeIt(type, id, user)),
       ctx.db
         .delete(likes)
         .where(and(eq(likes.likedType, type), eq(likes.likedId, id), eq(likes.userId, user))),
+      countOf(ctx.db, type, id),
     ])
-    return { likeCount: await likeCountOf(ctx.db, type, id), isLike: null }
+    if (!counts[0]) throw notFound()
+    return { likeCount: counts[0].likeCount, isLike: null }
   },
 
   /** My reactions to a set of items (one indexed lookup per id) */

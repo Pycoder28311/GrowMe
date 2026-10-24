@@ -101,12 +101,18 @@ export const postsRepo: Repo<PostCreate, PostUpdate, Post, PostFilter> = {
   async create(ctx, { imageIds, ...fields }) {
     await assertCanLinkImages(ctx, imageIds)
     await assertPlant(ctx, fields.plantId)
-    const { id } = await ctx.db
+    const created = await ctx.db
       .insert(posts)
       .values({ ...fields, userId: userId(ctx) })
       .returning()
       .get()
+    const { id } = created
     await ctx.db.batch([...replaceLinks(ctx.db, postImageLinks, id, imageIds)])
+    // A post with no photos and no plant is complete as inserted: no read-back needed
+    if (imageIds.length === 0 && !fields.plantId) {
+      const { id: authorId, name, image } = ctx.user!
+      return toJson(ctx.env, { ...created, user: { id: authorId, name, image: image ?? null }, images: [], plant: null })
+    }
     return toJson(ctx.env, (await findWhere(ctx, eq(posts.id, id)))!)
   },
 
