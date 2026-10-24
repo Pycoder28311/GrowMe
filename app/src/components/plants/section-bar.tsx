@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { PressableScale } from '@/components/ui/pressable-scale';
@@ -25,6 +25,7 @@ export function SectionBar({ sections, current, onPick, onPhotos }: SectionBarPr
   const scroll = useRef<ScrollView>(null);
   const places = useRef<Record<string, { x: number; width: number }>>({});
   const [barWidth, setBarWidth] = useState(0);
+  const scrolledX = useRef(0);
 
   // Keep the current label in the middle of the bar
   useEffect(() => {
@@ -41,6 +42,18 @@ export function SectionBar({ sections, current, onPick, onPhotos }: SectionBarPr
         ref={scroll}
         horizontal
         showsHorizontalScrollIndicator={false}
+        // The labels that don't fit overflow sideways and scroll (also with a mouse wheel on the web)
+        style={styles.scroll}
+        scrollEventThrottle={16}
+        onScroll={(event) => {
+          scrolledX.current = event.nativeEvent.contentOffset.x;
+        }}
+        {...(Platform.OS === 'web'
+          ? {
+              onWheel: (event: { deltaX: number; deltaY: number }) =>
+                scroll.current?.scrollTo({ x: scrolledX.current + (event.deltaX || event.deltaY), animated: false }),
+            }
+          : {})}
         // Room so the first and last labels can reach the middle too
         contentContainerStyle={[styles.row, { paddingHorizontal: barWidth / 3 }]}>
         {sections.map((section) => {
@@ -60,7 +73,7 @@ export function SectionBar({ sections, current, onPick, onPhotos }: SectionBarPr
               hitSlop={space.sm}
               style={styles.label}>
               <AppText
-                size="small"
+                size="normal"
                 bold={selected}
                 color={onPhotos ? colors.surface : colors.ink}
                 style={[textStyle, !selected && styles.dim]}>
@@ -75,6 +88,10 @@ export function SectionBar({ sections, current, onPick, onPhotos }: SectionBarPr
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flexGrow: 0,
+    overflowX: 'auto',
+  },
   row: {
     alignItems: 'center',
     gap: space.md,

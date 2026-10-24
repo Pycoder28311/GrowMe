@@ -125,11 +125,12 @@ export const NUTRITION_NOTES = [
 /** Whether the plant shows the nutrition notes at all (its flags) */
 export const showsNutrition = (plant: PlantPageData) => plant.aromatic || plant.ornamental;
 
-/** The two blocks an open row of «Τι να προσέχεις» shows (its symptoms are in the row itself): their icon and colours (beige, yellow) */
+/** The three sections of an issue's panel in «Τι να προσέχεις»: their title, icon and colours (pink, beige, yellow) */
 export const WATCH_OUT_ITEMS = [
+  { key: 'symptoms', title: 'Τι βλέπω', icon: 'search', tone: 4 },
   { key: 'what', title: 'Τι είναι', icon: 'book', tone: 0 },
   { key: 'action', title: 'Τι κάνω', icon: 'leaf', tone: 5 },
-] as const satisfies readonly { key: 'what' | 'action'; title: string; icon: IconName; tone: number }[];
+] as const satisfies readonly { key: 'symptoms' | 'what' | 'action'; title: string; icon: IconName; tone: number }[];
 
 /* ─────────────── Lifecycle tabs ─────────────── */
 
