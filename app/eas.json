@@ -17,13 +17,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://growme.kopotitore.workers.dev"
+        "EXPO_PUBLIC_API_URL": "https://api.testingggg.lol"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://growme.kopotitore.workers.dev"
+        "EXPO_PUBLIC_API_URL": "https://api.testingggg.lol"
       }
     }
   },

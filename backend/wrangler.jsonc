@@ -34,7 +34,7 @@
 			"custom_domain": true
 		}
 	],
-	// Keep the workers.dev address: the app's API URL uses it
+	// Keep the workers.dev address until every installed app uses api.testingggg.lol (older builds still call it), then set false
 	"workers_dev": true,
 	"d1_databases": [
 		{
@@ -75,7 +75,7 @@
 		"APP_SCHEME": "growme",
 		"WEB_ORIGINS": "http://localhost:8081",
 		"IMAGES_URL": "https://images.testingggg.lol",
-		"BETTER_AUTH_URL": "https://growme.kopotitore.workers.dev",
+		"BETTER_AUTH_URL": "https://api.testingggg.lol",
 		"EMAIL_FROM": "Grow Here <no-reply@testingggg.lol>",
 		// Admin dashboard (Cloudflare Access). ACCESS_AUD: the "Application Audience (AUD) Tag" of the
 		// Grow Here Admin application in Cloudflare One; until it is set the admin part refuses everything.
