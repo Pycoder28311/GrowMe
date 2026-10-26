@@ -1,5 +1,5 @@
 import { lifespanLabel, parseRichContent } from '@growme/shared';
-import { useLocalSearchParams } from 'expo-router';
+import { useIsFocused, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
@@ -34,9 +34,13 @@ import { PillButton } from '@/components/ui/pill-button';
 import { Section } from '@/components/ui/section';
 import { NOTES, NUTRITION_NOTES, restrictionRows, showsNutrition, type PlantPageData } from '@/config/plant-page';
 import { usePageSections } from '@/lib/page-sections';
+import { usePlayWindow } from '@/lib/play-window';
 import { useCombinationPlants, usePlant } from '@/lib/plants';
 import { previewOf } from '@/lib/result-preview';
 import { botanical, colors, SQUARE_FLOWER_COLORS, radius, sectionTitle, serif, size, space, tileGrain, tileShadowStyle, tileTone, TITLE_FLOWER } from '@/theme';
+
+/** How long the tiles' animations play once they come into view, before they rest (looping forever redraws every frame) */
+const TILES_PLAY_MS = 10_000;
 
 /** The page's sections in order, for the ones this plant has (the section bar between the corners) */
 function sectionsOf(plant: PlantPageData | null, combinations: boolean): PageSection[] {
@@ -96,6 +100,10 @@ export default function PlantScreen() {
   );
   usePageHeader(header);
 
+  // The tiles' animations run while the top of the page is in view, for TILES_PLAY_MS (again after scrolling back)
+  const focused = useIsFocused();
+  const tilesInView = [current, atHeader].some((section) => section === 'images' || section === 'info');
+  const tilesPlaying = usePlayWindow(focused && tilesInView, TILES_PLAY_MS);
 
   if (state === 'loading') {
     // The same as the zoom from a search result opened onto: its photo and name, gray bars for the rest
@@ -122,8 +130,6 @@ export default function PlantScreen() {
   const askAbout = { id: plant.id, name: plant.name, image: photos[0] ?? null };
   // «Δες την περιγραφή» while the description is still below the screen
   const showDescriptionButton = !!plant.description && below.has('description');
-  // The tiles' animations run while the top of the page is in view
-  const tilesPlaying = [current, atHeader].some((section) => section === 'images' || section === 'info');
 
   return (
     <View style={styles.root}>

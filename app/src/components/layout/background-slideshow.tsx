@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedReaction, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { BACKGROUND_PHOTOS, type BackgroundPhoto } from '@/config/background-photos';
 import { useBackgroundBlur } from '@/lib/background-motion';
@@ -21,7 +22,7 @@ type SlideProps = {
 };
 
 // Shown photo: fades in and zooms very slightly; the one before it fades out underneath.
-// A permanently blurred copy sits on top and fades in with the page's scroll (useBackgroundBlur).
+// A blurred copy sits on top and fades in with the page's scroll (useBackgroundBlur).
 function Slide({ photo, active, initiallyVisible }: SlideProps) {
   const blur = useBackgroundBlur();
   const opacity = useSharedValue(initiallyVisible ? 1 : 0);
@@ -36,6 +37,14 @@ function Slide({ photo, active, initiallyVisible }: SlideProps) {
   const style = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
   // Opacity only (no animated blur filter): cheap to change on every scroll frame
   const blurredStyle = useAnimatedStyle(() => ({ opacity: blur.value }));
+  // The blurred copy is there only while the page is scrolled: an invisible full-screen photo is still painted
+  const [blurShown, setBlurShown] = useState(false);
+  useAnimatedReaction(
+    () => blur.value > 0,
+    (shown, before) => {
+      if (shown !== before) scheduleOnRN(setBlurShown, shown);
+    },
+  );
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
@@ -45,15 +54,17 @@ function Slide({ photo, active, initiallyVisible }: SlideProps) {
         contentPosition={photo.position ?? 'center'}
         style={StyleSheet.absoluteFill}
       />
-      <Animated.View style={[StyleSheet.absoluteFill, blurredStyle]}>
-        <Image
-          source={photo.source}
-          contentFit="cover"
-          contentPosition={photo.position ?? 'center'}
-          blurRadius={BLUR_RADIUS}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
+      {blurShown && (
+        <Animated.View style={[StyleSheet.absoluteFill, blurredStyle]}>
+          <Image
+            source={photo.source}
+            contentFit="cover"
+            contentPosition={photo.position ?? 'center'}
+            blurRadius={BLUR_RADIUS}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
     </Animated.View>
   );
 }
@@ -86,11 +97,10 @@ export function BackgroundSlideshow() {
           initiallyVisible={slides.previous === null}
         />
       ))}
-      {/* Soft white wash plus a glow behind the title, text and buttons */}
-      <View style={styles.wash} />
-      <View style={styles.glow} />
-      {/* Warm cream tint (the botanical page's) so photos with white walls never look plain white: strongest at the top */}
-      <View style={styles.warm} />
+      {/* One layer over the photos (each full-screen layer is costly to paint on phones): a warm cream tint (the
+          botanical page's) so photos with white walls never look plain white, strongest at the top, over a soft
+          white wash with a glow behind the title, text and buttons */}
+      <View style={styles.overlay} />
     </View>
   );
 }
@@ -101,16 +111,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.page,
   },
-  wash: {
+  // The first gradient is drawn on top. The second is the 15% white wash and the glow (10% → 15% at 50% → none at
+  // 80%) in one: 1 − 0.85 × (1 − glow) at each stop, the wash alone past 80%
+  overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: alpha(colors.surface, 0.15),
-  },
-  glow: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `radial-gradient(${alpha(colors.surface, 0.1)}, ${alpha(colors.surface, 0.15)} 50%, transparent 80%)`,
-  },
-  warm: {
-    ...StyleSheet.absoluteFill,
-    experimental_backgroundImage: `linear-gradient(to bottom, ${alpha(colors.page, 0.5)}, ${alpha(colors.page, 0.15)} 50%)`,
+    experimental_backgroundImage: [
+      `linear-gradient(to bottom, ${alpha(colors.page, 0.5)}, ${alpha(colors.page, 0.15)} 50%)`,
+      `radial-gradient(${alpha(colors.surface, 0.235)}, ${alpha(colors.surface, 0.2775)} 50%, ${alpha(colors.surface, 0.15)} 80%)`,
+    ].join(', '),
   },
 });

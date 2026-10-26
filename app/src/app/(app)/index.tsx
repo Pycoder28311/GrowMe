@@ -1,7 +1,8 @@
-import { router } from 'expo-router';
+import { router, useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -38,11 +39,17 @@ const TITLE_DISTANCE = 0.32;
 const TITLE_FONT = 56;
 const NAV_TITLE_FONT = 24;
 
+// How many times the chevron nudges before it rests (an endless loop would redraw the screen on every frame)
+const NUDGES = 5;
+
 // Two quick hops to the right, then a rest (1.8s cycle): a hint to tap. Waits for the title to pop in.
+// Nudges NUDGES times each time the home page comes into view.
 function NudgingChevron() {
   const x = useSharedValue(0);
+  const focused = useIsFocused();
 
   useEffect(() => {
+    if (!focused) return;
     const hop = { duration: 150, easing: Easing.inOut(Easing.ease) };
     const twoHopsThenRest = withSequence(
       withTiming(3, hop),
@@ -51,8 +58,12 @@ function NudgingChevron() {
       withTiming(0, hop),
       withTiming(0, { duration: 1200 }),
     );
-    x.set(withDelay(1000, withRepeat(twoHopsThenRest, -1)));
-  }, [x]);
+    x.set(withDelay(1000, withRepeat(twoHopsThenRest, NUDGES)));
+    return () => {
+      cancelAnimation(x);
+      x.set(0);
+    };
+  }, [x, focused]);
 
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
 

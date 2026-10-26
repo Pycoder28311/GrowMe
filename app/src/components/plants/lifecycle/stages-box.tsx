@@ -121,7 +121,9 @@ function GroupHalf({ group, index, count, position, heights }: { group: StageGro
 export function StagesBox({ groups, position, heights }: StagesBoxProps) {
   const boxStyle = useAnimatedStyle(() => {
     const hs = heights.get();
-    if (groups.length < 2 || hs.slice(0, groups.length).some((h) => h === 0)) return {};
+    if (groups.length < 2) return {};
+    // A plain loop: a callback (e.g. `.some(...)`) here is not a worklet and crashes the UI thread on phones
+    for (let i = 0; i < groups.length; i++) if (!hs[i]) return {};
     const pos = position.get();
     let total = 0;
     let offset = 0;

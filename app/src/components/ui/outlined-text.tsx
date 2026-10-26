@@ -1,7 +1,7 @@
-import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
+import { Platform, StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { colors, type FontSize } from '@/theme';
+import { alpha, colors, type FontSize } from '@/theme';
 
 /** How many white copies go round the letter (enough that a thick outline has no notches) */
 const COPIES = 16;
@@ -29,8 +29,26 @@ type OutlinedTextProps = {
 export function OutlinedText({ children, color, outline, outlineColor = colors.surface, size, bold, style, mainStyle, glow }: OutlinedTextProps) {
   return (
     <View>
-      {/* The glow: the text five times, behind everything, each throwing a big soft shadow all round */}
+      {/* The glow on phones: one soft gradient behind the text (big text shadows are slow to draw there, and
+          Android cuts them off at the text's box) */}
+      {glow && Platform.OS !== 'web' && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.glow,
+            {
+              top: -glow.radius,
+              bottom: -glow.radius,
+              left: -glow.radius,
+              right: -glow.radius,
+              experimental_backgroundImage: `radial-gradient(${alpha(glow.color, 0.75)}, ${alpha(glow.color, 0.45)} 40%, transparent 70%)`,
+            },
+          ]}
+        />
+      )}
+      {/* The glow on the web: the text five times, behind everything, each throwing a big soft shadow all round */}
       {glow &&
+        Platform.OS === 'web' &&
         [0, 1, 2, 3, 4].map((i) => (
           <AppText
             key={`glow${i}`}
@@ -70,6 +88,9 @@ export function OutlinedText({ children, color, outline, outlineColor = colors.s
 }
 
 const styles = StyleSheet.create({
+  glow: {
+    position: 'absolute',
+  },
   copy: {
     position: 'absolute',
     left: 0,
