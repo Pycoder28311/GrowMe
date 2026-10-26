@@ -1,0 +1,258 @@
+[
+  {
+    "results": [
+      {
+        "id": 1,
+        "combination_id": null,
+        "name": "Γεράνι",
+        "scientific_name": "Pelargonium × hortorum",
+        "description": "Το γεράνι είναι το πιο αγαπημένο φυτό του ελληνικού μπαλκονιού. Ανθίζει από την άνοιξη ως το φθινόπωρο με μεγάλες ταξιανθίες σε κόκκινο, ροζ, μωβ ή λευκό και αντέχει τη ζέστη, τον ήλιο και το αλμυρό αεράκι της θάλασσας.\nΘέλει λίγη φροντίδα: πολύ φως, πότισμα μόνο όταν στεγνώσει το χώμα και αφαίρεση των μαραμένων ανθών. Πολλαπλασιάζεται εύκολα με μοσχεύματα την άνοιξη ή το φθινόπωρο, ενώ τον χειμώνα θέλει προστασία από τον παγετό.\nΦωτογραφίες: George E. Koronaios (CC BY-SA 2.0); Petar Milošević (CC BY-SA 4.0); Petro Stelte (CC BY-SA 4.0), Wikimedia Commons.",
+        "difficulty": 1,
+        "sun_intense_start": 9,
+        "sun_intense_end": 16,
+        "planting_start": 3,
+        "planting_end": 5,
+        "created_at": 1791306334,
+        "native": "Ιθαγενές της Νότιας Αφρικής",
+        "food": 0,
+        "aromatic": 0,
+        "climbing": 0,
+        "ornamental": 1,
+        "succulent": 0,
+        "small_tree": 0,
+        "privacy": 0,
+        "planting_start_2": 9,
+        "planting_end_2": 10,
+        "planting_start_3": null,
+        "planting_end_3": null,
+        "indoor": 1,
+        "outdoor": 1,
+        "family": "Geraniaceae",
+        "trivia": "Τα «γεράνια» του μπαλκονιού είναι στην πραγματικότητα πελαργόνια (Pelargonium), όχι αληθινά γεράνια· τα φύλλα τους μυρίζουν όταν τα τρίψεις.",
+        "secret": "Κόβε τα μαραμένα άνθη και τα κιτρινισμένα φύλλα τακτικά: το φυτό βγάζει αμέσως καινούργια μπουμπούκια.",
+        "greenness": 0,
+        "evergreen": 0,
+        "frost_tolerance": "small",
+        "salt_tolerance": "big",
+        "wind_tolerance": "medium",
+        "pot_sizes": "[\"small\",\"medium\"]",
+        "difficulty_levels": "[\"small\"]",
+        "time_needed": "[\"small\"]",
+        "toxicity": "[\"cat\",\"dog\"]",
+        "sun_soft_start": 7,
+        "sun_soft_end": 9,
+        "seeding_start": 1,
+        "seeding_end": 3,
+        "seeding_start_2": null,
+        "seeding_end_2": null,
+        "seeding_start_3": null,
+        "seeding_end_3": null,
+        "lifespan_min": 3,
+        "lifespan_max": 5,
+        "nutrition": null,
+        "cook_tip": null,
+        "sun_hours": 7,
+        "flowering_start": null,
+        "flowering_end": null,
+        "flowering_start_2": null,
+        "flowering_end_2": null,
+        "flowering_start_3": null,
+        "flowering_end_3": null,
+        "fruiting_start": null,
+        "fruiting_end": null,
+        "fruiting_start_2": null,
+        "fruiting_end_2": null,
+        "fruiting_start_3": null,
+        "fruiting_end_3": null
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "EEUR",
+      "served_by_colo": "PRG",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.4515
+      },
+      "duration": 0.4515,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 225280,
+      "rows_read": 1,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "id": 3,
+        "plant_id": 1,
+        "title": "Σπορά και φύτρωμα",
+        "content": "Οι σπόροι φυτρώνουν σε ζεστό (20–24 °C), υγρό σπορόχωμα. Κάλυψέ τους ελαφρά και κράτα το χώμα νωπό.",
+        "position": 0,
+        "duration": "1-3 weeks",
+        "tab": "seed"
+      },
+      {
+        "id": 4,
+        "plant_id": 1,
+        "title": "Πρώτα αληθινά φύλλα",
+        "content": "Μετά τα κοτυληδόνια βγαίνουν τα πρώτα στρογγυλά φύλλα με τη χαρακτηριστική ζώνη. Αραίωσε τα πιο αδύναμα φυτά.",
+        "position": 1,
+        "duration": "4-6 weeks",
+        "tab": "seed"
+      },
+      {
+        "id": 5,
+        "plant_id": 1,
+        "title": "Μεταφύτευση σε γλάστρα",
+        "content": "Βάλ' το σε γλάστρα με καλή αποστράγγιση και σε θέση με ήλιο. Από εδώ ξεκινούν και τα φυτά του ανθοπωλείου.",
+        "position": 2,
+        "duration": "8-10 weeks",
+        "tab": "plant"
+      },
+      {
+        "id": 6,
+        "plant_id": 1,
+        "title": "Πρώτα άνθη",
+        "content": "Εμφανίζονται οι πρώτες ταξιανθίες. Κόβε τα μαραμένα άνθη για να συνεχίσει να ανθίζει.",
+        "position": 3,
+        "duration": "4-5 months",
+        "tab": "plant"
+      },
+      {
+        "id": 7,
+        "plant_id": 1,
+        "title": "Πλήρης ανθοφορία",
+        "content": "Όλο το καλοκαίρι γεμίζει άνθη. Λίπαινε κάθε δύο εβδομάδες και πότιζε τακτικά τις ζεστές μέρες.",
+        "position": 4,
+        "duration": "5-8 months",
+        "tab": "plant"
+      },
+      {
+        "id": 8,
+        "plant_id": 1,
+        "title": "Χειμερινή ανάπαυση",
+        "content": "Το φυτό σταματά να ανθίζει. Κλάδεψε ελαφρά, πότιζε λίγο και προστάτεψέ το από τον παγετό.",
+        "position": 5,
+        "duration": "9-12 months",
+        "tab": "plant"
+      },
+      {
+        "id": 9,
+        "plant_id": 1,
+        "title": "Πότισμα",
+        "content": "Πότιζε μόνο όταν στεγνώσει το πάνω χώμα, στη βάση και όχι στα φύλλα. Το νερό που λιμνάζει στο πιατάκι σαπίζει τις ρίζες.",
+        "position": 6,
+        "duration": null,
+        "tab": "care"
+      },
+      {
+        "id": 10,
+        "plant_id": 1,
+        "title": "Ήλιος και θέση",
+        "content": "Θέλει τουλάχιστον 5–6 ώρες φως. Στον δυνατό καλοκαιρινό ήλιο της μεσημβρίας προτίμησε λίγη σκιά.",
+        "position": 7,
+        "duration": null,
+        "tab": "care"
+      },
+      {
+        "id": 11,
+        "plant_id": 1,
+        "title": "Λίπανση",
+        "content": "Από την άνοιξη ως το φθινόπωρο δώσε υγρό λίπασμα για ανθοφόρα κάθε δύο εβδομάδες. Τον χειμώνα όχι.",
+        "position": 8,
+        "duration": null,
+        "tab": "care"
+      },
+      {
+        "id": 12,
+        "plant_id": 1,
+        "title": "Αφαίρεση μαραμένων ανθών",
+        "content": "Κόβε τα μαραμένα άνθη και τα κιτρινισμένα φύλλα από τη βάση τους, για να συνεχίσει να ανθίζει.",
+        "position": 9,
+        "duration": null,
+        "tab": "care"
+      },
+      {
+        "id": 13,
+        "plant_id": 1,
+        "title": "Κλάδεμα και χειμώνας",
+        "content": "Στο τέλος του φθινοπώρου κλάδεψε ελαφρά και μάζεψέ το σε προστατευμένο, φωτεινό σημείο μακριά από παγετό.",
+        "position": 10,
+        "duration": null,
+        "tab": "care"
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "EEUR",
+      "served_by_colo": "PRG",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.1924
+      },
+      "duration": 0.1924,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 225280,
+      "rows_read": 11,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  },
+  {
+    "results": [
+      {
+        "id": 2,
+        "plant_id": 1,
+        "title": "Πεταλουδίτσα του γερανιού",
+        "label": "Έντομο",
+        "symptoms": null,
+        "what": "Η κάμπια της (Cacyreus marshalli) τρυπά τους βλαστούς και τα μπουμπούκια, που μαυρίζουν και ξεραίνονται. Κόψε τους προσβεβλημένους βλαστούς και ψέκασε με Bacillus thuringiensis από τον Μάιο ως τον Οκτώβριο.",
+        "action": null
+      },
+      {
+        "id": 3,
+        "plant_id": 1,
+        "title": "Σκουριά",
+        "label": "Μύκητας",
+        "symptoms": null,
+        "what": "Κίτρινες κηλίδες πάνω στα φύλλα και καστανές φουσκάλες από κάτω. Αφαίρεσε τα άρρωστα φύλλα, πότιζε στη βάση χωρίς να βρέχεις το φύλλωμα και άφησε χώρο για αερισμό.",
+        "action": null
+      },
+      {
+        "id": 4,
+        "plant_id": 1,
+        "title": "Βοτρύτης (γκρίζα σήψη)",
+        "label": "Μύκητας",
+        "symptoms": null,
+        "what": "Γκρίζο χνούδι στα άνθη και στα φύλλα, συνήθως με υγρασία και κρύο. Καθάριζε τα πεσμένα άνθη και φύλλα και μην ποτίζεις αργά το απόγευμα.",
+        "action": null
+      }
+    ],
+    "success": true,
+    "meta": {
+      "served_by": "v3-prod",
+      "served_by_region": "EEUR",
+      "served_by_colo": "PRG",
+      "served_by_primary": true,
+      "timings": {
+        "sql_duration_ms": 0.1042
+      },
+      "duration": 0.1042,
+      "changes": 0,
+      "last_row_id": 0,
+      "changed_db": false,
+      "size_after": 225280,
+      "rows_read": 3,
+      "rows_written": 0,
+      "total_attempts": 1
+    }
+  }
+]
