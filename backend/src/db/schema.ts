@@ -154,7 +154,7 @@ export const plants = sqliteTable(
         native: text('native'),
         trivia: text('trivia'),
         secret: text('secret'),
-        // Aromatic and ornamental plants: nutritional value and a cook's tip
+        // Edible, aromatic and ornamental plants: nutritional value and a cook's tip
         nutrition: text('nutrition'),
         cookTip: text('cook_tip'),
         // Yes/no fields (PLANT_FLAGS in @growme/shared)

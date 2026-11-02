@@ -330,8 +330,8 @@ export function PlantForm({ item: p, options }: { item: Plant | null; options: P
         <TextArea field="secret" label="Μυστικό επιτυχίας" value={p?.secret} rows={2} maxLength={2000} nullable />
       </FormSection>
 
-      {/* Aromatic and ornamental plants (dimmed while neither is on) */}
-      <FormSection title="Θρεπτική αξία / Συμβουλή μαγειρικής" when="aromatic ornamental" whenNote="Για αρωματικά και καλλωπιστικά φυτά">
+      {/* Edible, aromatic and ornamental plants (dimmed while none of them is on) */}
+      <FormSection title="Θρεπτική αξία / Συμβουλή μαγειρικής" when="food aromatic ornamental" whenNote="Για βρώσιμα, αρωματικά και καλλωπιστικά φυτά">
         <TextArea field="nutrition" label="Θρεπτική αξία" value={p?.nutrition} rows={3} maxLength={2000} nullable />
         <TextArea field="cookTip" label="Συμβουλή μαγειρικής" value={p?.cookTip} rows={3} maxLength={2000} nullable />
       </FormSection>

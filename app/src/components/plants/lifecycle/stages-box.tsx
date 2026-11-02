@@ -1,6 +1,7 @@
 import { durationLabel, type Lifecycle } from '@growme/shared';
-import { StyleSheet, View } from 'react-native';
-import Animated, { interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { AppText } from '@/components/ui/app-text';
 import { LongLeafOutlineShape, PaperGrain } from '@/components/ui/flower-shapes';
@@ -9,11 +10,18 @@ import { botanical, radius, serif, smallCaps, space, tileGrain, tileShadowStyle,
 
 import { firstLine, type StageGroup } from './stage-groups';
 
-/** Where (in a group's progress) it stops separating from its neighbours and starts going behind */
-const APART = 0.3;
 const R = radius.md;
 /** The leaf's size and place, as on the rows below the squares (their height is 68) */
 const LEAF = 68 * 1.7;
+/** The box's height follows its stages: opening, closing and changing tab */
+const RESIZE = { duration: 380, easing: Easing.inOut(Easing.cubic) };
+/** A tab's stages fade in over the box's beige */
+const FADE_MS = 260;
+/** Room round the box inside the clip that opens it, so its shadow isn't cut off (the tiles' shadow: blur 8, 3 down) */
+const SHADOW_ROOM = 12;
+
+/** The box's height going to `to`: at once with Reduce Motion */
+const resized = (to: number, reduced: boolean) => (reduced ? to : withTiming(to, RESIZE));
 
 /**
  * One stage: a dot in its group's colour, its title in the serif and its time in a small solid pill (`pill`, over
@@ -48,58 +56,17 @@ function StageRow({ stage, first, color, pill }: { stage: Lifecycle; first: bool
   );
 }
 
-type StagesBoxProps = {
-  groups: readonly StageGroup[];
-  /** Which group is in front: 0 is the first; between two whole numbers, the first of them is sinking behind */
-  position: SharedValue<number>;
-  /** The groups' heights while shown (set by the groups as they are measured) */
-  heights: SharedValue<number[]>;
-};
-
-const progress = (position: number, index: number) => {
-  'worklet';
-  return Math.min(1, Math.max(0, position - index));
-};
-
-/** One group of stages in the box: it sinks behind and fades as `position` passes its index */
-function GroupHalf({ group, index, count, position, heights }: { group: StageGroup; index: number; count: number; position: SharedValue<number>; heights: SharedValue<number[]> }) {
-  const style = useAnimatedStyle(() => {
-    const pos = position.get();
-    const hs = heights.get();
-    const p = progress(pos, index);
-    // The groups before this one are moving up: this one follows them (until they leave the layout)
-    let offset = 0;
-    let earlier = 0;
-    for (let k = 0; k < index; k++) {
-      const pk = progress(pos, k);
-      if (pk < 1) offset -= (hs[k] ?? 0) * pk;
-      earlier = Math.max(earlier, pk);
-    }
-    const top = index === 0 ? R : interpolate(earlier, [0, APART], [0, R], 'clamp');
-    const bottom = index === count - 1 ? R : interpolate(p, [0, APART], [0, R], 'clamp');
-    return {
-      maxHeight: p >= 1 ? 0 : 100000,
-      opacity: interpolate(p, [APART, 1], [1, 0], 'clamp'),
-      borderTopLeftRadius: top,
-      borderTopRightRadius: top,
-      borderBottomLeftRadius: bottom,
-      borderBottomRightRadius: bottom,
-      transform: [
-        { translateY: offset + interpolate(p, [APART, 1], [0, (hs[index] ?? 0) * 0.3], 'clamp') },
-        { scale: interpolate(p, [APART, 1], [1, 0.9], 'clamp') },
-      ],
-    };
-  });
+/** One tab's stages in its tint: they fade in when the tab is picked (a new tab mounts a new one) */
+function GroupPanel({ group }: { group: StageGroup }) {
+  const opacity = useSharedValue(0);
+  useEffect(() => {
+    opacity.set(withTiming(1, { duration: FADE_MS }));
+  }, [opacity]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get() }));
   const { tone, color } = tabDef(group.tab);
-  const shade = useAnimatedStyle(() => ({ opacity: interpolate(progress(position.get(), index), [APART, 1], [0, 0.25], 'clamp') }));
 
   return (
-    <Animated.View
-      onLayout={(event) => {
-        const height = event.nativeEvent.layout.height;
-        if (height > 0) heights.set(heights.get().map((h, i) => (i === index ? height : h)));
-      }}
-      style={[styles.half, { backgroundColor: tone.background }, index > 0 && styles.joint, style]}>
+    <Animated.View style={[styles.panel, { backgroundColor: tone.background }, style]}>
       {/* The group's tint, a faint outlined leaf with a soft green inner shadow half out past the right edge like the
           rows' leaves, paper grain, then the stages over it (their time pills in front; their lines stop short of it) */}
       <LongLeafOutlineShape size={LEAF} color={tone.shape} glow={botanical.leaf} glowSpread={0.35} rotate={-62} opacity={0.45} style={styles.leaf} />
@@ -107,68 +74,78 @@ function GroupHalf({ group, index, count, position, heights }: { group: StageGro
       {group.stages.map(([, stage], i) => (
         <StageRow key={stage.id} stage={stage} first={i === 0} color={color} pill={tone.circle} />
       ))}
-      <Animated.View pointerEvents="none" style={[styles.shade, shade]} />
     </Animated.View>
   );
 }
 
 /**
- * A life cycle's stages in one white rounded box, a group on top of the next (seed, plant, care). When a
- * later tab is picked the groups before it sink behind and fade, and the rest move up to where the first
- * one started; a group leaves the layout in the same frame as the ones after it stop being offset, so
- * nothing jumps. The box's height follows frame by frame, so what is below it on the page moves with it.
+ * The picked tab's stages in one rounded box under the tabs; closed (no height) while no tab is picked. Opening
+ * and changing tab only resize the box to its new stages, which fade in: no other tab's stages ever show. Closing
+ * keeps the last stages in it while it folds away.
  */
-export function StagesBox({ groups, position, heights }: StagesBoxProps) {
-  const boxStyle = useAnimatedStyle(() => {
-    const hs = heights.get();
-    if (groups.length < 2) return {};
-    // A plain loop: a callback (e.g. `.some(...)`) here is not a worklet and crashes the UI thread on phones
-    for (let i = 0; i < groups.length; i++) if (!hs[i]) return {};
-    const pos = position.get();
-    let total = 0;
-    let offset = 0;
-    for (let i = 0; i < groups.length; i++) {
-      const p = progress(pos, i);
-      if (p < 1) total += hs[i];
-      if (i < groups.length - 1 && p < 1) offset -= hs[i] * p;
-    }
-    return { height: total + offset };
-  });
+export function StagesBox({ group, reduced }: { group: StageGroup | null; reduced: boolean }) {
+  // The stages in the box: the picked tab's, or the last ones while it closes
+  const [shown, setShown] = useState(group);
+  if (group !== null && group !== shown) setShown(group);
+
+  const height = useSharedValue(0);
+  // The box's height as last measured, and whose stages it was
+  const measured = useRef<{ tab: string; height: number } | null>(null);
+
+  // Closing, or opening again on the stages already measured (a new tab's are measured as they mount, in onLayout)
+  useEffect(() => {
+    if (group === null) height.set(resized(0, reduced));
+    else if (measured.current?.tab === group.tab) height.set(resized(measured.current.height, reduced));
+  }, [group, reduced, height]);
+
+  console.log('DEBUG StagesBox render', group?.tab ?? null, shown?.tab ?? null, reduced);
+  const onLayout = (event: LayoutChangeEvent) => {
+    console.log('DEBUG StagesBox onLayout', shown?.tab ?? null, group?.tab ?? null, event.nativeEvent.layout.height);
+    if (!shown) return;
+    measured.current = { tab: shown.tab, height: event.nativeEvent.layout.height };
+    if (group !== null) height.set(resized(measured.current.height, reduced));
+  };
+
+  const clip = useAnimatedStyle(() => ({ height: height.get() }));
 
   return (
-    // The squares' shadow, round the whole box
-    <Animated.View style={[styles.boxShadow, boxStyle]}>
-      {groups.map((group, index) => (
-        <GroupHalf key={group.tab} group={group} index={index} count={groups.length} position={position} heights={heights} />
-      ))}
+    <Animated.View style={[styles.clip, clip]}>
+      {shown && (
+        // Mounted again for each tab, so its stages are always measured and fade in
+        <View key={shown.tab} onLayout={onLayout} style={styles.room}>
+          {/* The squares' shadow and the stages' beige under the tab's tint, as it fades in */}
+          <View style={styles.box}>
+            <GroupPanel group={shown} />
+          </View>
+        </View>
+      )}
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  boxShadow: {
+  clip: {
+    overflow: 'hidden',
+    marginHorizontal: -SHADOW_ROOM,
+  },
+  room: {
+    paddingTop: space.sm,
+    paddingHorizontal: SHADOW_ROOM,
+    paddingBottom: SHADOW_ROOM,
+  },
+  box: {
     borderRadius: R,
     backgroundColor: tileTone(0).background,
     ...tileShadowStyle,
   },
-  half: {
+  panel: {
     paddingHorizontal: space.md,
+    borderRadius: R,
     overflow: 'hidden',
-  },
-  // The line between two groups while they are joined
-  joint: {
-    borderTopWidth: 1,
-    borderTopColor: botanical.line,
   },
   leaf: {
     right: -68 * 0.55,
     top: -68 * 0.35,
-  },
-  // Darkens a group as it goes behind (rounded like the group once it has split off)
-  shade: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: R,
-    backgroundColor: botanical.shade,
   },
   row: {
     gap: space.xs,

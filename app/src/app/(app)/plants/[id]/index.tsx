@@ -187,19 +187,19 @@ export default function PlantScreen() {
           {NOTES.map((note) => (
             <NoteSection key={note.key} plant={plant} note={note} />
           ))}
-          {showsNutrition(plant) &&
-            NUTRITION_NOTES.map((note) => <NoteSection key={note.key} plant={plant} note={note} />)}
         </Block>
 
         {plant.lifecycles.length > 0 && (
           <Block onLayout={register('lifecycle')}>
-            <LifecycleCard
-              stages={plant.lifecycles}
-              // The buttons just under the corner buttons
-              onReveal={(y) =>
-                scrollRef.current?.scrollTo({ y: Math.max(0, page.scrollY.current + y - topClearance - space.sm) })
-              }
-            />
+            <Section title="Κύκλος ζωής & Φροντίδα" titleStyle={sectionTitle}>
+              <LifecycleCard
+                stages={plant.lifecycles}
+                // The buttons just under the corner buttons
+                onReveal={(y) =>
+                  scrollRef.current?.scrollTo({ y: Math.max(0, page.scrollY.current + y - topClearance - space.sm) })
+                }
+              />
+            </Section>
           </Block>
         )}
 
@@ -208,6 +208,14 @@ export default function PlantScreen() {
           <Block onLayout={register('watch-out')}>
             <WatchOutSection plant={plant} />
           </Block>
+        )}
+        {/* The nutritional value and the cook's tip, just above the description */}
+        {showsNutrition(plant) && NUTRITION_NOTES.some((note) => plant[note.key]) && (
+          <View style={styles.block}>
+            {NUTRITION_NOTES.map((note) => (
+              <NoteSection key={note.key} plant={plant} note={note} />
+            ))}
+          </View>
         )}
         {plant.description && (
           <Block onLayout={register('description')}>

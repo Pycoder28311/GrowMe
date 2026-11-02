@@ -117,7 +117,7 @@ const plantFields = z.object({
   native: trait,
   trivia: longText.nullable(),
   secret: longText.nullable(),
-  /** Aromatic and ornamental plants: the “Θρεπτική αξία” and “Συμβουλή μαγειρικής” texts */
+  /** Edible, aromatic and ornamental plants: the “Θρεπτική αξία” and “Συμβουλή μαγειρικής” texts */
   nutrition: longText.nullable(),
   cookTip: longText.nullable(),
   ...flagFields,

@@ -116,14 +116,14 @@ export const NOTES = [
   { key: 'secret', title: 'Μυστικό επιτυχίας', icon: 'key', tone: 4 },
 ] as const satisfies readonly { key: 'trivia' | 'secret'; title: string; icon: IconName; tone: number }[];
 
-/** Nutritional value and the cook's tip: shown for aromatic or ornamental plants that have the text, as notes like the two above */
+/** Nutritional value and the cook's tip: shown for edible, aromatic or ornamental plants that have the text, as notes like the two above */
 export const NUTRITION_NOTES = [
   { key: 'nutrition', title: 'Θρεπτική αξία', icon: 'food', tone: 0 },
   { key: 'cookTip', title: 'Συμβουλή μαγειρικής', icon: 'aroma', tone: 1 },
 ] as const satisfies readonly { key: 'nutrition' | 'cookTip'; title: string; icon: IconName; tone: number }[];
 
 /** Whether the plant shows the nutrition notes at all (its flags) */
-export const showsNutrition = (plant: PlantPageData) => plant.aromatic || plant.ornamental;
+export const showsNutrition = (plant: PlantPageData) => plant.food || plant.aromatic || plant.ornamental;
 
 /** The three sections of an issue's panel in «Τι να προσέχεις»: their title, icon and colours (pink, beige, yellow) */
 export const WATCH_OUT_ITEMS = [

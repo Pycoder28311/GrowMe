@@ -90,7 +90,7 @@ export const TILE_DEFS: readonly TileDef[] = [
   {
     key: 'timeNeeded',
     icon: FACT_ICONS.timeNeeded,
-    label: 'Χρόνος που θέλει',
+    label: 'Χρόνος φροντίδας',
     build: ({ timeNeeded }) => {
       const hardest = hardestOf(timeNeeded);
       if (!hardest) return null;

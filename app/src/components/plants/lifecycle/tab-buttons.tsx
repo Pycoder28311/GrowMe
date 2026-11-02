@@ -16,11 +16,18 @@ const INSET = space.xs;
 /** The bottom bar's slide: springy, with a small overshoot */
 const SLIDE = { duration: 350, easing: Easing.bezier(0.34, 1.2, 0.64, 1) };
 
-/** The picked tab's cream pill, sliding to the tab picked and wobbling like the bottom bar's tile on the way */
+/**
+ * The picked tab's cream pill, sliding to the tab picked and wobbling like the bottom bar's tile on the way. It
+ * fades in under the first tab picked (it isn't there while none is).
+ */
 function SlidingPill({ lit, width }: { lit: number; width: number }) {
   const x = useSharedValue(lit * (width + INSET));
   const squashX = useSharedValue(1);
   const squashY = useSharedValue(1);
+  const opacity = useSharedValue(0);
+  useEffect(() => {
+    opacity.set(withTiming(1, { duration: 200 }));
+  }, [opacity]);
   // No slide until the first pick (and none when the track is resized)
   const last = useRef({ lit, width });
   useEffect(() => {
@@ -37,6 +44,7 @@ function SlidingPill({ lit, width }: { lit: number; width: number }) {
     last.current = { lit, width };
   }, [lit, width, x, squashX, squashY]);
   const style = useAnimatedStyle(() => ({
+    opacity: opacity.get(),
     transform: [{ translateX: x.get() }, { scaleX: squashX.get() }, { scaleY: squashY.get() }],
   }));
   return <Animated.View pointerEvents="none" style={[styles.pill, { width }, style]} />;
@@ -46,9 +54,9 @@ function SlidingPill({ lit, width }: { lit: number; width: number }) {
  * The life cycle's tabs («Από σπόρο» | «Μεταφύτευση» | «Περιποίηση»), one per group the plant has, as one
  * segmented pill in the tiles' style: a beige track with paper grain and the squares' shadow, a raised cream
  * pill under the tab picked (it slides to a new pick, like the bottom bar's tile), its name in the serif, the
- * others plain muted words.
+ * others plain muted words. `lit` null: none picked, all plain.
  */
-export function TabButtons({ groups, lit, onPick }: { groups: readonly StageGroup[]; lit: number; onPick: (index: number) => void }) {
+export function TabButtons({ groups, lit, onPick }: { groups: readonly StageGroup[]; lit: number | null; onPick: (index: number) => void }) {
   // One tab's width, once the track is measured
   const [tabWidth, setTabWidth] = useState(0);
   return (
@@ -58,7 +66,7 @@ export function TabButtons({ groups, lit, onPick }: { groups: readonly StageGrou
         style={styles.track}
         onLayout={(event) => setTabWidth((event.nativeEvent.layout.width - INSET * (groups.length + 1)) / groups.length)}>
         <PaperGrain opacity={tileGrain} />
-        {tabWidth > 0 && <SlidingPill lit={lit} width={tabWidth} />}
+        {tabWidth > 0 && lit !== null && <SlidingPill lit={lit} width={tabWidth} />}
         {groups.map((group, index) => {
           const { label } = tabDef(group.tab);
           const on = index === lit;
