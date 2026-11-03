@@ -194,9 +194,11 @@ export default function PlantScreen() {
             <Section title="Κύκλος ζωής & Φροντίδα" titleStyle={sectionTitle}>
               <LifecycleCard
                 stages={plant.lifecycles}
-                // The buttons just under the corner buttons
+                // The section's title just under the corner buttons, the buttons below it
                 onReveal={(y) =>
-                  scrollRef.current?.scrollTo({ y: Math.max(0, page.scrollY.current + y - topClearance - space.sm) })
+                  scrollRef.current?.scrollTo({
+                    y: Math.max(0, page.scrollY.current + y - topClearance - space.sm - sectionTitle.lineHeight - space.md),
+                  })
                 }
               />
             </Section>

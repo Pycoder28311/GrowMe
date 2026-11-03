@@ -98,9 +98,7 @@ export function StagesBox({ group, reduced }: { group: StageGroup | null; reduce
     else if (measured.current?.tab === group.tab) height.set(resized(measured.current.height, reduced));
   }, [group, reduced, height]);
 
-  console.log('DEBUG StagesBox render', group?.tab ?? null, shown?.tab ?? null, reduced);
   const onLayout = (event: LayoutChangeEvent) => {
-    console.log('DEBUG StagesBox onLayout', shown?.tab ?? null, group?.tab ?? null, event.nativeEvent.layout.height);
     if (!shown) return;
     measured.current = { tab: shown.tab, height: event.nativeEvent.layout.height };
     if (group !== null) height.set(resized(measured.current.height, reduced));
@@ -128,7 +126,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginHorizontal: -SHADOW_ROOM,
   },
+  // Absolute, so its height is always its stages' and never follows the clip's (in the flow it collapsed with it)
   room: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingTop: space.sm,
     paddingHorizontal: SHADOW_ROOM,
     paddingBottom: SHADOW_ROOM,

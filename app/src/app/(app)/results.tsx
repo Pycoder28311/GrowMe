@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
+  LayoutAnimationConfig,
   useAnimatedStyle,
   useReducedMotion,
   withTiming,
@@ -231,34 +232,38 @@ export default function ResultsScreen() {
         scrollEventThrottle={16}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.list, { paddingTop: topClearance + space.sm }]}>
-        <PlantSection
-          title="Φυτά εσωτερικού χώρου"
-          searchLabel="Αναζήτηση"
-          section="indoor"
-          plants={inSection.indoor}
-          selection={filters.indoor}
-          status={status}
-          onRetry={load}
-          open={!closed.indoor}
-          onToggle={() => toggle('indoor')}
-          onEngage={() => engage('indoor')}
-          filterCount={chosenCount(filters.indoor, 'indoor')}
-          onFilters={() => openFilters('indoor')}
-        />
-        <PlantSection
-          title="Φυτά εξωτερικού χώρου"
-          searchLabel="Αναζήτηση"
-          section="outdoor"
-          plants={inSection.outdoor}
-          selection={filters.outdoor}
-          status={status}
-          onRetry={load}
-          open={!closed.outdoor}
-          onToggle={() => toggle('outdoor')}
-          onEngage={() => engage('outdoor')}
-          filterCount={chosenCount(filters.outdoor, 'outdoor')}
-          onFilters={() => openFilters('outdoor')}
-        />
+        {/* No slide-in when the page opens: on Android, cards loaded during it keep the wrong size and place (their
+            sections still slide when opened or closed by tapping their heading) */}
+        <LayoutAnimationConfig skipEntering>
+          <PlantSection
+            title="Φυτά εσωτερικού χώρου"
+            searchLabel="Αναζήτηση"
+            section="indoor"
+            plants={inSection.indoor}
+            selection={filters.indoor}
+            status={status}
+            onRetry={load}
+            open={!closed.indoor}
+            onToggle={() => toggle('indoor')}
+            onEngage={() => engage('indoor')}
+            filterCount={chosenCount(filters.indoor, 'indoor')}
+            onFilters={() => openFilters('indoor')}
+          />
+          <PlantSection
+            title="Φυτά εξωτερικού χώρου"
+            searchLabel="Αναζήτηση"
+            section="outdoor"
+            plants={inSection.outdoor}
+            selection={filters.outdoor}
+            status={status}
+            onRetry={load}
+            open={!closed.outdoor}
+            onToggle={() => toggle('outdoor')}
+            onEngage={() => engage('outdoor')}
+            filterCount={chosenCount(filters.outdoor, 'outdoor')}
+            onFilters={() => openFilters('outdoor')}
+          />
+        </LayoutAnimationConfig>
       </Animated.ScrollView>
 
       {sheet && (

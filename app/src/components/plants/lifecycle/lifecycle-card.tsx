@@ -17,7 +17,7 @@ export function LifecycleCard({
   onReveal,
 }: {
   stages: Lifecycle[];
-  /** Scroll the page so this y on screen comes just under the corner buttons */
+  /** Scroll the page to the buttons, which are at this y on screen */
   onReveal: (windowY: number) => void;
 }) {
   const reduced = useReducedMotion();
@@ -25,7 +25,7 @@ export function LifecycleCard({
   const groups = useMemo(() => groupStages(stages), [stages]);
   const [lit, setLit] = useState<number | null>(null);
 
-  // The page scrolls so the buttons sit under the corner buttons, the picked group's stages below them
+  // The page scrolls so the buttons sit near the top, the picked group's stages below them
   const reveal = () => head.current?.measureInWindow((_, y) => onReveal(y));
 
   const pick = (index: number) => {
